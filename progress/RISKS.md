@@ -23,3 +23,9 @@
 - Mitigation: add a future task to review `flutter pub outdated` and plan a staged upgrade.
 - Owner: CTO
 - Status: OPEN
+
+## R-005 Candidate pool sourcing in-memory
+- Risk: matching candidate pool is in-memory and requires POSTGRES_DSN for production, risking empty delivery.
+- Mitigation: add a follow-up task for DB-backed candidate selection without social graph signals.
+- Owner: Backend + CTO
+- Status: OPEN

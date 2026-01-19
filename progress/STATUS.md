@@ -1,5 +1,7 @@
 # Status
 
+MVP Core Complete: The core end-to-end flow is complete for mood, message delivery, inbox, and acknowledgements.
+
 ## Current iteration goal
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
@@ -13,11 +15,10 @@
 - [T-007] Define privacy-safe event taxonomy
 - [T-008] Build Flutter app skeleton with Riverpod
 - [T-010] Implement inbox UI and acknowledgement flow
+- [T-011] Deliver end-to-end happy path
 
 ## In progress
 - [T-009] Implement mood entry flow and crisis UX
-- [T-011] Deliver end-to-end happy path
-- [T-010] Implement inbox UI and acknowledgement flow
 
 ## Next
 
