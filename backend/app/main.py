@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .config import API_VERSION, MAX_BODY_BYTES
 from .logging import configure_logging, redact_headers
+from .events import EventName, get_event_emitter, new_request_id, safe_emit
 from .matching import Candidate, get_dedupe_store, match_decision
 from .moderation import get_leak_throttle, moderate_text
 from .rate_limit import rate_limit
@@ -129,7 +130,9 @@ def submit_mood(
     principal=Depends(current_principal),
     repo=Depends(get_repository),
     leak_throttle=Depends(get_leak_throttle),
+    emitter=Depends(get_event_emitter),
 ) -> MoodResponse:
+    request_id = new_request_id()
     text = payload.free_text or ""
     result = moderate_text(text, principal.principal_id, leak_throttle)
 
@@ -144,6 +147,34 @@ def submit_mood(
                 risk_level=result.risk_level,
                 sanitized_text=result.sanitized_text,
             )
+        )
+
+    safe_emit(
+        emitter,
+        EventName.MOOD_SUBMITTED,
+        {
+            "request_id": request_id,
+            "intensity_bucket": payload.intensity,
+            "risk_bucket": result.risk_level,
+            "has_free_text": bool(payload.free_text),
+        },
+    )
+    if result.identity_leak or result.risk_level > 0:
+        safe_emit(
+            emitter,
+            EventName.MODERATION_FLAGGED,
+            {
+                "request_id": request_id,
+                "risk_bucket": result.risk_level,
+                "identity_leak": result.identity_leak,
+                "leak_type_count": len(result.leak_types),
+            },
+        )
+    if result.risk_level == 2:
+        safe_emit(
+            emitter,
+            EventName.CRISIS_BLOCKED,
+            {"request_id": request_id, "risk_bucket": result.risk_level},
         )
 
     return MoodResponse(
@@ -165,7 +196,9 @@ def submit_message(
     principal=Depends(current_principal),
     repo=Depends(get_repository),
     leak_throttle=Depends(get_leak_throttle),
+    emitter=Depends(get_event_emitter),
 ) -> MessageResponse:
+    request_id = new_request_id()
     result = moderate_text(payload.free_text, principal.principal_id, leak_throttle)
     crisis_action = "show_crisis" if result.risk_level == 2 else None
     status_value = "blocked" if result.risk_level == 2 else "queued"
@@ -181,6 +214,35 @@ def submit_message(
                 sanitized_text=result.sanitized_text,
                 reid_risk=result.reid_risk,
             )
+        )
+
+    safe_emit(
+        emitter,
+        EventName.MESSAGE_SUBMITTED,
+        {
+            "request_id": request_id,
+            "intensity_bucket": payload.intensity,
+            "risk_bucket": result.risk_level,
+            "identity_leak": result.identity_leak,
+            "status": status_value,
+        },
+    )
+    if result.identity_leak or result.risk_level > 0:
+        safe_emit(
+            emitter,
+            EventName.MODERATION_FLAGGED,
+            {
+                "request_id": request_id,
+                "risk_bucket": result.risk_level,
+                "identity_leak": result.identity_leak,
+                "leak_type_count": len(result.leak_types),
+            },
+        )
+    if result.risk_level == 2:
+        safe_emit(
+            emitter,
+            EventName.CRISIS_BLOCKED,
+            {"request_id": request_id, "risk_bucket": result.risk_level},
         )
 
     return MessageResponse(
@@ -202,7 +264,9 @@ def simulate_match(
     payload: MatchSimulateRequest,
     principal=Depends(current_principal),
     dedupe_store=Depends(get_dedupe_store),
+    emitter=Depends(get_event_emitter),
 ) -> MatchSimulateResponse:
+    request_id = new_request_id()
     candidates = [
         Candidate(
             candidate_id=item.candidate_id,
@@ -218,6 +282,17 @@ def simulate_match(
         themes=payload.themes,
         candidates=candidates,
         dedupe_store=dedupe_store,
+    )
+    safe_emit(
+        emitter,
+        EventName.MATCH_DECISION,
+        {
+            "request_id": request_id,
+            "risk_bucket": payload.risk_level,
+            "intensity_bucket": payload.intensity,
+            "decision": decision.decision,
+            "reason": decision.reason,
+        },
     )
     return MatchSimulateResponse(
         decision=decision.decision,

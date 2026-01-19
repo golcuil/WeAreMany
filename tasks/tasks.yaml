@@ -277,7 +277,7 @@
 - id: T-007
   title: "Define privacy-safe event taxonomy"
   owner: data
-  state: TODO
+  state: IN_PROGRESS
   goal: "Event schema captures success metrics without PII"
   scope:
     in: ["Event definitions for mood, message, delivery, acknowledgement", "Retention notes"]

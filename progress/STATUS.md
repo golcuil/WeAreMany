@@ -12,10 +12,9 @@
 - [T-006] Implement matching gate and sampling skeleton
 
 ## In progress
-- (empty)
+- [T-007] Define privacy-safe event taxonomy
 
 ## Next
-- [T-007] Define privacy-safe event taxonomy
 - [T-008] Build Flutter app skeleton with Riverpod
 - [T-009] Implement mood entry flow and crisis UX
 - [T-010] Implement inbox UI and acknowledgement flow
