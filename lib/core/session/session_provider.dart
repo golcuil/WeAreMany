@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/app_config.dart';
+
 class SessionState {
   const SessionState({required this.token});
 
@@ -7,5 +9,6 @@ class SessionState {
 }
 
 final sessionProvider = Provider<SessionState>((ref) {
-  return const SessionState(token: 'dev_test');
+  final config = ref.watch(appConfigProvider);
+  return SessionState(token: config.devBearerToken);
 });

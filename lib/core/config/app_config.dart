@@ -2,10 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AppConfig {
-  const AppConfig({required this.apiBaseUrl, required this.simulateEnabled});
+  const AppConfig({
+    required this.apiBaseUrl,
+    required this.simulateEnabled,
+    required this.devBearerToken,
+  });
 
   final String apiBaseUrl;
   final bool simulateEnabled;
+  final String devBearerToken;
 }
 
 final appConfigProvider = Provider<AppConfig>((ref) {
@@ -15,5 +20,11 @@ final appConfigProvider = Provider<AppConfig>((ref) {
       defaultValue: 'http://localhost:8000',
     ),
     simulateEnabled: kDebugMode,
+    devBearerToken: kReleaseMode
+        ? ''
+        : const String.fromEnvironment(
+            'DEV_BEARER_TOKEN',
+            defaultValue: '',
+          ),
   );
 });
