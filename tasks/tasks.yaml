@@ -771,7 +771,7 @@
 - id: T-012
   title: DB-backed eligible recipient pool sampling (theme/intensity buckets)
   owner: backend
-  state: IN_PROGRESS
+  state: DONE
   goal: Replace in-memory candidate pool with a Postgres-backed eligible pool using
     theme/intensity buckets, with cooldown/dedupe and no social-graph reconstruction.
   scope:

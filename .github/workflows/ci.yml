@@ -7,6 +7,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wearemany_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d wearemany_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_DSN_TEST: postgresql://postgres:postgres@localhost:5432/wearemany_test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,8 +44,19 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Install policy_check deps
-        run: python3 -m pip install pyyaml
+      - name: Install Postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install backend deps
+        run: python3 -m pip install -r backend/requirements.txt pyyaml
+
+      - name: Apply migrations
+        run: |
+          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
+          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0002_eligible_principals.sql
+
+      - name: Pytest
+        run: pytest
 
       - name: Policy gate
         run: python3 tools/policy_check.py
