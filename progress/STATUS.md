@@ -9,9 +9,10 @@
 - [T-003] Create MVP data model and migrations
 - [T-004] Implement authn/authz and rate limiting middleware
 - [T-005] Build moderation pipeline skeleton
+- [T-006] Implement matching gate and sampling skeleton
 
 ## In progress
-- [T-006] Implement matching gate and sampling skeleton
+- (empty)
 
 ## Next
 - [T-007] Define privacy-safe event taxonomy

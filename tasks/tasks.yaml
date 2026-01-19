@@ -231,7 +231,7 @@
 - id: T-006
   title: "Implement matching gate and sampling skeleton"
   owner: backend
-  state: IN_PROGRESS
+  state: DONE
   goal: "Eligible recipients selected without origin info or targeting leakage"
   scope:
     in: ["Match eligibility gates", "Randomized sampling with caps", "Cooldown checks"]
@@ -277,7 +277,7 @@
 - id: T-007
   title: "Define privacy-safe event taxonomy"
   owner: data
-  state: BACKLOG
+  state: TODO
   goal: "Event schema captures success metrics without PII"
   scope:
     in: ["Event definitions for mood, message, delivery, acknowledgement", "Retention notes"]
