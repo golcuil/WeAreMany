@@ -1,0 +1,51 @@
+id: T-XXX
+title: "Imperative task title"
+owner: ai | dev | pm | sec
+state: BACKLOG
+goal: "What success means"
+scope:
+  in: ["..."]
+  out: ["..."]
+dependencies: ["T-..."]
+
+# New: explicitly list affected surfaces/endpoints
+touches:
+  endpoints: ["POST /mood", "POST /messages", "GET /inbox"]
+  data: ["free_text", "sanitized_text", "risk_level", "themes", "device_id"]
+  ai_calls: ["theme_extraction", "safety_rewrite"]
+
+acceptance_criteria:
+  functional: ["..."]
+  safety: ["No feed/chat/profile/streak creep"]  # Absolute red lines :contentReference[oaicite:1]{index=1}
+  privacy:
+    - "No raw PII persisted"
+    - "If risk_level==2: free_text is not persisted; crisis screen path works" # :contentReference[oaicite:2]{index=2}
+  security:               # New (required)
+    - "AuthN enforced on all touched endpoints"
+    - "AuthZ: user-scoped access only; no cross-user reads/writes"
+    - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
+    - "Request validation rejects unknown fields"
+    - "Body + text size limits enforced"
+    - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
+    - "Logs/analytics contain no raw message text"
+    - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)" # :contentReference[oaicite:3]{index=3}
+
+tests:
+  unit: ["..."]
+  integration: ["..."]
+  security:              # New (required)
+    - "Cannot access another user's resources (AuthZ tests)"
+    - "Rate limit triggers under abuse"
+    - "Identity leak patterns are blocked/rewritten"
+    - "risk_level==2 does not write free_text to DB"
+
+completion_definition:
+  - "All tests passing"
+  - "Safety checklist passed"
+  - "Security checklist passed"
+  - "No red-line violations"  # :contentReference[oaicite:4]{index=4}
+
+# New: lightweight threat model per task (1-3 bullets each)
+threat_model:
+  primary_threats: ["Enumeration", "Re-identification", "Spam/abuse"]
+  mitigations: ["Rate limit", "Non-guessable IDs", "Leak rewrite + throttling"]
