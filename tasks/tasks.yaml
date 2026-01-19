@@ -461,7 +461,7 @@
 - id: T-011
   title: "Deliver end-to-end happy path"
   owner: backend
-  state: TODO
+  state: IN_PROGRESS
   goal: "Mood submit -> message send -> inbox receive -> ack works"
   scope:
     in: ["Wire API to data model", "Use moderation gate in send flow", "End-to-end integration test"]

@@ -127,23 +127,23 @@ class MatchSimulateResponse {
 
 class InboxItem {
   InboxItem({
-    required this.messageId,
+    required this.inboxItemId,
     required this.text,
     required this.receivedAt,
-    required this.state,
+    required this.ackStatus,
   });
 
-  final String messageId;
+  final String inboxItemId;
   final String text;
   final String receivedAt;
-  final String state;
+  final String? ackStatus;
 
   factory InboxItem.fromJson(Map<String, dynamic> json) {
     return InboxItem(
-      messageId: json['message_id'] as String? ?? '',
+      inboxItemId: json['inbox_item_id'] as String? ?? '',
       text: json['text'] as String? ?? '',
       receivedAt: json['received_at'] as String? ?? '',
-      state: json['state'] as String? ?? 'unread',
+      ackStatus: json['ack_status'] as String?,
     );
   }
 }
@@ -165,14 +165,14 @@ class InboxResponse {
 }
 
 class AcknowledgementRequest {
-  AcknowledgementRequest({required this.messageId, required this.reaction});
+  AcknowledgementRequest({required this.inboxItemId, required this.reaction});
 
-  final String messageId;
+  final String inboxItemId;
   final String reaction;
 
   Map<String, dynamic> toJson() {
     return {
-      'message_id': messageId,
+      'inbox_item_id': inboxItemId,
       'reaction': reaction,
     };
   }

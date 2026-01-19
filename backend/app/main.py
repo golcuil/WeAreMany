@@ -93,7 +93,30 @@ class MessageResponse(BaseModel):
     identity_leak: bool
     leak_types: List[str]
     status: str
+    hold_reason: Optional[str] = None
     crisis_action: Optional[str]
+
+
+class InboxItemResponse(BaseModel):
+    inbox_item_id: str
+    text: str
+    created_at: str
+    ack_status: Optional[str] = None
+
+
+class InboxResponse(BaseModel):
+    items: List[InboxItemResponse]
+
+
+class AcknowledgementRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    inbox_item_id: str
+    reaction: str
+
+
+class AcknowledgementResponse(BaseModel):
+    status: str
 
 
 class MatchCandidateRequest(BaseModel):
@@ -197,14 +220,16 @@ def submit_message(
     repo=Depends(get_repository),
     leak_throttle=Depends(get_leak_throttle),
     emitter=Depends(get_event_emitter),
+    dedupe_store=Depends(get_dedupe_store),
 ) -> MessageResponse:
     request_id = new_request_id()
     result = moderate_text(payload.free_text, principal.principal_id, leak_throttle)
     crisis_action = "show_crisis" if result.risk_level == 2 else None
     status_value = "blocked" if result.risk_level == 2 else "queued"
+    hold_reason: Optional[str] = None
 
     if result.risk_level != 2:
-        repo.save_message(
+        message_id = repo.save_message(
             MessageRecord(
                 principal_id=principal.principal_id,
                 valence=payload.valence,
@@ -215,6 +240,42 @@ def submit_message(
                 reid_risk=result.reid_risk,
             )
         )
+        candidates = repo.get_candidate_pool(principal.principal_id, payload.intensity, [])
+        decision = match_decision(
+            principal_id=principal.principal_id,
+            risk_level=result.risk_level,
+            intensity=payload.intensity,
+            themes=[],
+            candidates=candidates,
+            dedupe_store=dedupe_store,
+        )
+        safe_emit(
+            emitter,
+            EventName.MATCH_DECISION,
+            {
+                "request_id": request_id,
+                "risk_bucket": result.risk_level,
+                "intensity_bucket": payload.intensity,
+                "decision": decision.decision,
+                "reason": decision.reason,
+            },
+        )
+        if decision.decision == "DELIVER" and decision.recipient_id and result.sanitized_text:
+            repo.create_inbox_item(message_id, decision.recipient_id, result.sanitized_text)
+            safe_emit(
+                emitter,
+                EventName.DELIVERY_ATTEMPTED,
+                {"request_id": request_id, "outcome": "delivered"},
+            )
+            status_value = "queued"
+        elif decision.decision == "HOLD":
+            hold_reason = decision.reason
+            safe_emit(
+                emitter,
+                EventName.DELIVERY_ATTEMPTED,
+                {"request_id": request_id, "outcome": "held"},
+            )
+            status_value = "held"
 
     safe_emit(
         emitter,
@@ -252,6 +313,7 @@ def submit_message(
         identity_leak=result.identity_leak,
         leak_types=result.leak_types,
         status=status_value,
+        hold_reason=hold_reason,
         crisis_action=crisis_action,
     )
 
@@ -301,3 +363,37 @@ def simulate_match(
         finite_content_bridge=decision.finite_content_bridge,
         crisis_action=decision.crisis_action,
     )
+
+
+@app.get("/inbox", dependencies=[Depends(current_principal), Depends(rate_limit("read"))])
+def fetch_inbox(
+    principal=Depends(current_principal),
+    repo=Depends(get_repository),
+) -> InboxResponse:
+    items = repo.list_inbox_items(principal.principal_id)
+    response_items = [
+        InboxItemResponse(
+            inbox_item_id=item.inbox_item_id,
+            text=item.text,
+            created_at=item.created_at,
+            ack_status=item.ack_status,
+        )
+        for item in items
+    ]
+    return InboxResponse(items=response_items)
+
+
+@app.post(
+    "/acknowledgements",
+    dependencies=[Depends(current_principal), Depends(rate_limit("write"))],
+)
+def acknowledge_message(
+    payload: AcknowledgementRequest,
+    principal=Depends(current_principal),
+    repo=Depends(get_repository),
+) -> AcknowledgementResponse:
+    try:
+        status_value = repo.acknowledge(payload.inbox_item_id, principal.principal_id, payload.reaction)
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    return AcknowledgementResponse(status=status_value)

@@ -46,16 +46,16 @@ class InboxController extends StateNotifier<InboxState> {
     await load();
   }
 
-  Future<void> acknowledge({required String messageId, required String reaction}) async {
+  Future<void> acknowledge({required String inboxItemId, required String reaction}) async {
     final previous = state.items;
     final updated = state.items
         .map(
-          (item) => item.messageId == messageId
+          (item) => item.inboxItemId == inboxItemId
               ? InboxItem(
-                  messageId: item.messageId,
+                  inboxItemId: item.inboxItemId,
                   text: item.text,
                   receivedAt: item.receivedAt,
-                  state: 'responded',
+                  ackStatus: reaction,
                 )
               : item,
         )
@@ -64,7 +64,7 @@ class InboxController extends StateNotifier<InboxState> {
 
     try {
       await apiClient.acknowledge(
-        AcknowledgementRequest(messageId: messageId, reaction: reaction),
+        AcknowledgementRequest(inboxItemId: inboxItemId, reaction: reaction),
       );
     } on ApiError catch (error) {
       state = state.copyWith(items: previous, error: error.message);

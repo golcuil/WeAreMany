@@ -19,10 +19,10 @@ class FakeInboxApiClient extends ApiClient {
     return InboxResponse(
       items: [
         InboxItem(
-          messageId: 'm1',
+          inboxItemId: 'i1',
           text: 'A supportive note',
           receivedAt: 'today',
-          state: 'unread',
+          ackStatus: null,
         ),
       ],
       nextCursor: null,

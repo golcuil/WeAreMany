@@ -16,10 +16,10 @@
 
 ## In progress
 - [T-009] Implement mood entry flow and crisis UX
+- [T-011] Deliver end-to-end happy path
 - [T-010] Implement inbox UI and acknowledgement flow
 
 ## Next
-- [T-011] Deliver end-to-end happy path
 
 ## Iteration update routine
 - Move tasks: BACKLOG -> TODO -> IN_PROGRESS -> REVIEW -> DONE (no skips)

@@ -46,7 +46,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final item = state.items[index];
-                final isResponded = item.state == 'responded' || item.state == 'locked';
+                final isResponded = item.ackStatus != null;
                 return ListTile(
                   title: Text(item.text),
                   subtitle: Text(item.receivedAt.isEmpty ? 'Recently' : item.receivedAt),
@@ -58,21 +58,21 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         enabled: !isResponded,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
-                            .acknowledge(messageId: item.messageId, reaction: 'thanks'),
+                            .acknowledge(inboxItemId: item.inboxItemId, reaction: 'thanks'),
                       ),
                       _AckButton(
                         label: 'I relate',
                         enabled: !isResponded,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
-                            .acknowledge(messageId: item.messageId, reaction: 'relate'),
+                            .acknowledge(inboxItemId: item.inboxItemId, reaction: 'relate'),
                       ),
                       _AckButton(
                         label: 'Helpful',
                         enabled: !isResponded,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
-                            .acknowledge(messageId: item.messageId, reaction: 'helpful'),
+                            .acknowledge(inboxItemId: item.inboxItemId, reaction: 'helpful'),
                       ),
                     ],
                   ),
