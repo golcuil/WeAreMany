@@ -17,3 +17,9 @@
 - Mitigation: per-user/IP/device throttles in Redis; anomaly alerts; penalties.
 - Owner: Backend + SecurityEngineer
 - Status: OPEN
+
+## R-004 Dependency version drift
+- Risk: lockfile constraints diverge from upstream, increasing upgrade risk later.
+- Mitigation: add a future task to review `flutter pub outdated` and plan a staged upgrade.
+- Owner: CTO
+- Status: OPEN
