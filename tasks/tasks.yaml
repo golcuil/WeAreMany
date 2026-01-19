@@ -323,7 +323,7 @@
 - id: T-008
   title: "Build Flutter app skeleton with Riverpod"
   owner: frontend
-  state: IN_PROGRESS
+  state: DONE
   goal: "App scaffolding matches Bible navigation and folder structure"
   scope:
     in: ["App shell with tabs", "Core folder structure", "Navigation wiring"]
@@ -369,7 +369,7 @@
 - id: T-009
   title: "Implement mood entry flow and crisis UX"
   owner: frontend
-  state: BACKLOG
+  state: TODO
   goal: "Mood submission triggers crisis UX for risk_level==2"
   scope:
     in: ["Mood input UI", "Submit to API", "Crisis screen path"]
