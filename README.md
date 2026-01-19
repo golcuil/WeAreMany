@@ -23,3 +23,20 @@ flutter run \
 ```
 
 In release builds, `DEV_BEARER_TOKEN` is ignored.
+
+## Local backend + Flutter dev tokens
+
+Backend (accepts dev tokens only when allowlisted):
+
+```bash
+export DEV_BEARER_TOKENS=tokenA,tokenB
+uvicorn backend.app.main:app --reload --port 8000
+```
+
+Flutter (debug/profile only, uses a dev bearer token if provided):
+
+```bash
+flutter run \
+  --dart-define=API_BASE_URL=http://localhost:8000 \
+  --dart-define=DEV_BEARER_TOKEN=tokenA
+```

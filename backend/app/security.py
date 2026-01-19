@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import Header, HTTPException, Request, status
 
-from .config import AUTH_TOKEN_PREFIX
+from .config import AUTH_TOKEN_PREFIX, DEV_BEARER_TOKENS
 
 
 @dataclass(frozen=True)
@@ -21,6 +21,8 @@ def _extract_bearer_token(authorization: Optional[str]) -> str:
 
 
 def _verify_token(token: str) -> Principal:
+    if DEV_BEARER_TOKENS and token in DEV_BEARER_TOKENS:
+        return Principal(principal_id=f"dev:{token}")
     if not token.startswith(AUTH_TOKEN_PREFIX):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     principal_id = token[len(AUTH_TOKEN_PREFIX):]

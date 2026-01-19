@@ -11,8 +11,15 @@ def _get_int(name: str, default: int) -> int:
         return default
 
 
+def _get_csv(name: str) -> list[str]:
+    raw = os.getenv(name, "")
+    tokens = [token.strip() for token in raw.split(",")]
+    return [token for token in tokens if token]
+
+
 API_VERSION = os.getenv("API_VERSION", "0.1.0")
 AUTH_TOKEN_PREFIX = os.getenv("AUTH_TOKEN_PREFIX", "dev_")
+DEV_BEARER_TOKENS = _get_csv("DEV_BEARER_TOKENS")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 MAX_BODY_BYTES = _get_int("MAX_BODY_BYTES", 8 * 1024)
