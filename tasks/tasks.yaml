@@ -231,7 +231,7 @@
 - id: T-006
   title: "Implement matching gate and sampling skeleton"
   owner: backend
-  state: TODO
+  state: IN_PROGRESS
   goal: "Eligible recipients selected without origin info or targeting leakage"
   scope:
     in: ["Match eligibility gates", "Randomized sampling with caps", "Cooldown checks"]

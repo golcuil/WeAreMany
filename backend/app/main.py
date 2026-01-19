@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .config import API_VERSION, MAX_BODY_BYTES
 from .logging import configure_logging, redact_headers
+from .matching import Candidate, get_dedupe_store, match_decision
 from .moderation import get_leak_throttle, moderate_text
 from .rate_limit import rate_limit
 from .repository import MessageRecord, MoodRecord, get_repository
@@ -94,6 +95,31 @@ class MessageResponse(BaseModel):
     crisis_action: Optional[str]
 
 
+class MatchCandidateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    candidate_id: str
+    intensity: str
+    themes: List[str] = Field(default_factory=list)
+
+
+class MatchSimulateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    risk_level: int
+    intensity: str
+    themes: List[str] = Field(default_factory=list)
+    candidates: List[MatchCandidateRequest] = Field(default_factory=list)
+
+
+class MatchSimulateResponse(BaseModel):
+    decision: str
+    reason: str
+    system_generated_empathy: Optional[str] = None
+    finite_content_bridge: Optional[str] = None
+    crisis_action: Optional[str] = None
+
+
 @app.post(
     "/mood",
     dependencies=[Depends(current_principal), Depends(rate_limit("write"))],
@@ -165,4 +191,38 @@ def submit_message(
         leak_types=result.leak_types,
         status=status_value,
         crisis_action=crisis_action,
+    )
+
+
+@app.post(
+    "/match/simulate",
+    dependencies=[Depends(current_principal), Depends(rate_limit("write"))],
+)
+def simulate_match(
+    payload: MatchSimulateRequest,
+    principal=Depends(current_principal),
+    dedupe_store=Depends(get_dedupe_store),
+) -> MatchSimulateResponse:
+    candidates = [
+        Candidate(
+            candidate_id=item.candidate_id,
+            intensity=item.intensity,
+            themes=item.themes,
+        )
+        for item in payload.candidates
+    ]
+    decision = match_decision(
+        principal_id=principal.principal_id,
+        risk_level=payload.risk_level,
+        intensity=payload.intensity,
+        themes=payload.themes,
+        candidates=candidates,
+        dedupe_store=dedupe_store,
+    )
+    return MatchSimulateResponse(
+        decision=decision.decision,
+        reason=decision.reason,
+        system_generated_empathy=decision.system_generated_empathy,
+        finite_content_bridge=decision.finite_content_bridge,
+        crisis_action=decision.crisis_action,
     )

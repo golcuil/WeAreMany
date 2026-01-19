@@ -11,10 +11,9 @@
 - [T-005] Build moderation pipeline skeleton
 
 ## In progress
-- (empty)
+- [T-006] Implement matching gate and sampling skeleton
 
 ## Next
-- [T-006] Implement matching gate and sampling skeleton
 - [T-007] Define privacy-safe event taxonomy
 - [T-008] Build Flutter app skeleton with Riverpod
 - [T-009] Implement mood entry flow and crisis UX

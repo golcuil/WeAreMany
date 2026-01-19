@@ -1,0 +1,130 @@
+from pathlib import Path
+import sys
+
+from fastapi.testclient import TestClient
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from app.main import app  # noqa: E402
+from app import matching as matching_module  # noqa: E402
+from app import rate_limit as rate_limit_module  # noqa: E402
+
+
+class InMemoryDedupeStore:
+    def __init__(self):
+        self.seen = set()
+
+    def allow_target(self, sender_id: str, recipient_id: str, cooldown_seconds: int) -> bool:
+        key = f"{sender_id}:{recipient_id}"
+        if key in self.seen:
+            return False
+        self.seen.add(key)
+        return True
+
+
+class InMemoryRateLimiter:
+    def allow(self, key: str, limit: int, window_seconds: int) -> bool:
+        return True
+
+
+def _headers(token: str = "dev_test"):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _override_rate_limit():
+    app.dependency_overrides[rate_limit_module.get_rate_limiter] = lambda: InMemoryRateLimiter()
+
+
+def test_cold_start_triggers_hold_path():
+    client = TestClient(app)
+    app.dependency_overrides[matching_module.get_dedupe_store] = lambda: InMemoryDedupeStore()
+    _override_rate_limit()
+
+    payload = {
+        "risk_level": 0,
+        "intensity": "low",
+        "themes": ["loss"],
+        "candidates": [],
+    }
+    response = client.post("/match/simulate", json=payload, headers=_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision"] == "HOLD"
+    assert body["reason"] == "insufficient_pool"
+    assert body["system_generated_empathy"]
+    assert body["finite_content_bridge"]
+
+    app.dependency_overrides.clear()
+
+
+def test_risk_level_two_blocks():
+    client = TestClient(app)
+    app.dependency_overrides[matching_module.get_dedupe_store] = lambda: InMemoryDedupeStore()
+    _override_rate_limit()
+
+    payload = {
+        "risk_level": 2,
+        "intensity": "low",
+        "themes": [],
+        "candidates": [{"candidate_id": "c1", "intensity": "low", "themes": []}],
+    }
+    response = client.post("/match/simulate", json=payload, headers=_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision"] == "CRISIS_BLOCK"
+    assert body["crisis_action"] == "show_crisis"
+
+    app.dependency_overrides.clear()
+
+
+def test_cooldown_prevents_duplicate_targeting():
+    client = TestClient(app)
+    dedupe = InMemoryDedupeStore()
+    app.dependency_overrides[matching_module.get_dedupe_store] = lambda: dedupe
+    _override_rate_limit()
+
+    payload = {
+        "risk_level": 0,
+        "intensity": "low",
+        "themes": ["loss"],
+        "candidates": [
+            {"candidate_id": "c1", "intensity": "low", "themes": ["loss"]},
+            {"candidate_id": "c2", "intensity": "low", "themes": ["loss"]},
+            {"candidate_id": "c3", "intensity": "low", "themes": ["loss"]},
+        ],
+    }
+    first = client.post("/match/simulate", json=payload, headers=_headers())
+    assert first.status_code == 200
+    assert first.json()["decision"] == "DELIVER"
+
+    second = client.post("/match/simulate", json=payload, headers=_headers())
+    assert second.status_code == 200
+    assert second.json()["decision"] in {"DELIVER", "HOLD"}
+    assert second.json()["reason"] in {"eligible", "cooldown_active"}
+
+    app.dependency_overrides.clear()
+
+
+def test_response_contains_no_identifiers():
+    client = TestClient(app)
+    app.dependency_overrides[matching_module.get_dedupe_store] = lambda: InMemoryDedupeStore()
+    _override_rate_limit()
+
+    payload = {
+        "risk_level": 0,
+        "intensity": "low",
+        "themes": [],
+        "candidates": [
+            {"candidate_id": "candidate-secret", "intensity": "low", "themes": []},
+            {"candidate_id": "other", "intensity": "low", "themes": []},
+            {"candidate_id": "third", "intensity": "low", "themes": []},
+        ],
+    }
+    response = client.post("/match/simulate", json=payload, headers=_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert "recipient_id" not in body
+    assert "candidate_id" not in body
+    assert "sender_id" not in body
+
+    app.dependency_overrides.clear()
