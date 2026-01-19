@@ -1,505 +1,846 @@
 - id: T-001
-  title: "Wire policy_check into CI gate"
+  title: Wire policy_check into CI gate
   owner: cto
   state: DONE
-  goal: "CI blocks merges when policy_check fails"
+  goal: CI blocks merges when policy_check fails
   scope:
-    in: ["Add policy_check step to CI workflow", "Document required checks in CI"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
+    in:
+    - Add policy_check step to CI workflow
+    - Document required checks in CI
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
   dependencies: []
   touches:
     endpoints: []
     data: []
     ai_calls: []
   acceptance_criteria:
-    functional: ["CI runs policy_check on PRs and main pushes"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - CI runs policy_check on PRs and main pushes
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Policy check script returns non-zero on violations"]
-    integration: ["CI workflow fails on policy_check violation"]
+    unit:
+    - Policy check script returns non-zero on violations
+    integration:
+    - CI workflow fails on policy_check violation
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Policy drift", "Guardrail bypass"]
-    mitigations: ["CI gating", "Policy check enforced on all branches"]
-
+    primary_threats:
+    - Policy drift
+    - Guardrail bypass
+    mitigations:
+    - CI gating
+    - Policy check enforced on all branches
 - id: T-002
-  title: "Define backend API contract skeleton"
+  title: Define backend API contract skeleton
   owner: backend
   state: DONE
-  goal: "OpenAPI contract defines MVP endpoints and payloads"
+  goal: OpenAPI contract defines MVP endpoints and payloads
   scope:
-    in: ["Draft OpenAPI for mood, message, inbox, acknowledgement", "Define error shapes and auth headers"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-001"]
+    in:
+    - Draft OpenAPI for mood, message, inbox, acknowledgement
+    - Define error shapes and auth headers
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-001
   touches:
-    endpoints: ["POST /mood", "POST /messages", "GET /inbox", "POST /acknowledgements"]
-    data: ["device_id", "valence", "intensity", "emotion", "free_text", "sanitized_text", "risk_level", "themes"]
-    ai_calls: ["safety_rewrite", "theme_extraction", "risk_classification"]
+    endpoints:
+    - POST /mood
+    - POST /messages
+    - GET /inbox
+    - POST /acknowledgements
+    data:
+    - device_id
+    - valence
+    - intensity
+    - emotion
+    - free_text
+    - sanitized_text
+    - risk_level
+    - themes
+    ai_calls:
+    - safety_rewrite
+    - theme_extraction
+    - risk_classification
   acceptance_criteria:
-    functional: ["Contract lists required fields and response shapes for MVP"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Contract lists required fields and response shapes for MVP
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Schema validation rejects unknown fields"]
-    integration: ["Contract tests for endpoint auth errors and shape compliance"]
+    unit:
+    - Schema validation rejects unknown fields
+    integration:
+    - Contract tests for endpoint auth errors and shape compliance
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Enumeration", "Identity leakage"]
-    mitigations: ["Non-guessable IDs", "No sender info fields in responses"]
-
+    primary_threats:
+    - Enumeration
+    - Identity leakage
+    mitigations:
+    - Non-guessable IDs
+    - No sender info fields in responses
 - id: T-003
-  title: "Create MVP data model and migrations"
+  title: Create MVP data model and migrations
   owner: backend
   state: DONE
-  goal: "Postgres schema supports mood, message, ack, and events"
+  goal: Postgres schema supports mood, message, ack, and events
   scope:
-    in: ["Schema for mood submissions", "Message storage with sanitized_text only", "Acknowledgement records", "Event log table"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-002"]
+    in:
+    - Schema for mood submissions
+    - Message storage with sanitized_text only
+    - Acknowledgement records
+    - Event log table
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-002
   touches:
     endpoints: []
-    data: ["mood", "message", "ack", "events", "risk_level", "sanitized_text", "themes"]
+    data:
+    - mood
+    - message
+    - ack
+    - events
+    - risk_level
+    - sanitized_text
+    - themes
     ai_calls: []
   acceptance_criteria:
-    functional: ["Migrations create required tables with indexes", "No sender info stored in message rows"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Migrations create required tables with indexes
+    - No sender info stored in message rows
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["DB constraints reject free_text for risk_level==2 records"]
-    integration: ["Migration runs cleanly on fresh DB"]
+    unit:
+    - DB constraints reject free_text for risk_level==2 records
+    integration:
+    - Migration runs cleanly on fresh DB
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Re-identification", "Excessive data retention"]
-    mitigations: ["Sanitized-only storage", "Minimal fields", "No sender info columns"]
-
+    primary_threats:
+    - Re-identification
+    - Excessive data retention
+    mitigations:
+    - Sanitized-only storage
+    - Minimal fields
+    - No sender info columns
 - id: T-004
-  title: "Implement authn/authz and rate limiting middleware"
+  title: Implement authn/authz and rate limiting middleware
   owner: sec
   state: DONE
-  goal: "All endpoints enforce authn/authz and throttles"
+  goal: All endpoints enforce authn/authz and throttles
   scope:
-    in: ["Token auth middleware", "User-scoped authz checks", "Per-user/per-IP rate limit policy"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-002"]
+    in:
+    - Token auth middleware
+    - User-scoped authz checks
+    - Per-user/per-IP rate limit policy
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-002
   touches:
-    endpoints: ["POST /mood", "POST /messages", "GET /inbox", "POST /acknowledgements"]
-    data: ["auth_token", "device_id", "rate_limit_bucket"]
+    endpoints:
+    - POST /mood
+    - POST /messages
+    - GET /inbox
+    - POST /acknowledgements
+    data:
+    - auth_token
+    - device_id
+    - rate_limit_bucket
     ai_calls: []
   acceptance_criteria:
-    functional: ["Requests without auth are rejected", "Cross-user access is blocked"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Requests without auth are rejected
+    - Cross-user access is blocked
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Auth middleware rejects invalid tokens"]
-    integration: ["Rate limit returns 429 after threshold"]
+    unit:
+    - Auth middleware rejects invalid tokens
+    integration:
+    - Rate limit returns 429 after threshold
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Account abuse", "Enumeration", "API scraping"]
-    mitigations: ["Authz checks", "Rate limiting", "Non-guessable IDs"]
-
+    primary_threats:
+    - Account abuse
+    - Enumeration
+    - API scraping
+    mitigations:
+    - Authz checks
+    - Rate limiting
+    - Non-guessable IDs
 - id: T-005
-  title: "Build moderation pipeline skeleton"
+  title: Build moderation pipeline skeleton
   owner: sec
   state: DONE
-  goal: "Risk classification and leak checks gate messaging"
+  goal: Risk classification and leak checks gate messaging
   scope:
-    in: ["Risk level classifier stub", "Leak detection stub", "Rewrite hook interface"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-002", "T-003"]
+    in:
+    - Risk level classifier stub
+    - Leak detection stub
+    - Rewrite hook interface
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-002
+  - T-003
   touches:
-    endpoints: ["POST /messages", "POST /mood"]
-    data: ["free_text", "sanitized_text", "risk_level", "reid_risk"]
-    ai_calls: ["risk_classification", "safety_rewrite"]
+    endpoints:
+    - POST /messages
+    - POST /mood
+    data:
+    - free_text
+    - sanitized_text
+    - risk_level
+    - reid_risk
+    ai_calls:
+    - risk_classification
+    - safety_rewrite
   acceptance_criteria:
-    functional: ["risk_level assigned for all submissions", "risk_level==2 blocks peer messaging"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - risk_level assigned for all submissions
+    - risk_level==2 blocks peer messaging
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Identity leak detector flags phone/email/link patterns"]
-    integration: ["risk_level==2 path bypasses persistence and matching"]
+    unit:
+    - Identity leak detector flags phone/email/link patterns
+    integration:
+    - risk_level==2 path bypasses persistence and matching
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Identity leakage", "Self-harm escalation"]
-    mitigations: ["Leak detection", "Risk gating", "Crisis flow gating"]
-
+    primary_threats:
+    - Identity leakage
+    - Self-harm escalation
+    mitigations:
+    - Leak detection
+    - Risk gating
+    - Crisis flow gating
 - id: T-006
-  title: "Implement matching gate and sampling skeleton"
+  title: Implement matching gate and sampling skeleton
   owner: backend
   state: DONE
-  goal: "Eligible recipients selected without origin info or targeting leakage"
+  goal: Eligible recipients selected without origin info or targeting leakage
   scope:
-    in: ["Match eligibility gates", "Randomized sampling with caps", "Cooldown checks"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-003", "T-005"]
+    in:
+    - Match eligibility gates
+    - Randomized sampling with caps
+    - Cooldown checks
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-003
+  - T-005
   touches:
-    endpoints: ["POST /messages"]
-    data: ["valence", "intensity", "themes", "cooldown", "affinity_score"]
+    endpoints:
+    - POST /messages
+    data:
+    - valence
+    - intensity
+    - themes
+    - cooldown
+    - affinity_score
     ai_calls: []
   acceptance_criteria:
-    functional: ["Eligible pool excludes risk_level==2", "No sender info surfaced in delivery"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Eligible pool excludes risk_level==2
+    - No sender info surfaced in delivery
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Eligibility gate rejects incompatible valence/intensity"]
-    integration: ["Sampling does not return sender info fields"]
+    unit:
+    - Eligibility gate rejects incompatible valence/intensity
+    integration:
+    - Sampling does not return sender info fields
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Targeting", "Re-identification"]
-    mitigations: ["Randomized sampling", "Cooldowns", "No sender info fields"]
-
+    primary_threats:
+    - Targeting
+    - Re-identification
+    mitigations:
+    - Randomized sampling
+    - Cooldowns
+    - No sender info fields
 - id: T-007
-  title: "Define privacy-safe event taxonomy"
+  title: Define privacy-safe event taxonomy
   owner: data
   state: DONE
-  goal: "Event schema captures success metrics without PII"
+  goal: Event schema captures success metrics without PII
   scope:
-    in: ["Event definitions for mood, message, delivery, acknowledgement", "Retention notes"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-003"]
+    in:
+    - Event definitions for mood, message, delivery, acknowledgement
+    - Retention notes
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-003
   touches:
     endpoints: []
-    data: ["events", "risk_level", "delivery_outcome"]
+    data:
+    - events
+    - risk_level
+    - delivery_outcome
     ai_calls: []
   acceptance_criteria:
-    functional: ["Event list excludes raw text and sender info fields"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Event list excludes raw text and sender info fields
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Event schema rejects raw text fields"]
-    integration: ["Event writes happen on message delivery and ack"]
+    unit:
+    - Event schema rejects raw text fields
+    integration:
+    - Event writes happen on message delivery and ack
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Re-identification via analytics"]
-    mitigations: ["No raw text", "Minimal event fields", "Retention limits"]
-
+    primary_threats:
+    - Re-identification via analytics
+    mitigations:
+    - No raw text
+    - Minimal event fields
+    - Retention limits
 - id: T-008
-  title: "Build Flutter app skeleton with Riverpod"
+  title: Build Flutter app skeleton with Riverpod
   owner: frontend
   state: DONE
-  goal: "App scaffolding matches Bible navigation and folder structure"
+  goal: App scaffolding matches Bible navigation and folder structure
   scope:
-    in: ["App shell with tabs", "Core folder structure", "Navigation wiring"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-001"]
+    in:
+    - App shell with tabs
+    - Core folder structure
+    - Navigation wiring
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-001
   touches:
     endpoints: []
     data: []
     ai_calls: []
   acceptance_criteria:
-    functional: ["Tabs align with Home/Messages/Reflection/About", "No feed or profile UI present"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Tabs align with Home/Messages/Reflection/About
+    - No feed or profile UI present
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Navigation state exposes only allowed tabs"]
-    integration: ["App boots to Home without feed history"]
+    unit:
+    - Navigation state exposes only allowed tabs
+    integration:
+    - App boots to Home without feed history
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["UI drift into social surfaces"]
-    mitigations: ["Tab map locked to Bible", "No sender surfaces"]
-
+    primary_threats:
+    - UI drift into social surfaces
+    mitigations:
+    - Tab map locked to Bible
+    - No sender surfaces
 - id: T-009
-  title: "Implement mood entry flow and crisis UX"
+  title: Implement mood entry flow and crisis UX
   owner: frontend
   state: IN_PROGRESS
-  goal: "Mood submission triggers crisis UX for risk_level==2"
+  goal: Mood submission triggers crisis UX for risk_level==2
   scope:
-    in: ["Mood input UI", "Submit to API", "Crisis screen path"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-002", "T-008"]
+    in:
+    - Mood input UI
+    - Submit to API
+    - Crisis screen path
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-002
+  - T-008
   touches:
-    endpoints: ["POST /mood"]
-    data: ["valence", "intensity", "emotion", "risk_level"]
+    endpoints:
+    - POST /mood
+    data:
+    - valence
+    - intensity
+    - emotion
+    - risk_level
     ai_calls: []
   acceptance_criteria:
-    functional: ["Mood submit shows crisis UX when risk_level==2"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Mood submit shows crisis UX when risk_level==2
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Crisis screen state triggers on risk_level==2 response"]
-    integration: ["Mood submit flow handles normal and crisis paths"]
+    unit:
+    - Crisis screen state triggers on risk_level==2 response
+    integration:
+    - Mood submit flow handles normal and crisis paths
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Crisis flow bypass", "Identity exposure in UI"]
-    mitigations: ["Explicit crisis route", "No sender info UI"]
-
+    primary_threats:
+    - Crisis flow bypass
+    - Identity exposure in UI
+    mitigations:
+    - Explicit crisis route
+    - No sender info UI
 - id: T-010
-  title: "Implement inbox UI and acknowledgement flow"
+  title: Implement inbox UI and acknowledgement flow
   owner: frontend
   state: DONE
-  goal: "Inbox displays one-shot messages with ack options"
+  goal: Inbox displays one-shot messages with ack options
   scope:
-    in: ["Inbox list UI", "Message detail state", "Helpful/seen/not helpful actions"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-002", "T-008"]
+    in:
+    - Inbox list UI
+    - Message detail state
+    - Helpful/seen/not helpful actions
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-002
+  - T-008
   touches:
-    endpoints: ["GET /inbox", "POST /acknowledgements"]
-    data: ["message_id", "sanitized_text", "ack_state", "timestamp"]
+    endpoints:
+    - GET /inbox
+    - POST /acknowledgements
+    data:
+    - message_id
+    - sanitized_text
+    - ack_state
+    - timestamp
     ai_calls: []
   acceptance_criteria:
-    functional: ["Inbox shows one-shot messages without sender info", "Ack locks interaction"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Inbox shows one-shot messages without sender info
+    - Ack locks interaction
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Ack buttons disabled after response"]
-    integration: ["Inbox does not render sender info fields"]
+    unit:
+    - Ack buttons disabled after response
+    integration:
+    - Inbox does not render sender info fields
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Identity inference", "Threading creep"]
-    mitigations: ["One-shot lock", "No sender info"]
-
+    primary_threats:
+    - Identity inference
+    - Threading creep
+    mitigations:
+    - One-shot lock
+    - No sender info
 - id: T-011
-  title: "Deliver end-to-end happy path"
+  title: Deliver end-to-end happy path
   owner: backend
   state: DONE
-  goal: "Mood submit -> message send -> inbox receive -> ack works"
+  goal: Mood submit -> message send -> inbox receive -> ack works
   scope:
-    in: ["Wire API to data model", "Use moderation gate in send flow", "End-to-end integration test"]
-    out: ["feed", "chat/threads", "profiles/identity", "streaks/leaderboards", "social graph"]
-  dependencies: ["T-003", "T-004", "T-005", "T-006", "T-008", "T-009", "T-010"]
+    in:
+    - Wire API to data model
+    - Use moderation gate in send flow
+    - End-to-end integration test
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-003
+  - T-004
+  - T-005
+  - T-006
+  - T-008
+  - T-009
+  - T-010
   touches:
-    endpoints: ["POST /mood", "POST /messages", "GET /inbox", "POST /acknowledgements"]
-    data: ["mood", "message", "ack", "risk_level", "sanitized_text"]
-    ai_calls: ["risk_classification", "safety_rewrite", "theme_extraction"]
+    endpoints:
+    - POST /mood
+    - POST /messages
+    - GET /inbox
+    - POST /acknowledgements
+    data:
+    - mood
+    - message
+    - ack
+    - risk_level
+    - sanitized_text
+    ai_calls:
+    - risk_classification
+    - safety_rewrite
+    - theme_extraction
   acceptance_criteria:
-    functional: ["Happy path completes without exposing sender info", "risk_level==2 blocks peer messaging"]
-    safety: ["No feed/chat/profile/streak creep"]
+    functional:
+    - Happy path completes without exposing sender info
+    - risk_level==2 blocks peer messaging
+    safety:
+    - No feed/chat/profile/streak creep
     privacy:
-      - "No raw PII persisted"
-      - "If risk_level==2: do not persist free text; crisis UX path works"
-      - "Crisis UX path works"
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
     security:
-      - "AuthN enforced on all touched endpoints"
-      - "AuthZ: user-scoped access only; no cross-user reads/writes"
-      - "Rate limiting enabled (per-user + per-IP) on touched endpoints"
-      - "Request validation rejects unknown fields"
-      - "Body + text size limits enforced"
-      - "No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens"
-      - "Logs/analytics contain no raw message text"
-      - "Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)"
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
   tests:
-    unit: ["Use case enforces one-shot ack lock"]
-    integration: ["End-to-end flow passes for Level 0 and blocks Level 2"]
+    unit:
+    - Use case enforces one-shot ack lock
+    integration:
+    - End-to-end flow passes for Level 0 and blocks Level 2
     security:
-      - "Cannot access another user's resources (AuthZ tests)"
-      - "Rate limit triggers under abuse"
-      - "Identity leak patterns are blocked/rewritten"
-      - "risk_level==2 does not write free_text to DB"
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
-    - "All tests passing"
-    - "Safety checklist passed"
-    - "Security checklist passed"
-    - "No red-line violations"
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
   threat_model:
-    primary_threats: ["Cross-user data access", "Identity leakage"]
-    mitigations: ["Authz gate", "Sanitized-only responses", "Leak detection"]
+    primary_threats:
+    - Cross-user data access
+    - Identity leakage
+    mitigations:
+    - Authz gate
+    - Sanitized-only responses
+    - Leak detection
+- id: T-012
+  title: DB-backed eligible recipient pool sampling (theme/intensity buckets)
+  owner: backend
+  state: BACKLOG
+  goal: Replace in-memory candidate pool with a Postgres-backed eligible pool using
+    theme/intensity buckets, with cooldown/dedupe and no social-graph reconstruction.
+  scope:
+    in:
+    - Create a table (or view) of eligible principals keyed by principal_key/device_key
+      with intensity_bucket, theme_tags, last_active_bucket
+    - Add indexes for efficient sampling by intensity_bucket, theme_tag, and recency
+      bucket
+    - Implement a repository method to fetch N random eligible candidates for a given
+      request (no origin fields)
+    - Integrate into matching gate so DELIVER works with DB pool when POSTGRES_DSN
+      is set
+    out:
+    - No sender identity persistence
+    - No feed/chat/profile/streak features
+    - No social graph edges (no storing sender->recipient pairs for analytics)
+    - No recipient identifiers returned to clients
+  dependencies: []
+  touches:
+    endpoints:
+    - POST /messages
+    data:
+    - principal_key/device_key
+    - intensity_bucket
+    - themes/theme_tags
+    - last_active_bucket
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Candidate selection pulls from DB pool when POSTGRES_DSN is set
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Pool stores no message text; no sender/recipient linkage table
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: selection operates only on server; clients cannot influence recipient_id'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: selection queries do not expose sequential ids; no list endpoints'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
+  tests:
+    unit:
+    - Sampling respects intensity/theme gates
+    integration:
+    - With Postgres enabled, candidate pool is non-empty when eligible principals
+      exist
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+    - Cooldown prevents repeated targeting
+    - No analytics/event payload includes principal identifiers
+  completion_definition:
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Targeting
+    - Re-identification
+    - Enumeration
+    mitigations:
+    - Cooldown/dedupe
+    - No recipient IDs returned
+    - Non-guessable IDs

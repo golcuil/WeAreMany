@@ -29,3 +29,9 @@
 - Mitigation: add a follow-up task for DB-backed candidate selection without social graph signals.
 - Owner: Backend + CTO
 - Status: OPEN
+
+## R-006 DB-backed candidate pool follow-up
+- Risk: eligible pool remains in-memory without DB-backed sampling, limiting delivery and consistency.
+- Mitigation: T-012 adds Postgres-backed candidate pool sampling without social graph signals.
+- Owner: Backend + DataEngineer
+- Status: OPEN
