@@ -25,6 +25,18 @@ class InMemoryLeakThrottle:
             raise HTTPException(status_code=429, detail="Too many identity leak attempts")
 
 
+class PerPrincipalLeakThrottle:
+    def __init__(self, limit: int):
+        self.limit = limit
+        self.counts = {}
+
+    def check_and_increment(self, principal_id: str) -> None:
+        count = self.counts.get(principal_id, 0) + 1
+        self.counts[principal_id] = count
+        if count > self.limit:
+            raise HTTPException(status_code=429, detail="Too many identity leak attempts")
+
+
 class FakeRepo:
     def __init__(self):
         self.saved_moods = 0
@@ -37,10 +49,6 @@ class FakeRepo:
         self.saved_messages += 1
 
 
-def _headers():
-    return {"Authorization": "Bearer dev_test"}
-
-
 class InMemoryRateLimiter:
     def __init__(self):
         self._data = {}
@@ -49,6 +57,14 @@ class InMemoryRateLimiter:
         count = self._data.get(key, 0) + 1
         self._data[key] = count
         return count <= limit
+
+
+def _headers():
+    return {"Authorization": "Bearer dev_test"}
+
+
+def _headers_for(token: str):
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _override_rate_limit():
@@ -134,5 +150,42 @@ def test_repeated_leak_attempts_throttled():
     }
     assert client.post("/messages", json=payload, headers=_headers()).status_code == 200
     assert client.post("/messages", json=payload, headers=_headers()).status_code == 429
+
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("field_name", ["user_id", "principal_id", "device_id", "recipient_device_id"])
+def test_rejects_principal_override_fields(field_name):
+    client = TestClient(app)
+    app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
+    _override_rate_limit()
+
+    payload = {
+        "valence": "neutral",
+        "intensity": "low",
+        "free_text": "hello",
+        field_name: "override",
+    }
+    response = client.post("/messages", json=payload, headers=_headers())
+    assert response.status_code in {400, 422}
+
+    app.dependency_overrides.clear()
+
+
+def test_leak_throttle_is_per_principal():
+    client = TestClient(app)
+    throttle = PerPrincipalLeakThrottle(limit=1)
+    app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: throttle
+    _override_rate_limit()
+
+    payload = {
+        "valence": "neutral",
+        "intensity": "low",
+        "free_text": "DM me @handle",
+    }
+    assert client.post("/messages", json=payload, headers=_headers_for("dev_a")).status_code == 200
+    assert client.post("/messages", json=payload, headers=_headers_for("dev_a")).status_code == 429
+
+    assert client.post("/messages", json=payload, headers=_headers_for("dev_b")).status_code == 200
 
     app.dependency_overrides.clear()

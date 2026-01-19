@@ -185,7 +185,7 @@
 - id: T-005
   title: "Build moderation pipeline skeleton"
   owner: sec
-  state: IN_PROGRESS
+  state: DONE
   goal: "Risk classification and leak checks gate messaging"
   scope:
     in: ["Risk level classifier stub", "Leak detection stub", "Rewrite hook interface"]
@@ -231,7 +231,7 @@
 - id: T-006
   title: "Implement matching gate and sampling skeleton"
   owner: backend
-  state: BACKLOG
+  state: TODO
   goal: "Eligible recipients selected without origin info or targeting leakage"
   scope:
     in: ["Match eligibility gates", "Randomized sampling with caps", "Cooldown checks"]
