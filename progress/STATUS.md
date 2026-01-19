@@ -9,10 +9,9 @@
 - [T-003] Create MVP data model and migrations
 
 ## In progress
-- (empty)
+- [T-004] Implement authn/authz and rate limiting middleware
 
 ## Next
-- [T-004] Implement authn/authz and rate limiting middleware
 - [T-005] Build moderation pipeline skeleton
 - [T-006] Implement matching gate and sampling skeleton
 - [T-007] Define privacy-safe event taxonomy

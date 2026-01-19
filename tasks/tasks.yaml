@@ -139,7 +139,7 @@
 - id: T-004
   title: "Implement authn/authz and rate limiting middleware"
   owner: sec
-  state: TODO
+  state: IN_PROGRESS
   goal: "All endpoints enforce authn/authz and throttles"
   scope:
     in: ["Token auth middleware", "User-scoped authz checks", "Per-user/per-IP rate limit policy"]
