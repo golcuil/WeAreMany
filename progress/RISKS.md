@@ -35,3 +35,9 @@
 - Mitigation: T-012 adds Postgres-backed candidate pool sampling without social graph signals.
 - Owner: Backend + DataEngineer
 - Status: OPEN
+
+## R-007 CI/local parity gap for backend tests
+- Risk: backend pytest runs in CI but fails locally due to dependency/import path drift.
+- Mitigation: T-013 standardizes install command and import paths for local parity.
+- Owner: Backend
+- Status: OPEN
