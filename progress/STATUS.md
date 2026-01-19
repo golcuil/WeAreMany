@@ -10,11 +10,9 @@
 - [T-004] Implement authn/authz and rate limiting middleware
 
 ## In progress
-- (empty)
+- [T-005] Build moderation pipeline skeleton
 
 ## Next
-- [T-005] Build moderation pipeline skeleton
-- [T-005] Build moderation pipeline skeleton
 - [T-006] Implement matching gate and sampling skeleton
 - [T-007] Define privacy-safe event taxonomy
 - [T-008] Build Flutter app skeleton with Riverpod

@@ -185,7 +185,7 @@
 - id: T-005
   title: "Build moderation pipeline skeleton"
   owner: sec
-  state: TODO
+  state: IN_PROGRESS
   goal: "Risk classification and leak checks gate messaging"
   scope:
     in: ["Risk level classifier stub", "Leak detection stub", "Rewrite hook interface"]

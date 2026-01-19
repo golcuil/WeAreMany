@@ -1,0 +1,138 @@
+import re
+from pathlib import Path
+import sys
+
+import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from app.main import app  # noqa: E402
+from app import moderation as moderation_module  # noqa: E402
+from app import rate_limit as rate_limit_module  # noqa: E402
+from app import repository as repository_module  # noqa: E402
+
+
+class InMemoryLeakThrottle:
+    def __init__(self, limit: int):
+        self.limit = limit
+        self.count = 0
+
+    def check_and_increment(self, principal_id: str) -> None:
+        self.count += 1
+        if self.count > self.limit:
+            raise HTTPException(status_code=429, detail="Too many identity leak attempts")
+
+
+class FakeRepo:
+    def __init__(self):
+        self.saved_moods = 0
+        self.saved_messages = 0
+
+    def save_mood(self, record: repository_module.MoodRecord) -> None:
+        self.saved_moods += 1
+
+    def save_message(self, record: repository_module.MessageRecord) -> None:
+        self.saved_messages += 1
+
+
+def _headers():
+    return {"Authorization": "Bearer dev_test"}
+
+
+class InMemoryRateLimiter:
+    def __init__(self):
+        self._data = {}
+
+    def allow(self, key: str, limit: int, window_seconds: int) -> bool:
+        count = self._data.get(key, 0) + 1
+        self._data[key] = count
+        return count <= limit
+
+
+def _override_rate_limit():
+    limiter = InMemoryRateLimiter()
+    app.dependency_overrides[rate_limit_module.get_rate_limiter] = lambda: limiter
+
+
+def test_identity_patterns_detected_and_removed():
+    client = TestClient(app)
+    app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
+    _override_rate_limit()
+
+    payload = {
+        "valence": "neutral",
+        "intensity": "low",
+        "free_text": "Email me at test@example.com or DM me @handle, visit https://t.co/x and call +1 555 123 4567",
+    }
+    response = client.post("/messages", json=payload, headers=_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["identity_leak"] is True
+    assert set(body["leak_types"]) >= {"email", "handle", "url", "phone", "dm_request"}
+    assert "@handle" not in body["sanitized_text"]
+    assert "test@example.com" not in body["sanitized_text"]
+    assert "https://" not in body["sanitized_text"]
+    assert not re.search(r"\+?\d[\d\s().-]{7,}\d", body["sanitized_text"])
+
+    app.dependency_overrides.clear()
+
+
+def test_raw_text_not_logged(caplog):
+    client = TestClient(app)
+    app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
+    _override_rate_limit()
+
+    payload = {
+        "valence": "neutral",
+        "intensity": "low",
+        "free_text": "This is a secret phone 555-123-4567",
+    }
+    with caplog.at_level("INFO"):
+        response = client.post("/messages", json=payload, headers=_headers())
+    assert response.status_code == 200
+    logs = "\n".join(record.message for record in caplog.records)
+    assert "This is a secret phone" not in logs
+    assert "555-123-4567" not in logs
+
+    app.dependency_overrides.clear()
+
+
+def test_risk_level_two_skips_persistence():
+    client = TestClient(app)
+    fake_repo = FakeRepo()
+    app.dependency_overrides[repository_module.get_repository] = lambda: fake_repo
+    app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
+    _override_rate_limit()
+
+    payload = {
+        "valence": "negative",
+        "intensity": "high",
+        "free_text": "I want to kill myself",
+    }
+    response = client.post("/messages", json=payload, headers=_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["risk_level"] == 2
+    assert body["status"] == "blocked"
+    assert fake_repo.saved_messages == 0
+
+    app.dependency_overrides.clear()
+
+
+def test_repeated_leak_attempts_throttled():
+    client = TestClient(app)
+    throttle = InMemoryLeakThrottle(limit=1)
+    app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: throttle
+    _override_rate_limit()
+
+    payload = {
+        "valence": "neutral",
+        "intensity": "low",
+        "free_text": "DM me @handle",
+    }
+    assert client.post("/messages", json=payload, headers=_headers()).status_code == 200
+    assert client.post("/messages", json=payload, headers=_headers()).status_code == 429
+
+    app.dependency_overrides.clear()
