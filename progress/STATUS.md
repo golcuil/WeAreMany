@@ -8,19 +8,19 @@
 - [T-002] Define backend API contract skeleton
 - [T-003] Create MVP data model and migrations
 - [T-004] Implement authn/authz and rate limiting middleware
-- [T-005] Build moderation pipeline skeleton
 
 ## In progress
-- (empty)
+- [T-005] Build moderation pipeline skeleton
 
 ## Next
-- [T-006] Implement matching gate and sampling skeleton
-- [T-006] Implement matching gate and sampling skeleton
 - [T-007] Define privacy-safe event taxonomy
 - [T-008] Build Flutter app skeleton with Riverpod
 - [T-009] Implement mood entry flow and crisis UX
 - [T-010] Implement inbox UI and acknowledgement flow
 - [T-011] Deliver end-to-end happy path
+
+## Blockers
+- T-005: Missing AuthZ test proving cross-user access is blocked
 
 ## Iteration update routine
 - Move tasks: BACKLOG -> TODO -> IN_PROGRESS -> REVIEW -> DONE (no skips)
