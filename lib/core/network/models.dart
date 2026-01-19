@@ -124,3 +124,66 @@ class MatchSimulateResponse {
     );
   }
 }
+
+class InboxItem {
+  InboxItem({
+    required this.messageId,
+    required this.text,
+    required this.receivedAt,
+    required this.state,
+  });
+
+  final String messageId;
+  final String text;
+  final String receivedAt;
+  final String state;
+
+  factory InboxItem.fromJson(Map<String, dynamic> json) {
+    return InboxItem(
+      messageId: json['message_id'] as String? ?? '',
+      text: json['text'] as String? ?? '',
+      receivedAt: json['received_at'] as String? ?? '',
+      state: json['state'] as String? ?? 'unread',
+    );
+  }
+}
+
+class InboxResponse {
+  InboxResponse({required this.items, required this.nextCursor});
+
+  final List<InboxItem> items;
+  final String? nextCursor;
+
+  factory InboxResponse.fromJson(Map<String, dynamic> json) {
+    return InboxResponse(
+      items: (json['items'] as List<dynamic>? ?? [])
+          .map((item) => InboxItem.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      nextCursor: json['next_cursor'] as String?,
+    );
+  }
+}
+
+class AcknowledgementRequest {
+  AcknowledgementRequest({required this.messageId, required this.reaction});
+
+  final String messageId;
+  final String reaction;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'message_id': messageId,
+      'reaction': reaction,
+    };
+  }
+}
+
+class AcknowledgementResponse {
+  AcknowledgementResponse({required this.status});
+
+  final String status;
+
+  factory AcknowledgementResponse.fromJson(Map<String, dynamic> json) {
+    return AcknowledgementResponse(status: json['status'] as String? ?? 'unknown');
+  }
+}

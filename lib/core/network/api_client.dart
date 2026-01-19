@@ -32,6 +32,23 @@ class ApiClient {
     return _parseResponse(response, MatchSimulateResponse.fromJson);
   }
 
+  Future<InboxResponse> fetchInbox() async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/inbox'),
+      headers: _headers(),
+    );
+    return _parseResponse(response, InboxResponse.fromJson);
+  }
+
+  Future<AcknowledgementResponse> acknowledge(AcknowledgementRequest request) async {
+    final response = await httpClient.post(
+      Uri.parse('$baseUrl/acknowledgements'),
+      headers: _headers(),
+      body: jsonEncode(request.toJson()),
+    );
+    return _parseResponse(response, AcknowledgementResponse.fromJson);
+  }
+
   Map<String, String> _headers() {
     return {
       'Content-Type': 'application/json',

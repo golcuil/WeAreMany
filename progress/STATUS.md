@@ -15,9 +15,9 @@
 
 ## In progress
 - [T-009] Implement mood entry flow and crisis UX
+- [T-010] Implement inbox UI and acknowledgement flow
 
 ## Next
-- [T-010] Implement inbox UI and acknowledgement flow
 - [T-011] Deliver end-to-end happy path
 
 ## Iteration update routine

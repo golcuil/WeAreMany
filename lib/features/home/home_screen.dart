@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../inbox/inbox_screen.dart';
 import '../mood/mood_entry_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -20,6 +21,11 @@ class HomeScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pushNamed(MoodEntryScreen.routeName),
               child: const Text('Share a mood'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pushNamed(InboxScreen.routeName),
+              child: const Text('Inbox'),
             ),
           ],
         ),

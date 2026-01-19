@@ -415,7 +415,7 @@
 - id: T-010
   title: "Implement inbox UI and acknowledgement flow"
   owner: frontend
-  state: BACKLOG
+  state: IN_PROGRESS
   goal: "Inbox displays one-shot messages with ack options"
   scope:
     in: ["Inbox list UI", "Message detail state", "Helpful/seen/not helpful actions"]

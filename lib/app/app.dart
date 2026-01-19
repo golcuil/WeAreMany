@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/crisis/crisis_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/inbox/inbox_screen.dart';
 import '../features/mood/mood_entry_screen.dart';
 
 class WeAreManyApp extends StatelessWidget {
@@ -16,6 +17,7 @@ class WeAreManyApp extends StatelessWidget {
         HomeScreen.routeName: (_) => const HomeScreen(),
         MoodEntryScreen.routeName: (_) => const MoodEntryScreen(),
         CrisisScreen.routeName: (_) => const CrisisScreen(),
+        InboxScreen.routeName: (_) => const InboxScreen(),
       },
       initialRoute: HomeScreen.routeName,
     );
