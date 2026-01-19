@@ -18,6 +18,7 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
   final _textController = TextEditingController();
   String _valence = 'neutral';
   String _intensity = 'low';
+  String? _emotion;
   bool _simulate = false;
 
   @override
@@ -32,9 +33,11 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
       MoodRequest(
         valence: _valence,
         intensity: _intensity,
+        emotion: _emotion,
         freeText: _textController.text,
       ),
     );
+    _textController.clear();
     if (response.crisisAction == 'show_crisis' && mounted) {
       Navigator.of(context).pushNamed(CrisisScreen.routeName);
     }
@@ -66,7 +69,7 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<String>(
-            value: _valence,
+            initialValue: _valence,
             items: const [
               DropdownMenuItem(value: 'positive', child: Text('Positive')),
               DropdownMenuItem(value: 'neutral', child: Text('Neutral')),
@@ -77,7 +80,7 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _intensity,
+            initialValue: _intensity,
             items: const [
               DropdownMenuItem(value: 'low', child: Text('Low')),
               DropdownMenuItem(value: 'medium', child: Text('Medium')),
@@ -87,9 +90,29 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
             decoration: const InputDecoration(labelText: 'Intensity'),
           ),
           const SizedBox(height: 12),
+          DropdownButtonFormField<String?>(
+            initialValue: _emotion,
+            items: const [
+              DropdownMenuItem(value: null, child: Text('No emotion selected')),
+              DropdownMenuItem(value: 'calm', child: Text('Calm')),
+              DropdownMenuItem(value: 'content', child: Text('Content')),
+              DropdownMenuItem(value: 'hopeful', child: Text('Hopeful')),
+              DropdownMenuItem(value: 'happy', child: Text('Happy')),
+              DropdownMenuItem(value: 'anxious', child: Text('Anxious')),
+              DropdownMenuItem(value: 'sad', child: Text('Sad')),
+              DropdownMenuItem(value: 'disappointed', child: Text('Disappointed')),
+              DropdownMenuItem(value: 'angry', child: Text('Angry')),
+              DropdownMenuItem(value: 'overwhelmed', child: Text('Overwhelmed')),
+              DropdownMenuItem(value: 'numb', child: Text('Numb')),
+            ],
+            onChanged: (value) => setState(() => _emotion = value),
+            decoration: const InputDecoration(labelText: 'Emotion (optional)'),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _textController,
             maxLines: 4,
+            maxLength: 1000,
             decoration: const InputDecoration(
               labelText: 'Optional text',
               alignLabelWithHint: true,
@@ -104,7 +127,7 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
           const SizedBox(height: 16),
           if (state.simulateEnabled)
             SwitchListTile(
-              title: const Text('Simulate mode (dev)') ,
+              title: const Text('Simulate mode (dev)'),
               value: _simulate,
               onChanged: (value) => setState(() => _simulate = value),
             ),
@@ -118,11 +141,13 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
             Text('Decision: ${state.simulateDecision!.decision}'),
             Text('Reason: ${state.simulateDecision!.reason}'),
           ],
-          if (state.response != null) ...[
+          if (state.response != null && state.response!.crisisAction != 'show_crisis') ...[
             const SizedBox(height: 12),
             Text('Sanitized: ${state.response!.sanitizedText ?? '-'}'),
-            Text('Risk level: ${state.response!.riskLevel}'),
             Text('Identity leak: ${state.response!.identityLeak}'),
+            Text('Leak types: ${state.response!.leakTypes.length}'),
+            Text('Re-id risk: ${state.response!.reidRisk.toStringAsFixed(2)}'),
+            Text('Risk level: ${state.response!.riskLevel}'),
           ],
           if (state.error != null) ...[
             const SizedBox(height: 12),

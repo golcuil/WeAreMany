@@ -14,10 +14,9 @@
 - [T-008] Build Flutter app skeleton with Riverpod
 
 ## In progress
-- (empty)
+- [T-009] Implement mood entry flow and crisis UX
 
 ## Next
-- [T-009] Implement mood entry flow and crisis UX
 - [T-010] Implement inbox UI and acknowledgement flow
 - [T-011] Deliver end-to-end happy path
 
