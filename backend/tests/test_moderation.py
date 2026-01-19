@@ -10,6 +10,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import app  # noqa: E402
 from app import moderation as moderation_module  # noqa: E402
+from app import matching as matching_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
 
@@ -48,6 +49,15 @@ class FakeRepo:
     def save_message(self, record: repository_module.MessageRecord) -> None:
         self.saved_messages += 1
 
+    def upsert_eligible_principal(self, principal_id: str, intensity_bucket: str, theme_tags):
+        return None
+
+    def touch_eligible_principal(self, principal_id: str, intensity_bucket: str):
+        return None
+
+    def get_eligible_candidates(self, sender_id: str, intensity_bucket: str, theme_tags, limit=50):
+        return []
+
 
 class InMemoryRateLimiter:
     def __init__(self):
@@ -72,10 +82,27 @@ def _override_rate_limit():
     app.dependency_overrides[rate_limit_module.get_rate_limiter] = lambda: limiter
 
 
+class InMemoryDedupeStore:
+    def __init__(self):
+        self.seen = set()
+
+    def allow_target(self, sender_id: str, recipient_id: str, cooldown_seconds: int) -> bool:
+        key = f"{sender_id}:{recipient_id}"
+        if key in self.seen:
+            return False
+        self.seen.add(key)
+        return True
+
+
+def _override_matching():
+    app.dependency_overrides[matching_module.get_dedupe_store] = lambda: InMemoryDedupeStore()
+
+
 def test_identity_patterns_detected_and_removed():
     client = TestClient(app)
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
     _override_rate_limit()
+    _override_matching()
 
     payload = {
         "valence": "neutral",
@@ -99,6 +126,7 @@ def test_raw_text_not_logged(caplog):
     client = TestClient(app)
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
     _override_rate_limit()
+    _override_matching()
 
     payload = {
         "valence": "neutral",
@@ -121,6 +149,7 @@ def test_risk_level_two_skips_persistence():
     app.dependency_overrides[repository_module.get_repository] = lambda: fake_repo
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
     _override_rate_limit()
+    _override_matching()
 
     payload = {
         "valence": "negative",
@@ -142,6 +171,7 @@ def test_repeated_leak_attempts_throttled():
     throttle = InMemoryLeakThrottle(limit=1)
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: throttle
     _override_rate_limit()
+    _override_matching()
 
     payload = {
         "valence": "neutral",
@@ -159,6 +189,7 @@ def test_rejects_principal_override_fields(field_name):
     client = TestClient(app)
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
     _override_rate_limit()
+    _override_matching()
 
     payload = {
         "valence": "neutral",
@@ -177,6 +208,7 @@ def test_leak_throttle_is_per_principal():
     throttle = PerPrincipalLeakThrottle(limit=1)
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: throttle
     _override_rate_limit()
+    _override_matching()
 
     payload = {
         "valence": "neutral",

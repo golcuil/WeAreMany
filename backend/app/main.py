@@ -171,6 +171,9 @@ def submit_mood(
                 sanitized_text=result.sanitized_text,
             )
         )
+        repo.upsert_eligible_principal(principal.principal_id, payload.intensity, [])
+    else:
+        repo.touch_eligible_principal(principal.principal_id, payload.intensity)
 
     safe_emit(
         emitter,
@@ -240,7 +243,12 @@ def submit_message(
                 reid_risk=result.reid_risk,
             )
         )
-        candidates = repo.get_candidate_pool(principal.principal_id, payload.intensity, [])
+        repo.upsert_eligible_principal(principal.principal_id, payload.intensity, [])
+        candidates = repo.get_eligible_candidates(
+            principal.principal_id,
+            payload.intensity,
+            [],
+        )
         decision = match_decision(
             principal_id=principal.principal_id,
             risk_level=result.risk_level,
@@ -276,6 +284,8 @@ def submit_message(
                 {"request_id": request_id, "outcome": "held"},
             )
             status_value = "held"
+    else:
+        repo.touch_eligible_principal(principal.principal_id, payload.intensity)
 
     safe_emit(
         emitter,

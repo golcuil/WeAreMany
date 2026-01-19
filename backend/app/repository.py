@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Protocol
 
 import os
 
 from .matching import Candidate
+from .config import ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
 
 try:
     import psycopg
@@ -50,6 +52,17 @@ class Repository(Protocol):
     def save_message(self, record: MessageRecord) -> str:
         ...
 
+    def upsert_eligible_principal(
+        self,
+        principal_id: str,
+        intensity_bucket: str,
+        theme_tags: List[str],
+    ) -> None:
+        ...
+
+    def touch_eligible_principal(self, principal_id: str, intensity_bucket: str) -> None:
+        ...
+
     def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
         ...
 
@@ -59,7 +72,13 @@ class Repository(Protocol):
     def acknowledge(self, inbox_item_id: str, recipient_id: str, reaction: str) -> str:
         ...
 
-    def get_candidate_pool(self, sender_id: str, intensity: str, themes: List[str]) -> List[Candidate]:
+    def get_eligible_candidates(
+        self,
+        sender_id: str,
+        intensity_bucket: str,
+        theme_tags: List[str],
+        limit: int = MATCH_SAMPLE_LIMIT,
+    ) -> List[Candidate]:
         ...
 
 
@@ -68,6 +87,7 @@ class InMemoryRepository:
         self.messages = {}
         self.inbox_items = {}
         self.acks = {}
+        self.eligible_principals = {}
         self.candidate_pool: List[Candidate] = []
 
     def save_mood(self, record: MoodRecord) -> None:
@@ -77,6 +97,25 @@ class InMemoryRepository:
         message_id = _new_uuid()
         self.messages[message_id] = record
         return message_id
+
+    def upsert_eligible_principal(
+        self,
+        principal_id: str,
+        intensity_bucket: str,
+        theme_tags: List[str],
+    ) -> None:
+        self.eligible_principals[principal_id] = {
+            "intensity_bucket": intensity_bucket,
+            "theme_tags": list(theme_tags),
+            "last_active": datetime.now(timezone.utc),
+        }
+
+    def touch_eligible_principal(self, principal_id: str, intensity_bucket: str) -> None:
+        existing = self.eligible_principals.get(principal_id)
+        if existing is None:
+            self.upsert_eligible_principal(principal_id, intensity_bucket, [])
+            return
+        existing["last_active"] = datetime.now(timezone.utc)
 
     def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
         inbox_item_id = _new_uuid()
@@ -110,8 +149,37 @@ class InMemoryRepository:
         item.ack_status = reaction
         return "recorded"
 
-    def get_candidate_pool(self, sender_id: str, intensity: str, themes: List[str]) -> List[Candidate]:
-        return list(self.candidate_pool)
+    def get_eligible_candidates(
+        self,
+        sender_id: str,
+        intensity_bucket: str,
+        theme_tags: List[str],
+        limit: int = MATCH_SAMPLE_LIMIT,
+    ) -> List[Candidate]:
+        if self.candidate_pool:
+            return list(self.candidate_pool)[:limit]
+
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
+        candidates: List[Candidate] = []
+        for principal_id, data in self.eligible_principals.items():
+            if principal_id == sender_id:
+                continue
+            if data["intensity_bucket"] != intensity_bucket:
+                continue
+            if data["last_active"] < cutoff:
+                continue
+            if theme_tags and not set(theme_tags).intersection(set(data["theme_tags"])):
+                continue
+            candidates.append(
+                Candidate(
+                    candidate_id=principal_id,
+                    intensity=data["intensity_bucket"],
+                    themes=list(data["theme_tags"]),
+                )
+            )
+            if len(candidates) >= limit:
+                break
+        return candidates
 
 
 class PostgresRepository:
@@ -161,6 +229,43 @@ class PostgresRepository:
                 ),
             )
             return str(cur.fetchone()[0])
+
+    def upsert_eligible_principal(
+        self,
+        principal_id: str,
+        intensity_bucket: str,
+        theme_tags: List[str],
+    ) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO eligible_principals
+                (principal_id, intensity_bucket, theme_tags, last_active_bucket, updated_at)
+                VALUES (%s, %s, %s, date_trunc('hour', now()), now())
+                ON CONFLICT (principal_id)
+                DO UPDATE SET
+                  intensity_bucket = EXCLUDED.intensity_bucket,
+                  theme_tags = EXCLUDED.theme_tags,
+                  last_active_bucket = EXCLUDED.last_active_bucket,
+                  updated_at = now()
+                """,
+                (principal_id, intensity_bucket, theme_tags),
+            )
+
+    def touch_eligible_principal(self, principal_id: str, intensity_bucket: str) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO eligible_principals
+                (principal_id, intensity_bucket, theme_tags, last_active_bucket, updated_at)
+                VALUES (%s, %s, %s, date_trunc('hour', now()), now())
+                ON CONFLICT (principal_id)
+                DO UPDATE SET
+                  last_active_bucket = EXCLUDED.last_active_bucket,
+                  updated_at = now()
+                """,
+                (principal_id, intensity_bucket, []),
+            )
 
     def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
         with self._conn() as conn, conn.cursor() as cur:
@@ -232,8 +337,33 @@ class PostgresRepository:
             )
         return "recorded"
 
-    def get_candidate_pool(self, sender_id: str, intensity: str, themes: List[str]) -> List[Candidate]:
-        return []
+    def get_eligible_candidates(
+        self,
+        sender_id: str,
+        intensity_bucket: str,
+        theme_tags: List[str],
+        limit: int = MATCH_SAMPLE_LIMIT,
+    ) -> List[Candidate]:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT principal_id, intensity_bucket, theme_tags
+                FROM eligible_principals
+                WHERE principal_id != %s
+                  AND intensity_bucket = %s
+                  AND last_active_bucket >= %s
+                  AND (%s = '{}' OR theme_tags && %s)
+                ORDER BY random()
+                LIMIT %s
+                """,
+                (sender_id, intensity_bucket, cutoff, theme_tags, theme_tags, limit),
+            )
+            rows = cur.fetchall()
+        return [
+            Candidate(candidate_id=row[0], intensity=row[1], themes=row[2] or [])
+            for row in rows
+        ]
 
 
 _default_repo = InMemoryRepository()
