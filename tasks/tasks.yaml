@@ -277,7 +277,7 @@
 - id: T-007
   title: "Define privacy-safe event taxonomy"
   owner: data
-  state: IN_PROGRESS
+  state: DONE
   goal: "Event schema captures success metrics without PII"
   scope:
     in: ["Event definitions for mood, message, delivery, acknowledgement", "Retention notes"]
@@ -323,7 +323,7 @@
 - id: T-008
   title: "Build Flutter app skeleton with Riverpod"
   owner: frontend
-  state: BACKLOG
+  state: TODO
   goal: "App scaffolding matches Bible navigation and folder structure"
   scope:
     in: ["App shell with tabs", "Core folder structure", "Navigation wiring"]
