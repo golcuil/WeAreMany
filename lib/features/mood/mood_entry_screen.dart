@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/network/models.dart';
+import '../crisis/crisis_screen.dart';
+import 'mood_controller.dart';
+
+class MoodEntryScreen extends ConsumerStatefulWidget {
+  const MoodEntryScreen({super.key});
+
+  static const routeName = '/mood';
+
+  @override
+  ConsumerState<MoodEntryScreen> createState() => _MoodEntryScreenState();
+}
+
+class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
+  final _textController = TextEditingController();
+  String _valence = 'neutral';
+  String _intensity = 'low';
+  bool _simulate = false;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final controller = ref.read(moodControllerProvider.notifier);
+    final response = await controller.submitMood(
+      MoodRequest(
+        valence: _valence,
+        intensity: _intensity,
+        freeText: _textController.text,
+      ),
+    );
+    if (response.crisisAction == 'show_crisis' && mounted) {
+      Navigator.of(context).pushNamed(CrisisScreen.routeName);
+    }
+  }
+
+  Future<void> _simulateMatch() async {
+    final controller = ref.read(moodControllerProvider.notifier);
+    await controller.simulateMatch(
+      MatchSimulateRequest(
+        riskLevel: 0,
+        intensity: _intensity,
+        themes: const [],
+        candidates: [
+          MatchCandidate(candidateId: 'c1', intensity: 'low', themes: const []),
+          MatchCandidate(candidateId: 'c2', intensity: 'low', themes: const []),
+          MatchCandidate(candidateId: 'c3', intensity: 'low', themes: const []),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(moodControllerProvider);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mood Entry')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          DropdownButtonFormField<String>(
+            value: _valence,
+            items: const [
+              DropdownMenuItem(value: 'positive', child: Text('Positive')),
+              DropdownMenuItem(value: 'neutral', child: Text('Neutral')),
+              DropdownMenuItem(value: 'negative', child: Text('Negative')),
+            ],
+            onChanged: (value) => setState(() => _valence = value ?? _valence),
+            decoration: const InputDecoration(labelText: 'Valence'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _intensity,
+            items: const [
+              DropdownMenuItem(value: 'low', child: Text('Low')),
+              DropdownMenuItem(value: 'medium', child: Text('Medium')),
+              DropdownMenuItem(value: 'high', child: Text('High')),
+            ],
+            onChanged: (value) => setState(() => _intensity = value ?? _intensity),
+            decoration: const InputDecoration(labelText: 'Intensity'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _textController,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Optional text',
+              alignLabelWithHint: true,
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: state.isLoading ? null : _submit,
+            child: const Text('Submit mood'),
+          ),
+          const SizedBox(height: 16),
+          if (state.simulateEnabled)
+            SwitchListTile(
+              title: const Text('Simulate mode (dev)') ,
+              value: _simulate,
+              onChanged: (value) => setState(() => _simulate = value),
+            ),
+          if (state.simulateEnabled && _simulate)
+            ElevatedButton(
+              onPressed: state.isLoading ? null : _simulateMatch,
+              child: const Text('Simulate match decision'),
+            ),
+          if (state.simulateDecision != null) ...[
+            const SizedBox(height: 12),
+            Text('Decision: ${state.simulateDecision!.decision}'),
+            Text('Reason: ${state.simulateDecision!.reason}'),
+          ],
+          if (state.response != null) ...[
+            const SizedBox(height: 12),
+            Text('Sanitized: ${state.response!.sanitizedText ?? '-'}'),
+            Text('Risk level: ${state.response!.riskLevel}'),
+            Text('Identity leak: ${state.response!.identityLeak}'),
+          ],
+          if (state.error != null) ...[
+            const SizedBox(height: 12),
+            Text(state.error!, style: const TextStyle(color: Colors.red)),
+          ],
+        ],
+      ),
+    );
+  }
+}

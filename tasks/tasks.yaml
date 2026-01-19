@@ -323,7 +323,7 @@
 - id: T-008
   title: "Build Flutter app skeleton with Riverpod"
   owner: frontend
-  state: TODO
+  state: IN_PROGRESS
   goal: "App scaffolding matches Bible navigation and folder structure"
   scope:
     in: ["App shell with tabs", "Core folder structure", "Navigation wiring"]

@@ -13,10 +13,9 @@
 - [T-007] Define privacy-safe event taxonomy
 
 ## In progress
-- (empty)
+- [T-008] Build Flutter app skeleton with Riverpod
 
 ## Next
-- [T-008] Build Flutter app skeleton with Riverpod
 - [T-009] Implement mood entry flow and crisis UX
 - [T-010] Implement inbox UI and acknowledgement flow
 - [T-011] Deliver end-to-end happy path

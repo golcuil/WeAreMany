@@ -1,30 +1,56 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
-import 'package:we_are_many/main.dart';
+import 'package:we_are_many/app/app.dart';
+import 'package:we_are_many/core/network/api_client.dart';
+import 'package:we_are_many/core/network/models.dart';
+import 'package:we_are_many/features/crisis/crisis_screen.dart';
+import 'package:we_are_many/features/mood/mood_entry_screen.dart';
+
+class FakeApiClient extends ApiClient {
+  FakeApiClient()
+      : super(baseUrl: 'http://localhost', token: 'dev_test', httpClient: http.Client());
+
+  @override
+  Future<MoodResponse> submitMood(MoodRequest request) async {
+    return MoodResponse(
+      sanitizedText: 'ok',
+      riskLevel: 2,
+      reidRisk: 0,
+      identityLeak: false,
+      leakTypes: const [],
+      crisisAction: 'show_crisis',
+    );
+  }
+
+  @override
+  Future<MatchSimulateResponse> simulateMatch(MatchSimulateRequest request) async {
+    return MatchSimulateResponse(
+      decision: 'HOLD',
+      reason: 'insufficient_pool',
+      systemGeneratedEmpathy: 'ok',
+      finiteContentBridge: 'reflection',
+    );
+  }
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Navigates to CrisisScreen when crisis_action is set', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [apiClientProvider.overrideWithValue(FakeApiClient())],
+        child: const WeAreManyApp(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.tap(find.text('Share a mood'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MoodEntryScreen), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.tap(find.text('Submit mood'));
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byType(CrisisScreen), findsOneWidget);
   });
 }
