@@ -47,7 +47,7 @@
 - id: T-002
   title: "Define backend API contract skeleton"
   owner: backend
-  state: TODO
+  state: DONE
   goal: "OpenAPI contract defines MVP endpoints and payloads"
   scope:
     in: ["Draft OpenAPI for mood, message, inbox, acknowledgement", "Define error shapes and auth headers"]
@@ -93,7 +93,7 @@
 - id: T-003
   title: "Create MVP data model and migrations"
   owner: backend
-  state: BACKLOG
+  state: DONE
   goal: "Postgres schema supports mood, message, ack, and events"
   scope:
     in: ["Schema for mood submissions", "Message storage with sanitized_text only", "Acknowledgement records", "Event log table"]
@@ -139,7 +139,7 @@
 - id: T-004
   title: "Implement authn/authz and rate limiting middleware"
   owner: sec
-  state: BACKLOG
+  state: TODO
   goal: "All endpoints enforce authn/authz and throttles"
   scope:
     in: ["Token auth middleware", "User-scoped authz checks", "Per-user/per-IP rate limit policy"]

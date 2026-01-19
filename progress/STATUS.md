@@ -5,13 +5,13 @@
 
 ## Done
 - [T-001] Wire policy_check into CI gate
+- [T-002] Define backend API contract skeleton
+- [T-003] Create MVP data model and migrations
 
 ## In progress
 - (empty)
 
 ## Next
-- [T-002] Define backend API contract skeleton
-- [T-003] Create MVP data model and migrations
 - [T-004] Implement authn/authz and rate limiting middleware
 - [T-005] Build moderation pipeline skeleton
 - [T-006] Implement matching gate and sampling skeleton
