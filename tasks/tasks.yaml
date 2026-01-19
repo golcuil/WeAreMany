@@ -139,7 +139,7 @@
 - id: T-004
   title: "Implement authn/authz and rate limiting middleware"
   owner: sec
-  state: IN_PROGRESS
+  state: DONE
   goal: "All endpoints enforce authn/authz and throttles"
   scope:
     in: ["Token auth middleware", "User-scoped authz checks", "Per-user/per-IP rate limit policy"]
@@ -185,7 +185,7 @@
 - id: T-005
   title: "Build moderation pipeline skeleton"
   owner: sec
-  state: BACKLOG
+  state: TODO
   goal: "Risk classification and leak checks gate messaging"
   scope:
     in: ["Risk level classifier stub", "Leak detection stub", "Rewrite hook interface"]
