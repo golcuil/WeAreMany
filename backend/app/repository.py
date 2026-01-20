@@ -124,7 +124,7 @@ class InMemoryRepository:
             message_id=message_id,
             recipient_id=recipient_id,
             text=text,
-            created_at="",
+            created_at=datetime.now(timezone.utc).isoformat(),
             state="unread",
             ack_status=None,
         )

@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 import sys
 
@@ -62,6 +63,9 @@ def test_deliver_path_writes_inbox_and_ack():
     assert inbox.status_code == 200
     items = inbox.json()["items"]
     assert len(items) == 1
+    created_at = items[0]["created_at"]
+    assert created_at
+    datetime.fromisoformat(created_at)
     inbox_item_id = items[0]["inbox_item_id"]
 
     ack = client.post(
