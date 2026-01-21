@@ -14,7 +14,6 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-006] Implement matching gate and sampling skeleton
 - [T-007] Define privacy-safe event taxonomy
 - [T-008] Build Flutter app skeleton with Riverpod
-- [T-009] Implement mood entry flow and crisis UX
 - [T-010] Implement inbox UI and acknowledgement flow
 - [T-011] Deliver end-to-end happy path
 - [T-012] DB-backed eligible recipient pool sampling (theme/intensity buckets)
@@ -22,6 +21,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-015] Restore CI green on main (deps + import path + psycopg pin)
 
 ## In progress
+- [T-009] Implement mood entry flow and crisis UX
 
 ## Next
 

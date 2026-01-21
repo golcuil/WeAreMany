@@ -551,7 +551,7 @@
 - id: T-009
   title: Implement mood entry flow and crisis UX
   owner: frontend
-  state: DONE
+  state: IN_PROGRESS
   goal: Mood submission triggers crisis UX for risk_level==2
   scope:
     in:
