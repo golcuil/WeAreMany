@@ -50,7 +50,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Reflection'));
+    await tester.tap(find.byKey(const Key('tab_reflection')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('reflection_screen')), findsOneWidget);

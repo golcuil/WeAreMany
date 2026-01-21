@@ -31,19 +31,19 @@ class _MainTabsState extends State<MainTabs> {
         onTap: (value) => setState(() => _index = value),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
+            icon: Icon(Icons.home_outlined, key: Key('tab_home')),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.mail_outline),
+            icon: Icon(Icons.mail_outline, key: Key('tab_messages')),
             label: 'Messages',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.insights_outlined),
+            icon: Icon(Icons.insights_outlined, key: Key('tab_reflection')),
             label: 'Reflection',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
+            icon: Icon(Icons.person_outline, key: Key('tab_profile')),
             label: 'Profile',
           ),
         ],

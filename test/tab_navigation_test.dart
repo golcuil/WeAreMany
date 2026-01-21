@@ -53,17 +53,17 @@ void main() {
 
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.byKey(const Key('home_screen')), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Messages'), findsOneWidget);
-    expect(find.text('Reflection'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
-    await tester.tap(find.text('Messages'));
+    expect(find.byKey(const Key('tab_home')), findsOneWidget);
+    expect(find.byKey(const Key('tab_messages')), findsOneWidget);
+    expect(find.byKey(const Key('tab_reflection')), findsOneWidget);
+    expect(find.byKey(const Key('tab_profile')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('tab_messages')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('inbox_screen')), findsOneWidget);
-    await tester.tap(find.text('Reflection'));
+    await tester.tap(find.byKey(const Key('tab_reflection')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('reflection_screen')), findsOneWidget);
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.byKey(const Key('tab_profile')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('profile_screen')), findsOneWidget);
   });
@@ -76,7 +76,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.byKey(const Key('tab_profile')));
     await tester.pumpAndSettle();
 
     expect(find.text('Account'), findsOneWidget);
@@ -101,7 +101,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.byKey(const Key('tab_profile')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('About & Safety'));
     await tester.pumpAndSettle();
