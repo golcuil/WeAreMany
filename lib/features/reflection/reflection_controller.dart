@@ -4,11 +4,7 @@ import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 
 class ReflectionState {
-  const ReflectionState({
-    this.isLoading = false,
-    this.summary,
-    this.error,
-  });
+  const ReflectionState({this.isLoading = false, this.summary, this.error});
 
   final bool isLoading;
   final ReflectionSummary? summary;
@@ -29,7 +25,7 @@ class ReflectionState {
 
 class ReflectionController extends StateNotifier<ReflectionState> {
   ReflectionController({required this.apiClient})
-      : super(const ReflectionState());
+    : super(const ReflectionState());
 
   final ApiClient apiClient;
 
@@ -48,6 +44,6 @@ class ReflectionController extends StateNotifier<ReflectionState> {
 
 final reflectionControllerProvider =
     StateNotifierProvider<ReflectionController, ReflectionState>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return ReflectionController(apiClient: apiClient);
-});
+      final apiClient = ref.watch(apiClientProvider);
+      return ReflectionController(apiClient: apiClient);
+    });

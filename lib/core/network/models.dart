@@ -214,7 +214,8 @@ class ReflectionSummary {
   final int volatilityDays;
 
   factory ReflectionSummary.fromJson(Map<String, dynamic> json) {
-    final rawDistribution = (json['distribution'] as Map<String, dynamic>? ?? {});
+    final rawDistribution =
+        (json['distribution'] as Map<String, dynamic>? ?? {});
     return ReflectionSummary(
       windowDays: json['window_days'] as int? ?? 7,
       totalEntries: json['total_entries'] as int? ?? 0,

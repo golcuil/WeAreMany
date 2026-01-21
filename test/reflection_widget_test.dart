@@ -10,16 +10,14 @@ import 'package:we_are_many/features/reflection/reflection_screen.dart';
 
 class FakeReflectionApiClient extends ApiClient {
   FakeReflectionApiClient()
-      : super(
-          baseUrl: 'http://localhost',
-          token: 'dev_test',
-          httpClient: http.Client(),
-        );
+    : super(
+        baseUrl: 'http://localhost',
+        token: 'dev_test',
+        httpClient: http.Client(),
+      );
 
   @override
-  Future<ReflectionSummary> fetchReflectionSummary({
-    int windowDays = 7,
-  }) async {
+  Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
     return ReflectionSummary(
       windowDays: windowDays,
       totalEntries: 3,
