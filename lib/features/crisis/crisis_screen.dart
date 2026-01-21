@@ -17,10 +17,16 @@ class CrisisScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'You may be in a tough moment. You are not alone.\n'
-              'Please consider reaching out to local crisis resources.',
+              'If you are in immediate danger, contact local emergency services.\n'
+              'Consider reaching out to someone you trust.\n'
+              'You can also look for local help resources near you.',
             ),
             const SizedBox(height: 24),
+            TextButton(
+              onPressed: () {},
+              child: const Text('Find local help'),
+            ),
+            const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pushNamedAndRemoveUntil(

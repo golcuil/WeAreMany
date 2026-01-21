@@ -38,6 +38,7 @@ class MoodRequest {
 
 class MoodResponse {
   MoodResponse({
+    required this.status,
     required this.sanitizedText,
     required this.riskLevel,
     required this.reidRisk,
@@ -46,6 +47,7 @@ class MoodResponse {
     required this.crisisAction,
   });
 
+  final String status;
   final String? sanitizedText;
   final int riskLevel;
   final double reidRisk;
@@ -55,6 +57,7 @@ class MoodResponse {
 
   factory MoodResponse.fromJson(Map<String, dynamic> json) {
     return MoodResponse(
+      status: json['status'] as String? ?? 'ok',
       sanitizedText: json['sanitized_text'] as String?,
       riskLevel: json['risk_level'] as int? ?? 0,
       reidRisk: (json['reid_risk'] as num?)?.toDouble() ?? 0,

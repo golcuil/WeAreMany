@@ -69,6 +69,7 @@ class MoodRequest(BaseModel):
 
 
 class MoodResponse(BaseModel):
+    status: str
     sanitized_text: Optional[str]
     risk_level: int
     reid_risk: float
@@ -159,7 +160,18 @@ def submit_mood(
     text = payload.free_text or ""
     result = moderate_text(text, principal.principal_id, leak_throttle)
 
-    crisis_action = "show_crisis" if result.risk_level == 2 else None
+    if result.risk_level == 2:
+        return MoodResponse(
+            status="blocked",
+            sanitized_text=None,
+            risk_level=result.risk_level,
+            reid_risk=result.reid_risk,
+            identity_leak=result.identity_leak,
+            leak_types=result.leak_types,
+            crisis_action="show_resources",
+        )
+
+    crisis_action = None
     if result.risk_level != 2:
         repo.save_mood(
             MoodRecord(
@@ -172,8 +184,6 @@ def submit_mood(
             )
         )
         repo.upsert_eligible_principal(principal.principal_id, payload.intensity, [])
-    else:
-        repo.touch_eligible_principal(principal.principal_id, payload.intensity)
 
     safe_emit(
         emitter,
@@ -204,6 +214,7 @@ def submit_mood(
         )
 
     return MoodResponse(
+        status="ok",
         sanitized_text=result.sanitized_text,
         risk_level=result.risk_level,
         reid_risk=result.reid_risk,

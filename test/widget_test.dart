@@ -20,12 +20,13 @@ class FakeApiClient extends ApiClient {
   @override
   Future<MoodResponse> submitMood(MoodRequest request) async {
     return MoodResponse(
+      status: 'blocked',
       sanitizedText: 'ok',
       riskLevel: 2,
       reidRisk: 0,
       identityLeak: false,
       leakTypes: const [],
-      crisisAction: 'show_crisis',
+      crisisAction: 'show_resources',
     );
   }
 
@@ -53,6 +54,7 @@ class NonCrisisApiClient extends ApiClient {
   @override
   Future<MoodResponse> submitMood(MoodRequest request) async {
     return MoodResponse(
+      status: 'ok',
       sanitizedText: 'sanitized',
       riskLevel: 0,
       reidRisk: 0.1,
