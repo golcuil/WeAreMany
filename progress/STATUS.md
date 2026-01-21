@@ -21,6 +21,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-009] Implement mood entry flow and crisis UX
+- [T-015] Restore CI green on main (deps + import path + psycopg pin)
 
 ## Next
 

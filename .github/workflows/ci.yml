@@ -32,6 +32,11 @@ jobs:
         with:
           channel: stable
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install deps
         run: flutter pub get
 
@@ -55,8 +60,11 @@ jobs:
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0002_eligible_principals.sql
 
+      - name: Verify backend imports
+        run: PYTHONPATH=backend python3 -c "import fastapi; import app"
+
       - name: Pytest
-        run: pytest
+        run: PYTHONPATH=backend python3 -m pytest -q
 
       - name: Policy gate
         run: python3 tools/policy_check.py

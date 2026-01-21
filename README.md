@@ -42,6 +42,13 @@ export DEV_BEARER_TOKENS=tokenA,tokenB
 uvicorn backend.app.main:app --reload --port 8000
 ```
 
+Backend tests (from repo root):
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+PYTHONPATH=backend python3 -m pytest -q
+```
+
 Flutter (debug/profile only, uses a dev bearer token if provided):
 
 ```bash
