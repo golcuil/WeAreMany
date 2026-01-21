@@ -30,6 +30,18 @@ class FakeTabsApiClient extends ApiClient {
       volatilityDays: 0,
     );
   }
+
+  @override
+  Future<InboxResponse> fetchInbox() async {
+    return InboxResponse(items: const [], nextCursor: null);
+  }
+
+  @override
+  Future<AcknowledgementResponse> acknowledge(
+    AcknowledgementRequest request,
+  ) async {
+    return AcknowledgementResponse(status: 'recorded');
+  }
 }
 
 void main() {
@@ -42,6 +54,10 @@ void main() {
     );
 
     expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Messages'), findsOneWidget);
+    expect(find.text('Reflection'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     await tester.tap(find.text('Messages'));
     await tester.pumpAndSettle();
     expect(find.byType(InboxScreen), findsOneWidget);
