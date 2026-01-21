@@ -22,10 +22,7 @@ class CrisisScreen extends StatelessWidget {
               'You can also look for local help resources near you.',
             ),
             const SizedBox(height: 24),
-            TextButton(
-              onPressed: () {},
-              child: const Text('Find local help'),
-            ),
+            TextButton(onPressed: () {}, child: const Text('Find local help')),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () {
