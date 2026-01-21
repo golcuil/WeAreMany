@@ -24,6 +24,15 @@ flutter run \
 
 In release builds, `DEV_BEARER_TOKEN` is ignored.
 
+For a stable simulator target without hardcoding device IDs (IDs can change; use
+`flutter devices` to inspect):
+
+```bash
+flutter run -d ios \
+  --dart-define=API_BASE_URL=http://127.0.0.1:8000 \
+  --dart-define=DEV_BEARER_TOKEN=tokenA
+```
+
 ## Local backend + Flutter dev tokens
 
 Backend (accepts dev tokens only when allowlisted):

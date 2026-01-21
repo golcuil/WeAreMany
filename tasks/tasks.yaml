@@ -905,3 +905,73 @@
     mitigations:
     - Single install command documented
     - Consistent PYTHONPATH/package layout
+- id: T-014
+  title: Dev-safe rate limiting fallback (no Redis required) + stable iOS Simulator run docs
+  owner: backend
+  state: DONE
+  goal: Avoid Redis-down 500s by falling back to in-memory rate limiting while
+    keeping production behavior intact and documenting stable simulator runs.
+  scope:
+    in:
+    - Add an in-memory rate limiter fallback when Redis is not configured or unavailable
+    - Ensure fallback preserves per-key window semantics and returns 429 after limits
+    - Update README with stable iOS simulator run commands (no device ID hardcoding)
+    out:
+    - No product feature changes
+    - No endpoint behavior changes
+    - No sender identity persistence
+    - No feed/chat/threads
+    - No profiles/identity surfaces
+    - No streaks/leaderboards
+  dependencies: []
+  touches:
+    endpoints:
+    - GET /version
+    - POST /mood
+    - POST /messages
+    - GET /inbox
+    - POST /acknowledgements
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Redis down does not return 500; fallback limiter applies and returns 429 after limits
+    - README includes stable iOS simulator run command and notes device IDs can change
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
+  tests:
+    unit:
+    - Redis-down fallback returns non-500 responses
+    - Fallback limiter enforces thresholds
+    integration:
+    - Rate limiting still triggers under abuse
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Abuse via limiter bypass
+    - Availability regressions
+    mitigations:
+    - In-memory fallback with windowed counters
+    - Redis error handling without 500s

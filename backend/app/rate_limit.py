@@ -1,5 +1,5 @@
 import time
-from typing import Protocol
+from typing import Optional, Protocol
 
 import redis
 from fastapi import Depends, HTTPException, Request, status
@@ -29,12 +29,56 @@ class RedisRateLimiter:
         return count <= limit
 
 
+class InMemoryRateLimiter:
+    def __init__(self) -> None:
+        self._data: dict[str, tuple[int, float]] = {}
+
+    def allow(self, key: str, limit: int, window_seconds: int) -> bool:
+        now = time.time()
+        count, expires_at = self._data.get(key, (0, now + window_seconds))
+        if now > expires_at:
+            count = 0
+            expires_at = now + window_seconds
+        count += 1
+        self._data[key] = (count, expires_at)
+        return count <= limit
+
+
+class FallbackRateLimiter:
+    def __init__(self) -> None:
+        self._in_memory = InMemoryRateLimiter()
+        self._redis: Optional[RedisRateLimiter] = None
+
+    def _ensure_redis(self) -> None:
+        if self._redis is not None or not REDIS_URL:
+            return
+        try:
+            client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+            client.ping()
+            self._redis = RedisRateLimiter(client)
+        except redis.RedisError:
+            self._redis = None
+
+    def allow(self, key: str, limit: int, window_seconds: int) -> bool:
+        self._ensure_redis()
+        if self._redis is None:
+            return self._in_memory.allow(key, limit, window_seconds)
+        try:
+            return self._redis.allow(key, limit, window_seconds)
+        except redis.RedisError:
+            self._redis = None
+            return self._in_memory.allow(key, limit, window_seconds)
+
+
 def get_redis_client() -> redis.Redis:
     return redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 
+_fallback_limiter = FallbackRateLimiter()
+
+
 def get_rate_limiter() -> RateLimiter:
-    return RedisRateLimiter(get_redis_client())
+    return _fallback_limiter
 
 
 def _rate_key(principal_id: str, ip: str, scope: str) -> str:

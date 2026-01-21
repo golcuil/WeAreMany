@@ -1,6 +1,7 @@
 import importlib
 from pathlib import Path
 import sys
+from typing import Optional
 
 import pytest
 from fastapi.testclient import TestClient
@@ -22,7 +23,7 @@ class InMemoryLeakThrottle:
         return None
 
 
-def _load_app(monkeypatch: pytest.MonkeyPatch, dev_tokens: str | None):
+def _load_app(monkeypatch: pytest.MonkeyPatch, dev_tokens: Optional[str]):
     if dev_tokens is None:
         monkeypatch.delenv("DEV_BEARER_TOKENS", raising=False)
     else:
