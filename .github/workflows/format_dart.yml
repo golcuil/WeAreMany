@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Git ref (branch or SHA) to format"
+        description: "Branch name to format"
         required: false
         default: ""
 
@@ -18,15 +18,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: ${{ inputs.ref || github.ref_name }}
+          fetch-depth: 0
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
+      - name: Resolve target branch
+        run: |
+          TARGET_REF="${{ inputs.ref }}"
+          if [ -z "$TARGET_REF" ]; then
+            TARGET_REF="${{ github.ref_name }}"
+          fi
+          if git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
+            :
+          elif git cat-file -e "$TARGET_REF^{commit}" 2>/dev/null; then
+            echo "Ref '$TARGET_REF' appears to be a commit SHA; provide a branch name." >&2
+            exit 1
+          fi
+          echo "TARGET_REF=$TARGET_REF" >> "$GITHUB_ENV"
+
       - name: Install deps
         run: flutter pub get
+
+      - name: Checkout target branch
+        run: git checkout -B "$TARGET_REF"
 
       - name: Dart format
         run: dart format .
@@ -38,7 +56,7 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add .
             git commit -m "Format Dart files (CI parity)"
-            git push
+            git push origin HEAD:"$TARGET_REF"
           fi
 
       - name: Verify format gate
