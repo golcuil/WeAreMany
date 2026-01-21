@@ -978,7 +978,7 @@
 - id: T-015
   title: Restore CI green on main (deps + import path + psycopg pin)
   owner: backend
-  state: IN_PROGRESS
+  state: DONE
   goal: Fix CI/local parity for backend tests by updating dependency pinning and
     pytest import path consistency without changing product behavior.
   scope:

@@ -18,10 +18,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-011] Deliver end-to-end happy path
 - [T-012] DB-backed eligible recipient pool sampling (theme/intensity buckets)
 - [T-014] Dev-safe rate limiting fallback (no Redis required) + stable iOS Simulator run docs
+- [T-015] Restore CI green on main (deps + import path + psycopg pin)
 
 ## In progress
 - [T-009] Implement mood entry flow and crisis UX
-- [T-015] Restore CI green on main (deps + import path + psycopg pin)
 
 ## Next
 
