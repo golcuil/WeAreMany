@@ -22,6 +22,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-015] Restore CI green on main (deps + import path + psycopg pin)
 
 ## In progress
+- [T-016] CI hygiene cleanup (single source of truth + stable triggers)
 
 ## Next
 

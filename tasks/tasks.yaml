@@ -1040,3 +1040,69 @@
     mitigations:
     - Stable dependency pinning
     - Consistent pytest invocation across CI/local
+- id: T-016
+  title: CI hygiene cleanup (single source of truth + stable triggers)
+  owner: cto
+  state: IN_PROGRESS
+  goal: Ensure a single canonical CI workflow with stable Flutter and backend
+    gates and manual trigger support.
+  scope:
+    in:
+    - Remove redundant CI workflow definitions under .github/workflows
+    - Standardize Flutter CI steps and order in the canonical workflow
+    - Preserve backend gate order and policy gate placement
+    - Keep workflow_dispatch enabled for manual CI runs
+    out:
+    - No product feature changes
+    - No endpoint behavior changes
+    - No sender identity persistence
+    - No feed/chat/threads
+    - No profiles/identity surfaces
+    - No streaks/leaderboards
+  dependencies: []
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Exactly one canonical CI workflow remains and is documented by path
+    - Flutter gates run in a consistent order (format, analyze, test)
+    - Backend gates run before policy_check
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
+  tests:
+    unit:
+    - N/A (workflow-only changes)
+    integration:
+    - CI passes with Flutter and backend gates in order
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Gate drift
+    - Inconsistent CI triggers
+    mitigations:
+    - Single canonical workflow
+    - Manual trigger enabled
