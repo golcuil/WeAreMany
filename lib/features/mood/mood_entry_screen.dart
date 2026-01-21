@@ -86,7 +86,8 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
               DropdownMenuItem(value: 'medium', child: Text('Medium')),
               DropdownMenuItem(value: 'high', child: Text('High')),
             ],
-            onChanged: (value) => setState(() => _intensity = value ?? _intensity),
+            onChanged: (value) =>
+                setState(() => _intensity = value ?? _intensity),
             decoration: const InputDecoration(labelText: 'Intensity'),
           ),
           const SizedBox(height: 12),
@@ -100,9 +101,15 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
               DropdownMenuItem(value: 'happy', child: Text('Happy')),
               DropdownMenuItem(value: 'anxious', child: Text('Anxious')),
               DropdownMenuItem(value: 'sad', child: Text('Sad')),
-              DropdownMenuItem(value: 'disappointed', child: Text('Disappointed')),
+              DropdownMenuItem(
+                value: 'disappointed',
+                child: Text('Disappointed'),
+              ),
               DropdownMenuItem(value: 'angry', child: Text('Angry')),
-              DropdownMenuItem(value: 'overwhelmed', child: Text('Overwhelmed')),
+              DropdownMenuItem(
+                value: 'overwhelmed',
+                child: Text('Overwhelmed'),
+              ),
               DropdownMenuItem(value: 'numb', child: Text('Numb')),
             ],
             onChanged: (value) => setState(() => _emotion = value),
@@ -141,7 +148,8 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
             Text('Decision: ${state.simulateDecision!.decision}'),
             Text('Reason: ${state.simulateDecision!.reason}'),
           ],
-          if (state.response != null && state.response!.crisisAction != 'show_crisis') ...[
+          if (state.response != null &&
+              state.response!.crisisAction != 'show_crisis') ...[
             const SizedBox(height: 12),
             Text('Sanitized: ${state.response!.sanitizedText ?? '-'}'),
             Text('Identity leak: ${state.response!.identityLeak}'),

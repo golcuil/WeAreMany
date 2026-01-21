@@ -27,7 +27,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         title: const Text('Inbox'),
         actions: [
           IconButton(
-            onPressed: () => ref.read(inboxControllerProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(inboxControllerProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -38,7 +39,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           if (state.error != null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(state.error!, style: const TextStyle(color: Colors.red)),
+              child: Text(
+                state.error!,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
           Expanded(
             child: ListView.separated(
@@ -49,7 +53,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 final isResponded = item.ackStatus != null;
                 return ListTile(
                   title: Text(item.text),
-                  subtitle: Text(item.receivedAt.isEmpty ? 'Recently' : item.receivedAt),
+                  subtitle: Text(
+                    item.receivedAt.isEmpty ? 'Recently' : item.receivedAt,
+                  ),
                   trailing: Wrap(
                     spacing: 8,
                     children: [
@@ -58,21 +64,30 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         enabled: !isResponded,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
-                            .acknowledge(inboxItemId: item.inboxItemId, reaction: 'thanks'),
+                            .acknowledge(
+                              inboxItemId: item.inboxItemId,
+                              reaction: 'thanks',
+                            ),
                       ),
                       _AckButton(
                         label: 'I relate',
                         enabled: !isResponded,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
-                            .acknowledge(inboxItemId: item.inboxItemId, reaction: 'relate'),
+                            .acknowledge(
+                              inboxItemId: item.inboxItemId,
+                              reaction: 'relate',
+                            ),
                       ),
                       _AckButton(
                         label: 'Helpful',
                         enabled: !isResponded,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
-                            .acknowledge(inboxItemId: item.inboxItemId, reaction: 'helpful'),
+                            .acknowledge(
+                              inboxItemId: item.inboxItemId,
+                              reaction: 'helpful',
+                            ),
                       ),
                     ],
                   ),
@@ -87,7 +102,11 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 }
 
 class _AckButton extends StatelessWidget {
-  const _AckButton({required this.label, required this.enabled, required this.onPressed});
+  const _AckButton({
+    required this.label,
+    required this.enabled,
+    required this.onPressed,
+  });
 
   final String label;
   final bool enabled;

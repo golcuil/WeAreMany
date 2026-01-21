@@ -9,7 +9,11 @@ import 'package:we_are_many/core/network/models.dart';
 
 class FakeInboxApiClient extends ApiClient {
   FakeInboxApiClient()
-      : super(baseUrl: 'http://localhost', token: 'dev_test', httpClient: http.Client());
+    : super(
+        baseUrl: 'http://localhost',
+        token: 'dev_test',
+        httpClient: http.Client(),
+      );
 
   int ackCalls = 0;
   String? lastReaction;
@@ -30,7 +34,9 @@ class FakeInboxApiClient extends ApiClient {
   }
 
   @override
-  Future<AcknowledgementResponse> acknowledge(AcknowledgementRequest request) async {
+  Future<AcknowledgementResponse> acknowledge(
+    AcknowledgementRequest request,
+  ) async {
     ackCalls += 1;
     lastReaction = request.reaction;
     return AcknowledgementResponse(status: 'recorded');

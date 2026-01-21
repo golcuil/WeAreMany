@@ -4,11 +4,7 @@ import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 
 class InboxState {
-  const InboxState({
-    this.items = const [],
-    this.isLoading = false,
-    this.error,
-  });
+  const InboxState({this.items = const [], this.isLoading = false, this.error});
 
   final List<InboxItem> items;
   final bool isLoading;
@@ -46,7 +42,10 @@ class InboxController extends StateNotifier<InboxState> {
     await load();
   }
 
-  Future<void> acknowledge({required String inboxItemId, required String reaction}) async {
+  Future<void> acknowledge({
+    required String inboxItemId,
+    required String reaction,
+  }) async {
     final previous = state.items;
     final updated = state.items
         .map(
@@ -72,7 +71,8 @@ class InboxController extends StateNotifier<InboxState> {
   }
 }
 
-final inboxControllerProvider = StateNotifierProvider<InboxController, InboxState>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return InboxController(apiClient: apiClient);
-});
+final inboxControllerProvider =
+    StateNotifierProvider<InboxController, InboxState>((ref) {
+      final apiClient = ref.watch(apiClientProvider);
+      return InboxController(apiClient: apiClient);
+    });

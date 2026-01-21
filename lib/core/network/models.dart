@@ -1,5 +1,9 @@
 class ApiError implements Exception {
-  ApiError({required this.code, required this.message, required this.requestId});
+  ApiError({
+    required this.code,
+    required this.message,
+    required this.requestId,
+  });
 
   final String code;
   final String message;
@@ -64,7 +68,11 @@ class MoodResponse {
 }
 
 class MatchCandidate {
-  MatchCandidate({required this.candidateId, required this.intensity, required this.themes});
+  MatchCandidate({
+    required this.candidateId,
+    required this.intensity,
+    required this.themes,
+  });
 
   final String candidateId;
   final String intensity;
@@ -171,10 +179,7 @@ class AcknowledgementRequest {
   final String reaction;
 
   Map<String, dynamic> toJson() {
-    return {
-      'inbox_item_id': inboxItemId,
-      'reaction': reaction,
-    };
+    return {'inbox_item_id': inboxItemId, 'reaction': reaction};
   }
 }
 
@@ -184,6 +189,8 @@ class AcknowledgementResponse {
   final String status;
 
   factory AcknowledgementResponse.fromJson(Map<String, dynamic> json) {
-    return AcknowledgementResponse(status: json['status'] as String? ?? 'unknown');
+    return AcknowledgementResponse(
+      status: json['status'] as String? ?? 'unknown',
+    );
   }
 }

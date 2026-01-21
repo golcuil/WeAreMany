@@ -11,7 +11,11 @@ import 'package:we_are_many/features/mood/mood_entry_screen.dart';
 
 class FakeApiClient extends ApiClient {
   FakeApiClient()
-      : super(baseUrl: 'http://localhost', token: 'dev_test', httpClient: http.Client());
+    : super(
+        baseUrl: 'http://localhost',
+        token: 'dev_test',
+        httpClient: http.Client(),
+      );
 
   @override
   Future<MoodResponse> submitMood(MoodRequest request) async {
@@ -26,7 +30,9 @@ class FakeApiClient extends ApiClient {
   }
 
   @override
-  Future<MatchSimulateResponse> simulateMatch(MatchSimulateRequest request) async {
+  Future<MatchSimulateResponse> simulateMatch(
+    MatchSimulateRequest request,
+  ) async {
     return MatchSimulateResponse(
       decision: 'HOLD',
       reason: 'insufficient_pool',
@@ -38,7 +44,11 @@ class FakeApiClient extends ApiClient {
 
 class NonCrisisApiClient extends ApiClient {
   NonCrisisApiClient()
-      : super(baseUrl: 'http://localhost', token: 'dev_test', httpClient: http.Client());
+    : super(
+        baseUrl: 'http://localhost',
+        token: 'dev_test',
+        httpClient: http.Client(),
+      );
 
   @override
   Future<MoodResponse> submitMood(MoodRequest request) async {
@@ -53,7 +63,9 @@ class NonCrisisApiClient extends ApiClient {
   }
 
   @override
-  Future<MatchSimulateResponse> simulateMatch(MatchSimulateRequest request) async {
+  Future<MatchSimulateResponse> simulateMatch(
+    MatchSimulateRequest request,
+  ) async {
     return MatchSimulateResponse(
       decision: 'HOLD',
       reason: 'insufficient_pool',
@@ -64,7 +76,9 @@ class NonCrisisApiClient extends ApiClient {
 }
 
 void main() {
-  testWidgets('Navigates to CrisisScreen when crisis_action is set', (tester) async {
+  testWidgets('Navigates to CrisisScreen when crisis_action is set', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(FakeApiClient())],

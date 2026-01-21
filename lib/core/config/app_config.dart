@@ -22,9 +22,6 @@ final appConfigProvider = Provider<AppConfig>((ref) {
     simulateEnabled: kDebugMode,
     devBearerToken: kReleaseMode
         ? ''
-        : const String.fromEnvironment(
-            'DEV_BEARER_TOKEN',
-            defaultValue: '',
-          ),
+        : const String.fromEnvironment('DEV_BEARER_TOKEN', defaultValue: ''),
   );
 });

@@ -38,7 +38,7 @@ class MoodState {
 
 class MoodController extends StateNotifier<MoodState> {
   MoodController({required this.apiClient, required this.simulateEnabled})
-      : super(MoodState(simulateEnabled: simulateEnabled));
+    : super(MoodState(simulateEnabled: simulateEnabled));
 
   final ApiClient apiClient;
   final bool simulateEnabled;
@@ -69,8 +69,13 @@ class MoodController extends StateNotifier<MoodState> {
   }
 }
 
-final moodControllerProvider = StateNotifierProvider<MoodController, MoodState>((ref) {
-  final config = ref.watch(appConfigProvider);
-  final apiClient = ref.watch(apiClientProvider);
-  return MoodController(apiClient: apiClient, simulateEnabled: config.simulateEnabled);
-});
+final moodControllerProvider = StateNotifierProvider<MoodController, MoodState>(
+  (ref) {
+    final config = ref.watch(appConfigProvider);
+    final apiClient = ref.watch(apiClientProvider);
+    return MoodController(
+      apiClient: apiClient,
+      simulateEnabled: config.simulateEnabled,
+    );
+  },
+);

@@ -18,10 +18,7 @@ void main() {
     );
     final expectedToken = kReleaseMode
         ? ''
-        : const String.fromEnvironment(
-            'DEV_BEARER_TOKEN',
-            defaultValue: '',
-          );
+        : const String.fromEnvironment('DEV_BEARER_TOKEN', defaultValue: '');
     expect(config.devBearerToken, expectedToken);
   });
 }

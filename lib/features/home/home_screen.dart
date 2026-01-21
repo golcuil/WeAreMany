@@ -19,12 +19,14 @@ class HomeScreen extends StatelessWidget {
             const Text('How do you feel right now?'),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pushNamed(MoodEntryScreen.routeName),
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(MoodEntryScreen.routeName),
               child: const Text('Share a mood'),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: () => Navigator.of(context).pushNamed(InboxScreen.routeName),
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(InboxScreen.routeName),
               child: const Text('Inbox'),
             ),
           ],

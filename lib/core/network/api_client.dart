@@ -8,7 +8,11 @@ import '../session/session_provider.dart';
 import 'models.dart';
 
 class ApiClient {
-  ApiClient({required this.baseUrl, required this.token, required this.httpClient});
+  ApiClient({
+    required this.baseUrl,
+    required this.token,
+    required this.httpClient,
+  });
 
   final String baseUrl;
   final String token;
@@ -23,7 +27,9 @@ class ApiClient {
     return _parseResponse(response, MoodResponse.fromJson);
   }
 
-  Future<MatchSimulateResponse> simulateMatch(MatchSimulateRequest request) async {
+  Future<MatchSimulateResponse> simulateMatch(
+    MatchSimulateRequest request,
+  ) async {
     final response = await httpClient.post(
       Uri.parse('$baseUrl/match/simulate'),
       headers: _headers(),
@@ -40,7 +46,9 @@ class ApiClient {
     return _parseResponse(response, InboxResponse.fromJson);
   }
 
-  Future<AcknowledgementResponse> acknowledge(AcknowledgementRequest request) async {
+  Future<AcknowledgementResponse> acknowledge(
+    AcknowledgementRequest request,
+  ) async {
     final response = await httpClient.post(
       Uri.parse('$baseUrl/acknowledgements'),
       headers: _headers(),
@@ -56,7 +64,10 @@ class ApiClient {
     };
   }
 
-  T _parseResponse<T>(http.Response response, T Function(Map<String, dynamic>) parser) {
+  T _parseResponse<T>(
+    http.Response response,
+    T Function(Map<String, dynamic>) parser,
+  ) {
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode >= 400) {
       final error = decoded['error'] as Map<String, dynamic>? ?? {};
