@@ -43,9 +43,7 @@ class FakeApiClient extends ApiClient {
   }
 
   @override
-  Future<ReflectionSummary> fetchReflectionSummary({
-    int windowDays = 7,
-  }) async {
+  Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
     return ReflectionSummary(
       windowDays: windowDays,
       totalEntries: 0,
@@ -90,9 +88,7 @@ class NonCrisisApiClient extends ApiClient {
   }
 
   @override
-  Future<ReflectionSummary> fetchReflectionSummary({
-    int windowDays = 7,
-  }) async {
+  Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
     return ReflectionSummary(
       windowDays: windowDays,
       totalEntries: 0,

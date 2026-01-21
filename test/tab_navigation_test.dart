@@ -14,16 +14,14 @@ import 'package:we_are_many/features/crisis/crisis_screen.dart';
 
 class FakeTabsApiClient extends ApiClient {
   FakeTabsApiClient()
-      : super(
-          baseUrl: 'http://localhost',
-          token: 'dev_test',
-          httpClient: http.Client(),
-        );
+    : super(
+        baseUrl: 'http://localhost',
+        token: 'dev_test',
+        httpClient: http.Client(),
+      );
 
   @override
-  Future<ReflectionSummary> fetchReflectionSummary({
-    int windowDays = 7,
-  }) async {
+  Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
     return ReflectionSummary(
       windowDays: windowDays,
       totalEntries: 0,
@@ -38,9 +36,7 @@ void main() {
   testWidgets('Bottom nav switches between four tabs', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
-        ],
+        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
         child: const WeAreManyApp(),
       ),
     );
@@ -60,9 +56,7 @@ void main() {
   testWidgets('Profile items include About & Safety last', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
-        ],
+        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
         child: const WeAreManyApp(),
       ),
     );
@@ -81,9 +75,7 @@ void main() {
   testWidgets('About & Safety opens and can reach Crisis', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
-        ],
+        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
         child: const WeAreManyApp(),
       ),
     );

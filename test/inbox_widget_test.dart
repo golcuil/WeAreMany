@@ -43,9 +43,7 @@ class FakeInboxApiClient extends ApiClient {
   }
 
   @override
-  Future<ReflectionSummary> fetchReflectionSummary({
-    int windowDays = 7,
-  }) async {
+  Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
     return ReflectionSummary(
       windowDays: windowDays,
       totalEntries: 0,

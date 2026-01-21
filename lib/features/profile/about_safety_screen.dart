@@ -35,10 +35,7 @@ class AboutSafetyScreen extends StatelessWidget {
           const SizedBox(height: 8),
           const Text('No public sharing and no sender identity is shown.'),
           const SizedBox(height: 16),
-          const Text(
-            'Safety',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text('Safety', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           const Text(
             'If you are in immediate danger, contact local emergency services.',

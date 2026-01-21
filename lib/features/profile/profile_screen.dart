@@ -13,15 +13,9 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
         children: [
-          const ListTile(
-            title: Text('Account'),
-            subtitle: Text('Placeholder'),
-          ),
+          const ListTile(title: Text('Account'), subtitle: Text('Placeholder')),
           const Divider(height: 1),
-          const ListTile(
-            title: Text('Privacy'),
-            subtitle: Text('Placeholder'),
-          ),
+          const ListTile(title: Text('Privacy'), subtitle: Text('Placeholder')),
           const Divider(height: 1),
           const ListTile(
             title: Text('Notifications'),

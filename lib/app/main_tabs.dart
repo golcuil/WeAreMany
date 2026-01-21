@@ -25,10 +25,7 @@ class _MainTabsState extends State<MainTabs> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _index, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         onTap: (value) => setState(() => _index = value),
