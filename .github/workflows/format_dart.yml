@@ -2,6 +2,11 @@ name: Format Dart (CI parity)
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (branch or SHA) to format"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -12,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
