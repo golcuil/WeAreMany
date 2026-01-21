@@ -22,9 +22,9 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-015] Restore CI green on main (deps + import path + psycopg pin)
 - [T-016] CI hygiene cleanup (single source of truth + stable triggers)
 - [T-018] Reflection (Tab 3) MVP: Weekly distribution + trend + volatility
+- [T-019] 4-tab bottom nav: Home / Messages / Reflection / Settings (About & Safety inside Settings)
 
 ## In progress
-- [T-019] 4-tab bottom nav: Home / Messages / Reflection / Settings (About & Safety inside Settings)
 
 ## Next
 

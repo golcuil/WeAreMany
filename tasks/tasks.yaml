@@ -1180,7 +1180,7 @@
 - id: T-019
   title: "4-tab bottom nav: Home / Messages / Reflection / Settings (About & Safety inside Settings)"
   owner: frontend
-  state: IN_PROGRESS
+  state: DONE
   goal: Provide canonical bottom navigation and a minimal Settings area with
     About & Safety.
   scope:
