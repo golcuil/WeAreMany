@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -64,12 +65,16 @@ void main() {
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
 
-    final tiles = tester.widgetList<ListTile>(find.byType(ListTile)).toList();
-    final titles = tiles
-        .map((tile) => (tile.title as Text?)?.data ?? '')
-        .where((text) => text.isNotEmpty)
-        .toList();
-    expect(titles.last, 'About & Safety');
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Privacy'), findsOneWidget);
+    expect(find.text('Notifications'), findsOneWidget);
+    expect(find.text('About & Safety'), findsOneWidget);
+
+    final aboutPosition = tester.getTopLeft(find.text('About & Safety')).dy;
+    final privacyPosition = tester.getTopLeft(find.text('Privacy')).dy;
+    final notificationsPosition = tester.getTopLeft(find.text('Notifications')).dy;
+    expect(aboutPosition, greaterThan(privacyPosition));
+    expect(aboutPosition, greaterThan(notificationsPosition));
   });
 
   testWidgets('About & Safety opens and can reach Crisis', (tester) async {
