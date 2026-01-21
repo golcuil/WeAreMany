@@ -72,7 +72,9 @@ void main() {
 
     final aboutPosition = tester.getTopLeft(find.text('About & Safety')).dy;
     final privacyPosition = tester.getTopLeft(find.text('Privacy')).dy;
-    final notificationsPosition = tester.getTopLeft(find.text('Notifications')).dy;
+    final notificationsPosition = tester
+        .getTopLeft(find.text('Notifications'))
+        .dy;
     expect(aboutPosition, greaterThan(privacyPosition));
     expect(aboutPosition, greaterThan(notificationsPosition));
   });
