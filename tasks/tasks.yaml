@@ -1109,7 +1109,7 @@
 - id: T-018
   title: "Reflection (Tab 3) MVP: Weekly distribution + trend + volatility"
   owner: backend
-  state: IN_PROGRESS
+  state: DONE
   goal: Provide private weekly reflection metrics via backend aggregation and a
     minimal Flutter UI.
   scope:
