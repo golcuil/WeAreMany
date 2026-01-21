@@ -7,10 +7,7 @@ import 'package:we_are_many/app/app.dart';
 import 'package:we_are_many/core/network/api_client.dart';
 import 'package:we_are_many/core/network/models.dart';
 import 'package:we_are_many/features/home/home_screen.dart';
-import 'package:we_are_many/features/inbox/inbox_screen.dart';
 import 'package:we_are_many/features/profile/about_safety_screen.dart';
-import 'package:we_are_many/features/profile/profile_screen.dart';
-import 'package:we_are_many/features/reflection/reflection_screen.dart';
 import 'package:we_are_many/features/crisis/crisis_screen.dart';
 
 class FakeTabsApiClient extends ApiClient {
