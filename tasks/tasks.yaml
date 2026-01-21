@@ -1043,7 +1043,7 @@
 - id: T-016
   title: CI hygiene cleanup (single source of truth + stable triggers)
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Ensure a single canonical CI workflow with stable Flutter and backend
     gates and manual trigger support.
   scope:

@@ -20,9 +20,9 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-012] DB-backed eligible recipient pool sampling (theme/intensity buckets)
 - [T-014] Dev-safe rate limiting fallback (no Redis required) + stable iOS Simulator run docs
 - [T-015] Restore CI green on main (deps + import path + psycopg pin)
+- [T-016] CI hygiene cleanup (single source of truth + stable triggers)
 
 ## In progress
-- [T-016] CI hygiene cleanup (single source of truth + stable triggers)
 
 ## Next
 
