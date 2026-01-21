@@ -18,6 +18,9 @@ jobs:
         with:
           channel: stable
 
+      - name: Install deps
+        run: flutter pub get
+
       - name: Dart format
         run: dart format .
 
