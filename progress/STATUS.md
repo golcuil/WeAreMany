@@ -24,6 +24,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-018] Reflection (Tab 3) MVP: Weekly distribution + trend + volatility
 
 ## In progress
+- [T-019] 4-tab bottom nav: Home / Messages / Reflection / Settings (About & Safety inside Settings)
 
 ## Next
 

@@ -41,6 +41,19 @@ class FakeApiClient extends ApiClient {
       finiteContentBridge: 'reflection',
     );
   }
+
+  @override
+  Future<ReflectionSummary> fetchReflectionSummary({
+    int windowDays = 7,
+  }) async {
+    return ReflectionSummary(
+      windowDays: windowDays,
+      totalEntries: 0,
+      distribution: const {},
+      trend: 'stable',
+      volatilityDays: 0,
+    );
+  }
 }
 
 class NonCrisisApiClient extends ApiClient {
@@ -73,6 +86,19 @@ class NonCrisisApiClient extends ApiClient {
       reason: 'insufficient_pool',
       systemGeneratedEmpathy: 'ok',
       finiteContentBridge: 'reflection',
+    );
+  }
+
+  @override
+  Future<ReflectionSummary> fetchReflectionSummary({
+    int windowDays = 7,
+  }) async {
+    return ReflectionSummary(
+      windowDays: windowDays,
+      totalEntries: 0,
+      distribution: const {},
+      trend: 'stable',
+      volatilityDays: 0,
     );
   }
 }

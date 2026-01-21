@@ -1177,3 +1177,69 @@
     mitigations:
     - No text persistence
     - Authz gate on summary
+- id: T-019
+  title: "4-tab bottom nav: Home / Messages / Reflection / Settings (About & Safety inside Settings)"
+  owner: frontend
+  state: IN_PROGRESS
+  goal: Provide canonical bottom navigation and a minimal Settings area with
+    About & Safety.
+  scope:
+    in:
+    - Bottom tab navigation with Home, Messages, Reflection, Settings
+    - Settings list with About & Safety last
+    - About & Safety screen with crisis access
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-008
+  - T-018
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Bottom nav shows 4 tabs and preserves state across switches
+    - Profile shows required items with About & Safety last
+    - About & Safety opens Crisis resources
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
+  tests:
+    unit:
+    - Bottom nav switches between 4 tabs
+    integration:
+    - About & Safety navigates to Crisis resources
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Identity exposure
+    - UI drift into social surfaces
+    mitigations:
+    - No public profile fields
+    - About & Safety scoped copy

@@ -41,6 +41,19 @@ class FakeInboxApiClient extends ApiClient {
     lastReaction = request.reaction;
     return AcknowledgementResponse(status: 'recorded');
   }
+
+  @override
+  Future<ReflectionSummary> fetchReflectionSummary({
+    int windowDays = 7,
+  }) async {
+    return ReflectionSummary(
+      windowDays: windowDays,
+      totalEntries: 0,
+      distribution: const {},
+      trend: 'stable',
+      volatilityDays: 0,
+    );
+  }
 }
 
 void main() {
