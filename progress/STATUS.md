@@ -23,6 +23,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-016] CI hygiene cleanup (single source of truth + stable triggers)
 
 ## In progress
+- [T-018] Reflection (Tab 3) MVP: Weekly distribution + trend + volatility
 
 ## Next
 

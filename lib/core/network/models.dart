@@ -197,3 +197,32 @@ class AcknowledgementResponse {
     );
   }
 }
+
+class ReflectionSummary {
+  ReflectionSummary({
+    required this.windowDays,
+    required this.totalEntries,
+    required this.distribution,
+    required this.trend,
+    required this.volatilityDays,
+  });
+
+  final int windowDays;
+  final int totalEntries;
+  final Map<String, int> distribution;
+  final String trend;
+  final int volatilityDays;
+
+  factory ReflectionSummary.fromJson(Map<String, dynamic> json) {
+    final rawDistribution = (json['distribution'] as Map<String, dynamic>? ?? {});
+    return ReflectionSummary(
+      windowDays: json['window_days'] as int? ?? 7,
+      totalEntries: json['total_entries'] as int? ?? 0,
+      distribution: rawDistribution.map(
+        (key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0),
+      ),
+      trend: json['trend'] as String? ?? 'stable',
+      volatilityDays: json['volatility_days'] as int? ?? 0,
+    );
+  }
+}

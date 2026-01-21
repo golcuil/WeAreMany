@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol
 
 import os
 
@@ -21,6 +21,25 @@ class MoodRecord:
     emotion: Optional[str]
     risk_level: int
     sanitized_text: Optional[str]
+
+
+@dataclass
+class MoodEventRecord:
+    principal_id: str
+    created_at: datetime
+    valence: str
+    intensity: str
+    expressed_emotion: Optional[str]
+    risk_level: int
+
+
+@dataclass
+class ReflectionSummary:
+    window_days: int
+    total_entries: int
+    distribution: Dict[str, int]
+    trend: str
+    volatility_days: int
 
 
 @dataclass
@@ -47,6 +66,12 @@ class InboxItemRecord:
 
 class Repository(Protocol):
     def save_mood(self, record: MoodRecord) -> None:
+        ...
+
+    def record_mood_event(self, record: MoodEventRecord) -> None:
+        ...
+
+    def get_reflection_summary(self, principal_id: str, window_days: int) -> ReflectionSummary:
         ...
 
     def save_message(self, record: MessageRecord) -> str:
@@ -89,9 +114,17 @@ class InMemoryRepository:
         self.acks = {}
         self.eligible_principals = {}
         self.candidate_pool: List[Candidate] = []
+        self.mood_events: List[MoodEventRecord] = []
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
+
+    def record_mood_event(self, record: MoodEventRecord) -> None:
+        self.mood_events.append(record)
+
+    def get_reflection_summary(self, principal_id: str, window_days: int) -> ReflectionSummary:
+        records = _filter_mood_events(self.mood_events, principal_id, window_days)
+        return _summarize_mood_events(records, window_days)
 
     def save_message(self, record: MessageRecord) -> str:
         message_id = _new_uuid()
@@ -208,6 +241,50 @@ class PostgresRepository:
                     record.sanitized_text,
                 ),
             )
+
+    def record_mood_event(self, record: MoodEventRecord) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO mood_events
+                (device_id, valence, intensity, expressed_emotion, risk_level, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    record.principal_id,
+                    record.valence,
+                    record.intensity,
+                    record.expressed_emotion,
+                    record.risk_level,
+                    record.created_at,
+                ),
+            )
+
+    def get_reflection_summary(self, principal_id: str, window_days: int) -> ReflectionSummary:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT created_at, valence, intensity, expressed_emotion, risk_level
+                FROM mood_events
+                WHERE device_id = %s AND created_at >= %s
+                ORDER BY created_at ASC
+                """,
+                (principal_id, cutoff),
+            )
+            rows = cur.fetchall()
+        records = [
+            MoodEventRecord(
+                principal_id=principal_id,
+                created_at=row[0],
+                valence=row[1],
+                intensity=row[2],
+                expressed_emotion=row[3],
+                risk_level=row[4],
+            )
+            for row in rows
+        ]
+        return _summarize_mood_events(records, window_days)
 
     def save_message(self, record: MessageRecord) -> str:
         with self._conn() as conn, conn.cursor() as cur:
@@ -380,3 +457,64 @@ def _new_uuid() -> str:
     import uuid
 
     return str(uuid.uuid4())
+
+
+def _filter_mood_events(
+    records: List[MoodEventRecord],
+    principal_id: str,
+    window_days: int,
+) -> List[MoodEventRecord]:
+    cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+    return [
+        record
+        for record in records
+        if record.principal_id == principal_id and record.created_at >= cutoff
+    ]
+
+
+def _summarize_mood_events(
+    records: List[MoodEventRecord],
+    window_days: int,
+) -> ReflectionSummary:
+    distribution: Dict[str, int] = {}
+    for record in records:
+        if record.expressed_emotion:
+            distribution[record.expressed_emotion] = distribution.get(
+                record.expressed_emotion,
+                0,
+            ) + 1
+
+    day_valences: Dict[str, str] = {}
+    for record in records:
+        day_key = record.created_at.date().isoformat()
+        day_valences[day_key] = record.valence
+
+    ordered_days = sorted(day_valences.keys())
+    volatility = 0
+    last_valence = None
+    for day in ordered_days:
+        current = day_valences[day]
+        if last_valence is not None and current != last_valence:
+            volatility += 1
+        last_valence = current
+
+    valence_score = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}
+    scores = [valence_score.get(record.valence, 0.0) for record in records]
+    trend = "stable"
+    if scores:
+        mid = max(1, len(scores) // 2)
+        first_avg = sum(scores[:mid]) / len(scores[:mid])
+        last_avg = sum(scores[mid:]) / len(scores[mid:]) if scores[mid:] else first_avg
+        delta = last_avg - first_avg
+        if delta > 0.2:
+            trend = "up"
+        elif delta < -0.2:
+            trend = "down"
+
+    return ReflectionSummary(
+        window_days=window_days,
+        total_entries=len(records),
+        distribution=distribution,
+        trend=trend,
+        volatility_days=volatility,
+    )

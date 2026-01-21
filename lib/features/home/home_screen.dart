@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../inbox/inbox_screen.dart';
 import '../mood/mood_entry_screen.dart';
+import '../reflection/reflection_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -28,6 +29,12 @@ class HomeScreen extends StatelessWidget {
               onPressed: () =>
                   Navigator.of(context).pushNamed(InboxScreen.routeName),
               child: const Text('Inbox'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(ReflectionScreen.routeName),
+              child: const Text('Reflection'),
             ),
           ],
         ),

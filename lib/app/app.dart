@@ -4,6 +4,7 @@ import '../features/crisis/crisis_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/inbox/inbox_screen.dart';
 import '../features/mood/mood_entry_screen.dart';
+import '../features/reflection/reflection_screen.dart';
 
 class WeAreManyApp extends StatelessWidget {
   const WeAreManyApp({super.key});
@@ -18,6 +19,7 @@ class WeAreManyApp extends StatelessWidget {
         MoodEntryScreen.routeName: (_) => const MoodEntryScreen(),
         CrisisScreen.routeName: (_) => const CrisisScreen(),
         InboxScreen.routeName: (_) => const InboxScreen(),
+        ReflectionScreen.routeName: (_) => const ReflectionScreen(),
       },
       initialRoute: HomeScreen.routeName,
     );

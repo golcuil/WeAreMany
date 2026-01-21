@@ -1,5 +1,6 @@
 import time
-from typing import Callable, List, Optional
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,7 +11,7 @@ from .events import EventName, get_event_emitter, new_request_id, safe_emit
 from .matching import Candidate, get_dedupe_store, match_decision
 from .moderation import get_leak_throttle, moderate_text
 from .rate_limit import rate_limit
-from .repository import MessageRecord, MoodRecord, get_repository
+from .repository import MessageRecord, MoodEventRecord, MoodRecord, get_repository
 from .security import current_principal
 
 logger = configure_logging()
@@ -76,6 +77,14 @@ class MoodResponse(BaseModel):
     identity_leak: bool
     leak_types: List[str]
     crisis_action: Optional[str]
+
+
+class ReflectionSummaryResponse(BaseModel):
+    window_days: int
+    total_entries: int
+    distribution: Dict[str, int]
+    trend: str
+    volatility_days: int
 
 
 class MessageRequest(BaseModel):
@@ -161,6 +170,16 @@ def submit_mood(
     result = moderate_text(text, principal.principal_id, leak_throttle)
 
     if result.risk_level == 2:
+        repo.record_mood_event(
+            MoodEventRecord(
+                principal_id=principal.principal_id,
+                created_at=datetime.now(timezone.utc),
+                valence=payload.valence,
+                intensity=payload.intensity,
+                expressed_emotion=payload.emotion,
+                risk_level=result.risk_level,
+            )
+        )
         return MoodResponse(
             status="blocked",
             sanitized_text=None,
@@ -181,6 +200,16 @@ def submit_mood(
                 emotion=payload.emotion,
                 risk_level=result.risk_level,
                 sanitized_text=result.sanitized_text,
+            )
+        )
+        repo.record_mood_event(
+            MoodEventRecord(
+                principal_id=principal.principal_id,
+                created_at=datetime.now(timezone.utc),
+                valence=payload.valence,
+                intensity=payload.intensity,
+                expressed_emotion=payload.emotion,
+                risk_level=result.risk_level,
             )
         )
         repo.upsert_eligible_principal(principal.principal_id, payload.intensity, [])
@@ -221,6 +250,27 @@ def submit_mood(
         identity_leak=result.identity_leak,
         leak_types=result.leak_types,
         crisis_action=crisis_action,
+    )
+
+
+@app.get(
+    "/reflection/summary",
+    dependencies=[Depends(current_principal), Depends(rate_limit("read"))],
+    response_model=ReflectionSummaryResponse,
+)
+def reflection_summary(
+    window_days: int = 7,
+    principal=Depends(current_principal),
+    repo=Depends(get_repository),
+) -> ReflectionSummaryResponse:
+    bounded = min(max(window_days, 1), 30)
+    summary = repo.get_reflection_summary(principal.principal_id, bounded)
+    return ReflectionSummaryResponse(
+        window_days=summary.window_days,
+        total_entries=summary.total_entries,
+        distribution=summary.distribution,
+        trend=summary.trend,
+        volatility_days=summary.volatility_days,
     )
 
 

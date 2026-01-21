@@ -57,6 +57,14 @@ class ApiClient {
     return _parseResponse(response, AcknowledgementResponse.fromJson);
   }
 
+  Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/reflection/summary?window_days=$windowDays'),
+      headers: _headers(),
+    );
+    return _parseResponse(response, ReflectionSummary.fromJson);
+  }
+
   Map<String, String> _headers() {
     return {
       'Content-Type': 'application/json',
