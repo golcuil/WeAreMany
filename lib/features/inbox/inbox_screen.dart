@@ -23,6 +23,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(inboxControllerProvider);
     return Scaffold(
+      key: const Key('inbox_screen'),
       appBar: AppBar(
         title: const Text('Inbox'),
         actions: [

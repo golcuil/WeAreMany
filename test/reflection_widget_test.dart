@@ -25,6 +25,18 @@ class FakeReflectionApiClient extends ApiClient {
       volatilityDays: 2,
     );
   }
+
+  @override
+  Future<InboxResponse> fetchInbox() async {
+    return InboxResponse(items: const [], nextCursor: null);
+  }
+
+  @override
+  Future<AcknowledgementResponse> acknowledge(
+    AcknowledgementRequest request,
+  ) async {
+    return AcknowledgementResponse(status: 'recorded');
+  }
 }
 
 void main() {
@@ -41,7 +53,7 @@ void main() {
     await tester.tap(find.text('Reflection'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ReflectionScreen), findsOneWidget);
+    expect(find.byKey(const Key('reflection_screen')), findsOneWidget);
     expect(find.textContaining('Entries:'), findsOneWidget);
     expect(find.text('calm: 1'), findsOneWidget);
     expect(find.text('sad: 2'), findsOneWidget);

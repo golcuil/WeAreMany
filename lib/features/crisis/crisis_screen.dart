@@ -10,6 +10,7 @@ class CrisisScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('crisis_screen'),
       appBar: AppBar(title: const Text('Crisis Support')),
       body: Padding(
         padding: const EdgeInsets.all(24),

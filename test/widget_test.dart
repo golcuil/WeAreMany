@@ -52,6 +52,18 @@ class FakeApiClient extends ApiClient {
       volatilityDays: 0,
     );
   }
+
+  @override
+  Future<InboxResponse> fetchInbox() async {
+    return InboxResponse(items: const [], nextCursor: null);
+  }
+
+  @override
+  Future<AcknowledgementResponse> acknowledge(
+    AcknowledgementRequest request,
+  ) async {
+    return AcknowledgementResponse(status: 'recorded');
+  }
 }
 
 class NonCrisisApiClient extends ApiClient {
@@ -97,6 +109,18 @@ class NonCrisisApiClient extends ApiClient {
       volatilityDays: 0,
     );
   }
+
+  @override
+  Future<InboxResponse> fetchInbox() async {
+    return InboxResponse(items: const [], nextCursor: null);
+  }
+
+  @override
+  Future<AcknowledgementResponse> acknowledge(
+    AcknowledgementRequest request,
+  ) async {
+    return AcknowledgementResponse(status: 'recorded');
+  }
 }
 
 void main() {
@@ -117,7 +141,7 @@ void main() {
     await tester.tap(find.text('Submit mood'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(CrisisScreen), findsOneWidget);
+    expect(find.byKey(const Key('crisis_screen')), findsOneWidget);
   });
 
   testWidgets('Non-crisis response shows sanitized text only', (tester) async {

@@ -54,19 +54,20 @@ void main() {
     );
 
     expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byKey(const Key('home_screen')), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Messages'), findsOneWidget);
     expect(find.text('Reflection'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
     await tester.tap(find.text('Messages'));
     await tester.pumpAndSettle();
-    expect(find.byType(InboxScreen), findsOneWidget);
+    expect(find.byKey(const Key('inbox_screen')), findsOneWidget);
     await tester.tap(find.text('Reflection'));
     await tester.pumpAndSettle();
-    expect(find.byType(ReflectionScreen), findsOneWidget);
+    expect(find.byKey(const Key('reflection_screen')), findsOneWidget);
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
-    expect(find.byType(ProfileScreen), findsOneWidget);
+    expect(find.byKey(const Key('profile_screen')), findsOneWidget);
   });
 
   testWidgets('Profile items include About & Safety last', (tester) async {

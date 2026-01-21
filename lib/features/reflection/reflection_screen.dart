@@ -27,6 +27,7 @@ class _ReflectionScreenState extends ConsumerState<ReflectionScreen> {
     final summary = state.summary;
 
     return Scaffold(
+      key: const Key('reflection_screen'),
       appBar: AppBar(title: const Text('Reflection')),
       body: Padding(
         padding: const EdgeInsets.all(16),
