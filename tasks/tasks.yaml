@@ -1246,7 +1246,7 @@
 - id: T-020
   title: "Align PRD + UX_SPEC with shipped nav (4 tabs + About & Safety placement)"
   owner: pm
-  state: IN_PROGRESS
+  state: DONE
   goal: Update PRD and UX_SPEC to match shipped navigation and safety entry
     points without changing product behavior.
   scope:
