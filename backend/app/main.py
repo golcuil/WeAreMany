@@ -446,7 +446,7 @@ def fetch_inbox(
         InboxItemResponse(
             inbox_item_id=item.inbox_item_id,
             text=item.text,
-            created_at=item.created_at,
+            created_at=_coarsen_day_iso(item.created_at),
             ack_status=item.ack_status,
         )
         for item in items
@@ -468,3 +468,17 @@ def acknowledge_message(
     except PermissionError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     return AcknowledgementResponse(status=status_value)
+
+
+def _coarsen_day_iso(value: str) -> str:
+    normalized = value.replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    day = parsed.astimezone(timezone.utc).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    return day.isoformat()

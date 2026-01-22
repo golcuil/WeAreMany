@@ -55,7 +55,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 return ListTile(
                   title: Text(item.text),
                   subtitle: Text(
-                    item.receivedAt.isEmpty ? 'Recently' : item.receivedAt,
+                    _formatTimestamp(item.receivedAt),
                   ),
                   trailing: Wrap(
                     spacing: 8,
@@ -99,6 +99,18 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         ],
       ),
     );
+  }
+
+  String _formatTimestamp(String value) {
+    if (value.isEmpty) {
+      return 'Recently';
+    }
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      return value;
+    }
+    final day = parsed.toUtc().toIso8601String().split('T').first;
+    return day;
   }
 }
 

@@ -26,6 +26,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-020] Align PRD + UX_SPEC with shipped nav and About & Safety placement
 
 ## In progress
+- [T-021] Coarsen inbox timestamps (privacy hardening)
 
 ## Next
 

@@ -153,7 +153,8 @@ class InboxItem {
     return InboxItem(
       inboxItemId: json['inbox_item_id'] as String? ?? '',
       text: json['text'] as String? ?? '',
-      receivedAt: json['received_at'] as String? ?? '',
+      receivedAt:
+          json['created_at'] as String? ?? json['received_at'] as String? ?? '',
       ackStatus: json['ack_status'] as String?,
     );
   }

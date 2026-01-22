@@ -25,7 +25,7 @@ class FakeInboxApiClient extends ApiClient {
         InboxItem(
           inboxItemId: 'i1',
           text: 'A supportive note',
-          receivedAt: 'today',
+          receivedAt: '2026-01-03T00:00:00Z',
           ackStatus: null,
         ),
       ],
@@ -68,7 +68,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('A supportive note'), findsOneWidget);
-    expect(find.text('today'), findsOneWidget);
+    expect(find.text('2026-01-03'), findsOneWidget);
   });
 
   testWidgets('Ack button triggers call and updates UI', (tester) async {
