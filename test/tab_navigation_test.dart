@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:we_are_many/app/app.dart';
 import 'package:we_are_many/core/network/api_client.dart';
@@ -44,6 +45,7 @@ class FakeTabsApiClient extends ApiClient {
 
 void main() {
   testWidgets('Bottom nav switches between four tabs', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
@@ -68,7 +70,8 @@ void main() {
     expect(find.byKey(const Key('profile_screen')), findsOneWidget);
   });
 
-  testWidgets('Profile items include About & Safety last', (tester) async {
+  testWidgets('Profile shows display name and settings entry', (tester) async {
+    SharedPreferences.setMockInitialValues({'display_name': 'Ava'});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
@@ -77,6 +80,24 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('tab_profile')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ava'), findsOneWidget);
+    expect(find.byKey(const Key('profile_settings')), findsOneWidget);
+  });
+
+  testWidgets('Settings includes About & Safety last', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
+        child: const WeAreManyApp(),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('tab_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('profile_settings')));
     await tester.pumpAndSettle();
 
     expect(find.text('Account'), findsOneWidget);
@@ -94,6 +115,7 @@ void main() {
   });
 
   testWidgets('About & Safety opens and can reach Crisis', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
@@ -102,6 +124,8 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('tab_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('profile_settings')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('About & Safety'));
     await tester.pumpAndSettle();

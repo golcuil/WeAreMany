@@ -1490,6 +1490,71 @@
     - Ack state inconsistencies under retries
     mitigations:
     - Idempotent writes and unique constraints
+- id: T-025
+  title: Private dashboard tab with Settings entry and About & Safety placement
+  owner: frontend
+  state: IN_PROGRESS
+  goal: Add a private dashboard with a local display name and a Settings entry
+    while keeping About & Safety last in Settings.
+  scope:
+    in:
+    - Account tab shows a private dashboard and local display name
+    - Settings entry from the account tab navigates to Settings
+    - About & Safety remains last item in Settings
+    - Local persistence for display name (no backend calls)
+    out:
+    - No backend changes or new endpoints
+    - No public profile sharing
+    - No feed/chat/threads/social graph
+    - No streaks/leaderboards
+  dependencies:
+  - T-019
+  touches:
+    endpoints: []
+    data:
+    - local_display_name
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Profile tab shows display name when set locally
+    - Settings entry opens Settings screen
+    - About & Safety is last item in Settings
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
+  tests:
+    unit:
+    - Profile shows display name from local storage
+    integration:
+    - Settings includes About & Safety last
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Private identity exposed to other users
+    - Local data leakage via logs
+    mitigations:
+    - Local-only storage and no API usage
 - id: T-023
   title: CI format diff visibility + formatter patch
   owner: cto
