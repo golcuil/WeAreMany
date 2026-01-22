@@ -54,9 +54,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 final isResponded = item.ackStatus != null;
                 return ListTile(
                   title: Text(item.text),
-                  subtitle: Text(
-                    _formatTimestamp(item.receivedAt),
-                  ),
+                  subtitle: Text(_formatTimestamp(item.receivedAt)),
                   trailing: Wrap(
                     spacing: 8,
                     children: [
