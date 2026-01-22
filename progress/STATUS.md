@@ -24,11 +24,11 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-018] Reflection (Tab 3) MVP: Weekly distribution + trend + volatility
 - [T-019] 4-tab bottom nav: Home / Messages / Reflection / Settings (About & Safety inside Settings)
 - [T-020] Align PRD + UX_SPEC with shipped nav and About & Safety placement
+- [T-021] Coarsen inbox timestamps to day-level UTC to reduce correlation risk
+- [T-023] Keep Dart format gate strict while printing git status+diff on mismatch
 
 ## In progress
-- [T-021] Coarsen inbox timestamps (privacy hardening)
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-023] CI format diff visibility + formatter patch
 
 ## Next
 

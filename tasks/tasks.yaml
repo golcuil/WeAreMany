@@ -1309,7 +1309,7 @@
 - id: T-021
   title: Coarsen inbox timestamps (privacy hardening)
   owner: backend
-  state: IN_PROGRESS
+  state: DONE
   goal: Reduce correlation risk by coarsening inbox timestamps while keeping
     response schema stable.
   scope:
@@ -1428,7 +1428,7 @@
 - id: T-023
   title: CI format diff visibility + formatter patch
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Expose formatter diffs in CI and apply formatting-only patches to keep
     the format gate green.
   scope:
