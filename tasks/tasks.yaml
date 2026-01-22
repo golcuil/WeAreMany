@@ -1428,7 +1428,7 @@
 - id: T-024
   title: Enforce one-shot acknowledgements (idempotent + dedupe)
   owner: backend
-  state: IN_PROGRESS
+  state: DONE
   goal: Make acknowledgement writes idempotent per recipient and prevent duplicate
     acknowledgements.
   scope:
