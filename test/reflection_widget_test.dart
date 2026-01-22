@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'package:we_are_many/app/app.dart';
 import 'package:we_are_many/core/network/api_client.dart';
@@ -12,7 +12,9 @@ class FakeReflectionApiClient extends ApiClient {
     : super(
         baseUrl: 'http://localhost',
         token: 'dev_test',
-        httpClient: http.Client(),
+        httpClient: MockClient((_) async {
+          throw StateError('Unexpected HTTP call in reflection test.');
+        }),
       );
 
   @override
@@ -51,7 +53,8 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('tab_reflection')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byKey(const Key('reflection_screen')), findsOneWidget);
     expect(find.textContaining('Entries:'), findsOneWidget);
