@@ -7,6 +7,16 @@
 
 ---
 
+## Navigation & Routes
+- Tabs: Home / Messages / Reflection / Profile (Settings)
+- Routes:
+  - Home: `HomeScreen`
+  - Messages: `InboxScreen`
+  - Reflection: `ReflectionScreen`
+  - Profile (Settings): `ProfileScreen`
+  - About & Safety: `AboutSafetyScreen` (inside Profile, last item)
+  - Crisis resources: `CrisisScreen` (from crisis flow or About & Safety)
+
 ## Home Tab
 ### Purpose
 Mood entry with minimal steps.
@@ -40,17 +50,38 @@ Show inbox of finite, one-shot messages.
 
 ---
 
-## About Tab
+## Reflection Tab
+### Purpose
+Weekly distribution + trend + volatility summary (private only).
+
+### States
+- Empty: “No entries yet”
+- Loaded: totals + distribution
+- Error: retry
+
+---
+
+## Profile (Settings) Tab
+### Purpose
+Settings surface with About & Safety as last item.
+
+### Items
+- Account (placeholder)
+- Privacy (placeholder)
+- Notifications (placeholder)
+- About & Safety (last)
+
+---
+
+## About & Safety
 ### Purpose
 Explain anonymity + safety + crisis resources.
 
 ### Sections
 - What this is / what it is not
-- Anonymity promise
+- Anonymity basics (no sender identity, no reply threads)
 - Safety: crisis resources
 - Data handling basics (simple, honest)
-
----
 
 ## Crisis UX (risk_level == 2)
 - Block peer messaging and disable any submission that would reach another user.

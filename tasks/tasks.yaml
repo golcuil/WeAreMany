@@ -1243,3 +1243,66 @@
     mitigations:
     - No public profile fields
     - About & Safety scoped copy
+- id: T-020
+  title: "Align PRD + UX_SPEC with shipped nav (4 tabs + About & Safety placement)"
+  owner: pm
+  state: IN_PROGRESS
+  goal: Update PRD and UX_SPEC to match shipped navigation and safety entry
+    points without changing product behavior.
+  scope:
+    in:
+    - UX_SPEC: document 4-tab navigation and About & Safety placement
+    - PRD: align navigation and crisis entry points with shipped UI
+    - Add explicit safety/privacy statements about anonymity and crisis handling
+    out:
+    - No bible changes
+    - No product feature changes
+    - No endpoint behavior changes
+    - No social surfaces (feed/chat/threads/public profiles/streaks/leaderboards)
+  dependencies:
+  - T-019
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - UX_SPEC reflects 4 tabs and About & Safety placement
+    - PRD reflects 4 tabs and crisis entry points
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - No raw PII persisted
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    - Crisis UX path works
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+    - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
+  tests:
+    unit:
+    - N/A (docs-only)
+    integration:
+    - Policy check passes
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - All tests passing
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Spec drift
+    - Safety misinterpretation
+    mitigations:
+    - Explicit nav map
+    - Explicit crisis statements
