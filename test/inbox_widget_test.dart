@@ -39,7 +39,7 @@ class FakeInboxApiClient extends ApiClient {
   ) async {
     ackCalls += 1;
     lastReaction = request.reaction;
-    return AcknowledgementResponse(status: 'recorded');
+    return AcknowledgementResponse(status: 'already_recorded');
   }
 
   @override

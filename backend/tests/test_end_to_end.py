@@ -76,6 +76,18 @@ def test_deliver_path_writes_inbox_and_ack():
     assert ack.status_code == 200
     assert ack.json()["status"] == "recorded"
 
+    ack_repeat = client.post(
+        "/acknowledgements",
+        headers=_headers("dev_recipient"),
+        json={"inbox_item_id": inbox_item_id, "reaction": "helpful"},
+    )
+    assert ack_repeat.status_code == 200
+    assert ack_repeat.json()["status"] == "already_recorded"
+
+    inbox_after = client.get("/inbox", headers=_headers("dev_recipient"))
+    assert inbox_after.status_code == 200
+    assert inbox_after.json()["items"][0]["ack_status"] == "helpful"
+
     app.dependency_overrides.clear()
 
 

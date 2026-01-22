@@ -177,6 +177,10 @@ class InMemoryRepository:
         if not item or item.recipient_id != recipient_id:
             raise PermissionError("forbidden")
         ack_key = (item.message_id, recipient_id)
+        if ack_key in self.acks:
+            item.state = "responded"
+            item.ack_status = self.acks[ack_key]
+            return "already_recorded"
         self.acks[ack_key] = reaction
         item.state = "responded"
         item.ack_status = reaction
@@ -408,11 +412,15 @@ class PostgresRepository:
                 INSERT INTO acknowledgements (message_id, recipient_device_id, reaction)
                 VALUES (%s, %s, %s)
                 ON CONFLICT (message_id, recipient_device_id)
-                DO UPDATE SET reaction = EXCLUDED.reaction
+                DO NOTHING
+                RETURNING id
                 """,
                 (message_id, recipient_id, reaction),
             )
-        return "recorded"
+            inserted = cur.fetchone()
+        if inserted:
+            return "recorded"
+        return "already_recorded"
 
     def get_eligible_candidates(
         self,
