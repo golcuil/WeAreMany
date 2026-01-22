@@ -46,6 +46,7 @@ jobs:
           dart format .
           if ! git diff --quiet; then
             echo "Dart format produced changes"
+            echo "Changed files:"
             git status --porcelain
             git --no-pager diff
             exit 1
