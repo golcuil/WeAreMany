@@ -91,23 +91,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-          if (_isEditing) ...[
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Display name',
-                border: OutlineInputBorder(),
+            if (_isEditing) ...[
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Display name',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ElevatedButton(
-                onPressed: _saveDisplayName,
-                child: const Text('Save'),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ElevatedButton(
+                  onPressed: _saveDisplayName,
+                  child: const Text('Save'),
+                ),
               ),
-            ),
-          ],
+            ],
           ],
           const SizedBox(height: 16),
           ListTile(
