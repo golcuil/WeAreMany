@@ -27,10 +27,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-021] Coarsen inbox timestamps to day-level UTC to reduce correlation risk
 - [T-023] Keep Dart format gate strict while printing git status+diff on mismatch
 - [T-024] Enforce one-shot acknowledgements via idempotent repository writes (already_recorded on duplicates)
+- [T-025] Ship Profile MVP (private identity) with Settings entry; keep About & Safety as last item in Settings; stabilize Reflection widget test
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-025] Profile MVP with Settings entry and About & Safety placement
 
 ## Next
 
