@@ -108,7 +108,9 @@ class _ReflectionScreenState extends ConsumerState<ReflectionScreen> {
                       );
                     },
                     child: Text(
-                      hasTodayEntry ? "Edit today's note" : "Write today's note",
+                      hasTodayEntry
+                          ? "Edit today's note"
+                          : "Write today's note",
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -164,9 +166,7 @@ class _ReflectionScreenState extends ConsumerState<ReflectionScreen> {
         trailing: Text(isToday ? 'Today' : 'Locked'),
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => JournalEntryScreen(entry: entry),
-            ),
+            MaterialPageRoute(builder: (_) => JournalEntryScreen(entry: entry)),
           );
         },
       );
@@ -175,8 +175,11 @@ class _ReflectionScreenState extends ConsumerState<ReflectionScreen> {
 
   List<JournalEntry> _filterEntries(List<JournalEntry> entries, int days) {
     final now = DateTime.now().toUtc();
-    final start = DateTime.utc(now.year, now.month, now.day)
-        .subtract(Duration(days: days - 1));
+    final start = DateTime.utc(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: days - 1));
     final filtered = entries.where((entry) {
       final parsed = DateTime.tryParse(entry.dateKey);
       if (parsed == null) {

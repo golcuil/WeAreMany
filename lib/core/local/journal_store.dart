@@ -3,11 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class JournalEntry {
-  JournalEntry({
-    required this.dateKey,
-    required this.text,
-    this.emotionLabel,
-  });
+  JournalEntry({required this.dateKey, required this.text, this.emotionLabel});
 
   final String dateKey;
   final String text;

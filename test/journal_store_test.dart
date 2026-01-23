@@ -32,10 +32,7 @@ void main() {
 
   test('Delete entry removes it', () async {
     SharedPreferences.setMockInitialValues({});
-    await JournalStore.saveTodayEntry(
-      'Hello',
-      now: DateTime.utc(2026, 1, 20),
-    );
+    await JournalStore.saveTodayEntry('Hello', now: DateTime.utc(2026, 1, 20));
     await JournalStore.deleteEntry('2026-01-20');
     final entries = await JournalStore.loadEntries();
     expect(entries, isEmpty);

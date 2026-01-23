@@ -60,15 +60,16 @@ void main() {
           apiClientProvider.overrideWithValue(FakeJournalApiClient()),
         ],
         child: MaterialApp(
-          home: JournalEntryScreen(
-            now: DateTime.utc(2026, 1, 20),
-          ),
+          home: JournalEntryScreen(now: DateTime.utc(2026, 1, 20)),
         ),
       ),
     );
 
     expect(find.byKey(const Key('journal_text_field')), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('journal_text_field')), 'Hello');
+    await tester.enterText(
+      find.byKey(const Key('journal_text_field')),
+      'Hello',
+    );
     await tester.tap(find.byKey(const Key('journal_save')));
     await tester.pump();
 
@@ -79,10 +80,7 @@ void main() {
 
   testWidgets('Past entry is read-only and can be deleted', (tester) async {
     final entries = [
-      {
-        'date_key': '2026-01-19',
-        'text': 'Past entry',
-      },
+      {'date_key': '2026-01-19', 'text': 'Past entry'},
     ];
     SharedPreferences.setMockInitialValues({
       JournalStore.storageKey: jsonEncode(entries),
@@ -116,14 +114,8 @@ void main() {
     final todayKey = _dateKey(now);
     final tenDaysAgoKey = _dateKey(now.subtract(const Duration(days: 10)));
     final entries = [
-      {
-        'date_key': todayKey,
-        'text': 'Today',
-      },
-      {
-        'date_key': tenDaysAgoKey,
-        'text': 'Older',
-      },
+      {'date_key': todayKey, 'text': 'Today'},
+      {'date_key': tenDaysAgoKey, 'text': 'Older'},
     ];
     SharedPreferences.setMockInitialValues({
       JournalStore.storageKey: jsonEncode(entries),
