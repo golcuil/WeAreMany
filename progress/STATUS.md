@@ -36,10 +36,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-031] Backend matching: affinity learning v1 (theme scores from positive acks) biases candidate ordering
 - [T-032] Backend: canonical theme normalization + stored message theme_tags wired through matching and affinity
 - [T-033] Cold start bridge: system-origin inbox message on low density + Home “Helpful Series” finite content card
+- [T-034] Home: k-anon similar_count insight (shown only when >=K) via /mood optional field
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-034] Home: k-anon “similar_count” aggregate insight (shown only when >=K)
 
 ## Next
 
