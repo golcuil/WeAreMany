@@ -25,6 +25,14 @@ class MatchDecision:
     crisis_action: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class ProgressiveParams:
+    intensity_band: int
+    allow_theme_relax: bool
+    pool_multiplier: float
+    bucket: str
+
+
 class DedupeStore(Protocol):
     def allow_target(self, sender_id: str, recipient_id: str, cooldown_seconds: int) -> bool:
         ...
@@ -78,6 +86,8 @@ def match_decision(
     themes: List[str],
     candidates: List[Candidate],
     dedupe_store: DedupeStore,
+    intensity_band: int = 0,
+    allow_theme_relax: bool = False,
 ) -> MatchDecision:
     if risk_level == 2:
         return MatchDecision(
@@ -97,8 +107,15 @@ def match_decision(
     eligible = [
         candidate
         for candidate in candidates
-        if candidate.intensity == intensity and _themes_compatible(themes, candidate.themes)
+        if _intensity_within_band(candidate.intensity, intensity, intensity_band)
+        and _themes_compatible(themes, candidate.themes)
     ]
+    if allow_theme_relax and not eligible:
+        eligible = [
+            candidate
+            for candidate in candidates
+            if _intensity_within_band(candidate.intensity, intensity, intensity_band)
+        ]
     if not eligible:
         return MatchDecision(decision="HOLD", reason="no_eligible_candidates")
 
@@ -111,3 +128,33 @@ def match_decision(
             )
 
     return MatchDecision(decision="HOLD", reason="cooldown_active")
+
+
+def progressive_params(health_ratio: float) -> ProgressiveParams:
+    if health_ratio < 0.2:
+        return ProgressiveParams(
+            intensity_band=0,
+            allow_theme_relax=False,
+            pool_multiplier=-0.5,
+            bucket="low",
+        )
+    if health_ratio > 0.6:
+        return ProgressiveParams(
+            intensity_band=2,
+            allow_theme_relax=True,
+            pool_multiplier=0.5,
+            bucket="high",
+        )
+    return ProgressiveParams(
+        intensity_band=0,
+        allow_theme_relax=False,
+        pool_multiplier=0.0,
+        bucket="neutral",
+    )
+
+
+def _intensity_within_band(candidate: str, target: str, band: int) -> bool:
+    levels = {"low": 0, "medium": 1, "high": 2}
+    if candidate not in levels or target not in levels:
+        return candidate == target
+    return abs(levels[candidate] - levels[target]) <= band

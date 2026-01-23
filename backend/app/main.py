@@ -5,10 +5,10 @@ from typing import Callable, Dict, List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from .config import API_VERSION, MAX_BODY_BYTES
+from .config import API_VERSION, MATCH_SAMPLE_LIMIT, MAX_BODY_BYTES
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
-from .matching import Candidate, get_dedupe_store, match_decision
+from .matching import Candidate, get_dedupe_store, match_decision, progressive_params
 from .moderation import get_leak_throttle, moderate_text
 from .rate_limit import rate_limit
 from .repository import MessageRecord, MoodEventRecord, MoodRecord, get_repository
@@ -308,10 +308,23 @@ def submit_message(
             )
         )
         repo.upsert_eligible_principal(principal.principal_id, payload.intensity, [])
+        health = repo.get_matching_health(principal.principal_id, window_days=7)
+        params = progressive_params(health.ratio)
+        logger.info(
+            "matching_health",
+            {
+                "delivered": health.delivered_count,
+                "positive_acks": health.positive_ack_count,
+                "health_ratio": round(health.ratio, 2),
+                "bucket": params.bucket,
+            },
+        )
+        limit = max(1, int(MATCH_SAMPLE_LIMIT * (1 + params.pool_multiplier)))
         candidates = repo.get_eligible_candidates(
             principal.principal_id,
             payload.intensity,
             [],
+            limit=limit,
         )
         decision = match_decision(
             principal_id=principal.principal_id,
@@ -320,6 +333,8 @@ def submit_message(
             themes=[],
             candidates=candidates,
             dedupe_store=dedupe_store,
+            intensity_band=params.intensity_band,
+            allow_theme_relax=params.allow_theme_relax,
         )
         safe_emit(
             emitter,

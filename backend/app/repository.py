@@ -42,6 +42,13 @@ class ReflectionSummary:
     volatility_days: int
 
 
+@dataclass(frozen=True)
+class MatchingHealth:
+    delivered_count: int
+    positive_ack_count: int
+    ratio: float
+
+
 @dataclass
 class MessageRecord:
     principal_id: str
@@ -107,6 +114,9 @@ class Repository(Protocol):
         theme_tags: List[str],
         limit: int = MATCH_SAMPLE_LIMIT,
     ) -> List[Candidate]:
+        ...
+
+    def get_matching_health(self, principal_id: str, window_days: int = 7) -> MatchingHealth:
         ...
 
 
@@ -231,6 +241,34 @@ class InMemoryRepository:
             if len(candidates) >= limit:
                 break
         return candidates
+
+    def get_matching_health(self, principal_id: str, window_days: int = 7) -> MatchingHealth:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+        sender_message_ids = {
+            message_id
+            for message_id, record in self.messages.items()
+            if record.principal_id == principal_id
+        }
+        delivered_items = []
+        for item in self.inbox_items.values():
+            if item.message_id not in sender_message_ids:
+                continue
+            created_at = _parse_iso(item.created_at)
+            if created_at is None or created_at < cutoff:
+                continue
+            delivered_items.append(item)
+        delivered_count = len(delivered_items)
+        positive_ack_count = 0
+        for item in delivered_items:
+            reaction = self.acks.get((item.message_id, item.recipient_id))
+            if reaction in {"thanks", "helpful", "relate"}:
+                positive_ack_count += 1
+        ratio = _safe_ratio(positive_ack_count, delivered_count)
+        return MatchingHealth(
+            delivered_count=delivered_count,
+            positive_ack_count=positive_ack_count,
+            ratio=ratio,
+        )
 
 
 class PostgresRepository:
@@ -489,6 +527,39 @@ class PostgresRepository:
             for row in rows
         ]
 
+    def get_matching_health(self, principal_id: str, window_days: int = 7) -> MatchingHealth:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM inbox_items i
+                JOIN messages m ON m.id = i.message_id
+                WHERE m.origin_device_id = %s
+                  AND i.received_at >= %s
+                """,
+                (principal_id, cutoff),
+            )
+            delivered_count = int(cur.fetchone()[0] or 0)
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM acknowledgements a
+                JOIN messages m ON m.id = a.message_id
+                WHERE m.origin_device_id = %s
+                  AND a.created_at >= %s
+                  AND a.reaction IN ('thanks', 'helpful', 'relate')
+                """,
+                (principal_id, cutoff),
+            )
+            positive_ack_count = int(cur.fetchone()[0] or 0)
+        ratio = _safe_ratio(positive_ack_count, delivered_count)
+        return MatchingHealth(
+            delivered_count=delivered_count,
+            positive_ack_count=positive_ack_count,
+            ratio=ratio,
+        )
+
 
 _default_repo = InMemoryRepository()
 
@@ -565,3 +636,20 @@ def _summarize_mood_events(
         trend=trend,
         volatility_days=volatility,
     )
+
+
+def _safe_ratio(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return numerator / denominator
+
+
+def _parse_iso(value: str) -> Optional[datetime]:
+    try:
+        normalized = value.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)

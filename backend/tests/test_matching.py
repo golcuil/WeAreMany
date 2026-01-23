@@ -7,6 +7,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import app  # noqa: E402
 from app import matching as matching_module  # noqa: E402
+from app.matching import Candidate  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 
 
@@ -128,3 +129,39 @@ def test_response_contains_no_identifiers():
     assert "sender_id" not in body
 
     app.dependency_overrides.clear()
+
+
+def test_progressive_delivery_tightens_and_relaxes():
+    dedupe = InMemoryDedupeStore()
+    candidates = [
+        Candidate(candidate_id="c1", intensity="high", themes=["other"]),
+        Candidate(candidate_id="c2", intensity="medium", themes=["other"]),
+        Candidate(candidate_id="c3", intensity="low", themes=["other"]),
+    ]
+
+    low_params = matching_module.progressive_params(0.1)
+    low_decision = matching_module.match_decision(
+        principal_id="sender",
+        risk_level=0,
+        intensity="low",
+        themes=["calm"],
+        candidates=candidates,
+        dedupe_store=dedupe,
+        intensity_band=low_params.intensity_band,
+        allow_theme_relax=low_params.allow_theme_relax,
+    )
+    assert low_decision.decision == "HOLD"
+    assert low_decision.reason == "no_eligible_candidates"
+
+    high_params = matching_module.progressive_params(0.9)
+    high_decision = matching_module.match_decision(
+        principal_id="sender",
+        risk_level=0,
+        intensity="low",
+        themes=["calm"],
+        candidates=candidates,
+        dedupe_store=dedupe,
+        intensity_band=high_params.intensity_band,
+        allow_theme_relax=high_params.allow_theme_relax,
+    )
+    assert high_decision.decision == "DELIVER"
