@@ -42,7 +42,7 @@ void main() {
       ProviderScope(
         overrides: [
           moodHistoryEntriesProvider.overrideWith((ref) async => []),
-          similarCountProvider.overrideWith((ref) => StateController(28)),
+          similarCountProvider.overrideWith((ref) => 28),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
