@@ -123,7 +123,11 @@ class MoodHistoryStore {
 
     final counts = <String, int>{};
     for (final entry in filtered) {
-      counts.update(entry.emotionLabel, (value) => value + 1, ifAbsent: () => 1);
+      counts.update(
+        entry.emotionLabel,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
     }
 
     final dayMap = <String, MoodHistoryEntry>{};

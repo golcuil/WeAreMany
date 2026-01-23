@@ -162,10 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (_loadingHistory)
             const Center(child: CircularProgressIndicator())
           else ...[
-            _DashboardSummary(
-              entries: _historyEntries,
-              days: _dashboardDays,
-            ),
+            _DashboardSummary(entries: _historyEntries, days: _dashboardDays),
           ],
           const SizedBox(height: 16),
           const Text(
@@ -201,9 +198,13 @@ class _DashboardSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('You marked your mood ${snapshot.frequency} times (last $days days)'),
+        Text(
+          'You marked your mood ${snapshot.frequency} times (last $days days)',
+        ),
         const SizedBox(height: 4),
-        Text('Your mood changed on ${snapshot.volatilityDays} days (last $days days)'),
+        Text(
+          'Your mood changed on ${snapshot.volatilityDays} days (last $days days)',
+        ),
         const SizedBox(height: 12),
         const Text(
           'Mood history (day-level)',
