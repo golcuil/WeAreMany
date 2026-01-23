@@ -60,8 +60,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 final status = isLocked
                     ? 'Locked'
                     : isResponded
-                        ? 'Responded'
-                        : null;
+                    ? 'Responded'
+                    : null;
                 final timestamp = _formatTimestamp(item.receivedAt);
                 final subtitle = status == null
                     ? timestamp

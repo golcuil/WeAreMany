@@ -22,10 +22,7 @@ class FakeInboxApiClient extends ApiClient {
 
   @override
   Future<InboxResponse> fetchInbox() async {
-    return InboxResponse(
-      items: items,
-      nextCursor: null,
-    );
+    return InboxResponse(items: items, nextCursor: null);
   }
 
   @override
@@ -140,8 +137,11 @@ void main() {
   testWidgets('Locked items disable acknowledgements', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final now = DateTime.now().toUtc();
-    final day = DateTime.utc(now.year, now.month, now.day)
-        .subtract(const Duration(days: 8));
+    final day = DateTime.utc(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(days: 8));
     final client = FakeInboxApiClient([
       InboxItem(
         inboxItemId: 'i1',
