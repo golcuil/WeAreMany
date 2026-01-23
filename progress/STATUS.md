@@ -33,10 +33,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-028] Add Privacy Controls screen (truthful copy + local clear/reset controls) linked from Settings/Profile
 - [T-029] Reflection: local-only journal with day-lock (edit today only), 7/30 list, prompts, tests
 - [T-030] Backend matching: Progressive Delivery v1 driven by acknowledgement health (H)
+- [T-031] Backend matching: affinity learning v1 (theme scores from positive acks) biases candidate ordering
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-031] Backend: affinity learning v1 (theme scores from positive acks) to bias matching
 
 ## Next
 
