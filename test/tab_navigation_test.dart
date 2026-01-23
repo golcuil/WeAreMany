@@ -10,6 +10,7 @@ import 'package:we_are_many/core/network/models.dart';
 import 'package:we_are_many/features/home/home_screen.dart';
 import 'package:we_are_many/features/profile/about_safety_screen.dart';
 import 'package:we_are_many/features/crisis/crisis_screen.dart';
+import 'package:we_are_many/features/profile/privacy_screen.dart';
 
 class FakeTabsApiClient extends ApiClient {
   FakeTabsApiClient()
@@ -91,7 +92,7 @@ void main() {
     expect(find.byKey(const Key('profile_settings')), findsOneWidget);
   });
 
-  testWidgets('Settings includes About & Safety last', (tester) async {
+  testWidgets('Settings includes Privacy and About & Safety last', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
@@ -139,5 +140,24 @@ void main() {
     await tester.tap(find.text('View crisis resources'));
     await tester.pumpAndSettle();
     expect(find.byType(CrisisScreen), findsOneWidget);
+  });
+
+  testWidgets('Privacy opens from Settings', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
+        child: const WeAreManyApp(),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('tab_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('profile_settings')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Privacy'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PrivacyScreen), findsOneWidget);
   });
 }

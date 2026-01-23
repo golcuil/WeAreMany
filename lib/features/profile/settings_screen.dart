@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'about_safety_screen.dart';
+import 'privacy_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -16,7 +17,13 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const ListTile(title: Text('Account'), subtitle: Text('Placeholder')),
           const Divider(height: 1),
-          const ListTile(title: Text('Privacy'), subtitle: Text('Placeholder')),
+          ListTile(
+            title: const Text('Privacy'),
+            subtitle: const Text('Data handling basics'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () =>
+                Navigator.of(context).pushNamed(PrivacyScreen.routeName),
+          ),
           const Divider(height: 1),
           const ListTile(
             title: Text('Notifications'),

@@ -102,6 +102,13 @@ class MoodHistoryStore {
         .toList();
   }
 
+  static Future<void> clearHistory({
+    SharedPreferences? prefs,
+  }) async {
+    final storage = prefs ?? await SharedPreferences.getInstance();
+    await storage.remove(storageKey);
+  }
+
   static MoodHistorySnapshot computeSnapshot(
     List<MoodHistoryEntry> entries,
     int days, {

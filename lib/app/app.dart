@@ -6,6 +6,7 @@ import '../features/inbox/inbox_screen.dart';
 import '../features/mood/mood_entry_screen.dart';
 import '../features/reflection/reflection_screen.dart';
 import '../features/profile/about_safety_screen.dart';
+import '../features/profile/privacy_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/settings_screen.dart';
 import 'main_tabs.dart';
@@ -26,6 +27,7 @@ class WeAreManyApp extends StatelessWidget {
         ReflectionScreen.routeName: (_) => const ReflectionScreen(),
         ProfileScreen.routeName: (_) => const ProfileScreen(),
         SettingsScreen.routeName: (_) => const SettingsScreen(),
+        PrivacyScreen.routeName: (_) => const PrivacyScreen(),
         AboutSafetyScreen.routeName: (_) => const AboutSafetyScreen(),
       },
       initialRoute: HomeScreen.routeName,

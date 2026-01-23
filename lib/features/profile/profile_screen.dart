@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../core/local/mood_history_store.dart';
+import '../../core/local/profile_store.dart';
 import 'impact_provider.dart';
+import 'privacy_screen.dart';
+import 'profile_providers.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -16,26 +17,23 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  static const _displayNameKey = 'display_name';
-
   final TextEditingController _nameController = TextEditingController();
   String _displayName = '';
   bool _isEditing = false;
   bool _loading = true;
-  bool _loadingHistory = true;
   int _dashboardDays = 7;
-  List<MoodHistoryEntry> _historyEntries = [];
 
   @override
   void initState() {
     super.initState();
     _loadDisplayName();
-    _loadMoodHistory();
+    ref.listenManual<int>(displayNameRefreshProvider, (previous, next) {
+      _loadDisplayName();
+    });
   }
 
   Future<void> _loadDisplayName() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_displayNameKey) ?? '';
+    final stored = await ProfileStore.loadDisplayName();
     if (!mounted) {
       return;
     }
@@ -47,26 +45,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _saveDisplayName() async {
-    final prefs = await SharedPreferences.getInstance();
     final nextName = _nameController.text.trim();
-    await prefs.setString(_displayNameKey, nextName);
+    await ProfileStore.saveDisplayName(nextName);
     if (!mounted) {
       return;
     }
     setState(() {
       _displayName = nextName;
       _isEditing = false;
-    });
-  }
-
-  Future<void> _loadMoodHistory() async {
-    final entries = await MoodHistoryStore.loadEntries();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _historyEntries = entries;
-      _loadingHistory = false;
     });
   }
 
@@ -79,6 +65,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final impact = ref.watch(impactCountProvider);
+    final historyAsync = ref.watch(moodHistoryEntriesProvider);
     return Scaffold(
       key: const Key('profile_screen'),
       appBar: AppBar(title: const Text('Profile')),
@@ -162,11 +149,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          if (_loadingHistory)
-            const Center(child: CircularProgressIndicator())
-          else ...[
-            _DashboardSummary(entries: _historyEntries, days: _dashboardDays),
-          ],
+          historyAsync.when(
+            data: (entries) =>
+                _DashboardSummary(entries: entries, days: _dashboardDays),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stackTrace) =>
+                const Text('Unable to load mood history.'),
+          ),
           const SizedBox(height: 12),
           impact.when(
             data: (count) => Text('Your messages helped $count people'),
@@ -175,6 +164,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const Text('Your messages helped — people'),
           ),
           const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              key: const Key('profile_privacy'),
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(PrivacyScreen.routeName),
+              child: const Text('Privacy'),
+            ),
+          ),
+          const SizedBox(height: 8),
           const Text(
             'Profile summary',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
