@@ -32,10 +32,7 @@ class FaydaliDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            card.why,
-            style: const TextStyle(color: Colors.black54),
-          ),
+          Text(card.why, style: const TextStyle(color: Colors.black54)),
         ],
       ),
     );

@@ -7,7 +7,9 @@ import 'package:we_are_many/features/home/home_screen.dart';
 import 'package:we_are_many/features/profile/profile_providers.dart';
 
 void main() {
-  testWidgets('Home shows Faydalı Serisi card and opens detail', (tester) async {
+  testWidgets('Home shows Faydalı Serisi card and opens detail', (
+    tester,
+  ) async {
     final entries = [
       MoodHistoryEntry(
         dateKey: '2026-01-20',
@@ -20,7 +22,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          moodHistoryEntriesProvider.overrideWithValue(AsyncValue.data(entries)),
+          moodHistoryEntriesProvider.overrideWithValue(
+            AsyncValue.data(entries),
+          ),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
