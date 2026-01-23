@@ -49,9 +49,7 @@ class HomeScreen extends ConsumerWidget {
               key: const Key('similar_count_card'),
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Text(
-                  '$similarCount people felt similarly recently.',
-                ),
+                child: Text('$similarCount people felt similarly recently.'),
               ),
             ),
           if (similarCount != null) const SizedBox(height: 16),
