@@ -22,9 +22,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          moodHistoryEntriesProvider.overrideWith(
-            (ref) async => entries,
-          ),
+          moodHistoryEntriesProvider.overrideWith((ref) async => entries),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
