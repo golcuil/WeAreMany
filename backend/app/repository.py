@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Protocol
 import os
 
 from .matching import Candidate
-from .config import ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
+from .config import CRISIS_WINDOW_HOURS, ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
 
 try:
     import psycopg
@@ -136,6 +136,22 @@ class Repository(Protocol):
     ) -> int:
         ...
 
+    def record_crisis_action(
+        self,
+        principal_id: str,
+        action: str,
+        now: Optional[datetime] = None,
+    ) -> None:
+        ...
+
+    def is_in_crisis_window(
+        self,
+        principal_id: str,
+        window_hours: int,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        ...
+
 
 class InMemoryRepository:
     def __init__(self) -> None:
@@ -146,6 +162,7 @@ class InMemoryRepository:
         self.candidate_pool: List[Candidate] = []
         self.mood_events: List[MoodEventRecord] = []
         self.affinity_scores: Dict[str, Dict[str, float]] = {}
+        self.crisis_state: Dict[str, Dict[str, datetime]] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -277,9 +294,12 @@ class InMemoryRepository:
             return list(self.candidate_pool)[:limit]
 
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
+        now = datetime.now(timezone.utc)
         candidates: List[Candidate] = []
         for principal_id, data in self.eligible_principals.items():
             if principal_id == sender_id:
+                continue
+            if self.is_in_crisis_window(principal_id, window_hours=CRISIS_WINDOW_HOURS, now=now):
                 continue
             if data["intensity_bucket"] != intensity_bucket:
                 continue
@@ -326,6 +346,32 @@ class InMemoryRepository:
             ratio=ratio,
         )
 
+    def record_crisis_action(
+        self,
+        principal_id: str,
+        action: str,
+        now: Optional[datetime] = None,
+    ) -> None:
+        timestamp = now or datetime.now(timezone.utc)
+        self.crisis_state[principal_id] = {
+            "last_action": action,
+            "last_action_at": timestamp,
+        }
+
+    def is_in_crisis_window(
+        self,
+        principal_id: str,
+        window_hours: int,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        record = self.crisis_state.get(principal_id)
+        if not record:
+            return False
+        last_action_at = record.get("last_action_at")
+        if not last_action_at:
+            return False
+        anchor = now or datetime.now(timezone.utc)
+        return last_action_at >= anchor - timedelta(hours=window_hours)
 
 class PostgresRepository:
     def __init__(self, dsn: str) -> None:
@@ -611,6 +657,7 @@ class PostgresRepository:
         limit: int = MATCH_SAMPLE_LIMIT,
     ) -> List[Candidate]:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
+        crisis_cutoff = datetime.now(timezone.utc) - timedelta(hours=CRISIS_WINDOW_HOURS)
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -619,11 +666,25 @@ class PostgresRepository:
                 WHERE principal_id != %s
                   AND intensity_bucket = %s
                   AND last_active_bucket >= %s
+                  AND principal_id NOT IN (
+                    SELECT device_id
+                    FROM principal_crisis_state
+                    WHERE last_action_at IS NOT NULL
+                      AND last_action_at >= %s
+                  )
                   AND (%s = '{}' OR theme_tags && %s)
                 ORDER BY random()
                 LIMIT %s
                 """,
-                (sender_id, intensity_bucket, cutoff, theme_tags, theme_tags, limit),
+                (
+                    sender_id,
+                    intensity_bucket,
+                    cutoff,
+                    crisis_cutoff,
+                    theme_tags,
+                    theme_tags,
+                    limit,
+                ),
             )
             rows = cur.fetchall()
         return [
@@ -664,6 +725,47 @@ class PostgresRepository:
             ratio=ratio,
         )
 
+    def record_crisis_action(
+        self,
+        principal_id: str,
+        action: str,
+        now: Optional[datetime] = None,
+    ) -> None:
+        timestamp = now or datetime.now(timezone.utc)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO principal_crisis_state (device_id, last_action, last_action_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (device_id)
+                DO UPDATE SET
+                  last_action = EXCLUDED.last_action,
+                  last_action_at = EXCLUDED.last_action_at
+                """,
+                (principal_id, action, timestamp),
+            )
+
+    def is_in_crisis_window(
+        self,
+        principal_id: str,
+        window_hours: int,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        anchor = now or datetime.now(timezone.utc)
+        cutoff = anchor - timedelta(hours=window_hours)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT last_action_at
+                FROM principal_crisis_state
+                WHERE device_id = %s
+                """,
+                (principal_id,),
+            )
+            row = cur.fetchone()
+        if not row or row[0] is None:
+            return False
+        return row[0] >= cutoff
     def get_similar_count(
         self,
         principal_id: str,
