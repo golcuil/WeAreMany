@@ -5,7 +5,8 @@ from typing import Callable, Dict, List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from .config import API_VERSION, MATCH_SAMPLE_LIMIT, MAX_BODY_BYTES
+from .config import API_VERSION, COLD_START_MIN_POOL, MATCH_SAMPLE_LIMIT, MAX_BODY_BYTES
+from .bridge import SYSTEM_SENDER_ID, build_reflective_message
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
 from .matching import Candidate, get_dedupe_store, match_decision, progressive_params
@@ -324,51 +325,80 @@ def submit_message(
             },
         )
         limit = max(1, int(MATCH_SAMPLE_LIMIT * (1 + params.pool_multiplier)))
+        cold_start_min = max(COLD_START_MIN_POOL, 1)
+        candidate_limit = max(limit, cold_start_min)
         affinity_map = repo.get_affinity_map(principal.principal_id)
         candidates = repo.get_eligible_candidates(
             principal.principal_id,
             payload.intensity,
             message_themes,
-            limit=limit,
+            limit=candidate_limit,
         )
-        decision = match_decision(
-            principal_id=principal.principal_id,
-            risk_level=result.risk_level,
-            intensity=payload.intensity,
-            themes=message_themes,
-            candidates=candidates,
-            dedupe_store=dedupe_store,
-            intensity_band=params.intensity_band,
-            allow_theme_relax=params.allow_theme_relax,
-            affinity_map=affinity_map,
-        )
-        safe_emit(
-            emitter,
-            EventName.MATCH_DECISION,
-            {
-                "request_id": request_id,
-                "risk_bucket": result.risk_level,
-                "intensity_bucket": payload.intensity,
-                "decision": decision.decision,
-                "reason": decision.reason,
-            },
-        )
-        if decision.decision == "DELIVER" and decision.recipient_id and result.sanitized_text:
-            repo.create_inbox_item(message_id, decision.recipient_id, result.sanitized_text)
-            safe_emit(
-                emitter,
-                EventName.DELIVERY_ATTEMPTED,
-                {"request_id": request_id, "outcome": "delivered"},
+        if len(candidates) < cold_start_min:
+            system_text = build_reflective_message(
+                message_themes,
+                payload.valence,
+                payload.intensity,
             )
-            status_value = "queued"
-        elif decision.decision == "HOLD":
-            hold_reason = decision.reason
+            system_message_id = repo.save_message(
+                MessageRecord(
+                    principal_id=SYSTEM_SENDER_ID,
+                    valence=payload.valence,
+                    intensity=payload.intensity,
+                    emotion=payload.emotion,
+                    theme_tags=message_themes,
+                    risk_level=0,
+                    sanitized_text=system_text,
+                    reid_risk=0.0,
+                )
+            )
+            repo.create_inbox_item(system_message_id, principal.principal_id, system_text)
             safe_emit(
                 emitter,
                 EventName.DELIVERY_ATTEMPTED,
-                {"request_id": request_id, "outcome": "held"},
+                {"request_id": request_id, "outcome": "system_fallback"},
             )
             status_value = "held"
+            hold_reason = "insufficient_pool"
+        else:
+            decision = match_decision(
+                principal_id=principal.principal_id,
+                risk_level=result.risk_level,
+                intensity=payload.intensity,
+                themes=message_themes,
+                candidates=candidates,
+                dedupe_store=dedupe_store,
+                intensity_band=params.intensity_band,
+                allow_theme_relax=params.allow_theme_relax,
+                affinity_map=affinity_map,
+            )
+            safe_emit(
+                emitter,
+                EventName.MATCH_DECISION,
+                {
+                    "request_id": request_id,
+                    "risk_bucket": result.risk_level,
+                    "intensity_bucket": payload.intensity,
+                    "decision": decision.decision,
+                    "reason": decision.reason,
+                },
+            )
+            if decision.decision == "DELIVER" and decision.recipient_id and result.sanitized_text:
+                repo.create_inbox_item(message_id, decision.recipient_id, result.sanitized_text)
+                safe_emit(
+                    emitter,
+                    EventName.DELIVERY_ATTEMPTED,
+                    {"request_id": request_id, "outcome": "delivered"},
+                )
+                status_value = "queued"
+            elif decision.decision == "HOLD":
+                hold_reason = decision.reason
+                safe_emit(
+                    emitter,
+                    EventName.DELIVERY_ATTEMPTED,
+                    {"request_id": request_id, "outcome": "held"},
+                )
+                status_value = "held"
     else:
         repo.touch_eligible_principal(principal.principal_id, payload.intensity)
 

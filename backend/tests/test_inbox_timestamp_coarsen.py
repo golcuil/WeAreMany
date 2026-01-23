@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import app  # noqa: E402
+from app import main as main_module  # noqa: E402
 from app.matching import Candidate  # noqa: E402
 from app import matching as matching_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
@@ -39,6 +40,8 @@ def _normalize_iso(value: str) -> datetime:
 
 
 def test_inbox_created_at_is_day_coarsened():
+    previous_min_pool = main_module.COLD_START_MIN_POOL
+    main_module.COLD_START_MIN_POOL = 1
     repo = repository_module.InMemoryRepository()
     repo.candidate_pool = [
         Candidate(candidate_id="recipient", intensity="low", themes=[]),
@@ -67,4 +70,5 @@ def test_inbox_created_at_is_day_coarsened():
     assert created_at.second == 0
     assert created_at.microsecond == 0
 
+    main_module.COLD_START_MIN_POOL = previous_min_pool
     app.dependency_overrides.clear()

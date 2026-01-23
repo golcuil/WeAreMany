@@ -4,6 +4,7 @@ import '../../core/config/app_config.dart';
 import '../../core/local/mood_history_store.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
+import '../profile/profile_providers.dart';
 
 class MoodState {
   const MoodState({
@@ -38,11 +39,15 @@ class MoodState {
 }
 
 class MoodController extends StateNotifier<MoodState> {
-  MoodController({required this.apiClient, required this.simulateEnabled})
-    : super(MoodState(simulateEnabled: simulateEnabled));
+  MoodController({
+    required this.apiClient,
+    required this.simulateEnabled,
+    required this.refreshHistory,
+  }) : super(MoodState(simulateEnabled: simulateEnabled));
 
   final ApiClient apiClient;
   final bool simulateEnabled;
+  final void Function() refreshHistory;
 
   Future<MoodResponse> submitMood(MoodRequest request) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -53,6 +58,7 @@ class MoodController extends StateNotifier<MoodState> {
         valence: request.valence,
         intensity: request.intensity,
       );
+      refreshHistory();
       state = state.copyWith(isLoading: false, response: response);
       return response;
     } on ApiError catch (error) {
@@ -82,6 +88,7 @@ final moodControllerProvider = StateNotifierProvider<MoodController, MoodState>(
     return MoodController(
       apiClient: apiClient,
       simulateEnabled: config.simulateEnabled,
+      refreshHistory: () => ref.invalidate(moodHistoryEntriesProvider),
     );
   },
 );

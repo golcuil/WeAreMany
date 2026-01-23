@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import app  # noqa: E402
+from app import main as main_module  # noqa: E402
 from app.matching import Candidate  # noqa: E402
 from app import matching as matching_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
@@ -40,6 +41,8 @@ def _override_deps() -> None:
 
 
 def test_deliver_path_writes_inbox_and_ack():
+    previous_min_pool = main_module.COLD_START_MIN_POOL
+    main_module.COLD_START_MIN_POOL = 1
     repo = repository_module.InMemoryRepository()
     repo.candidate_pool = [
         Candidate(candidate_id="recipient", intensity="low", themes=[]),
@@ -88,10 +91,13 @@ def test_deliver_path_writes_inbox_and_ack():
     assert inbox_after.status_code == 200
     assert inbox_after.json()["items"][0]["ack_status"] == "helpful"
 
+    main_module.COLD_START_MIN_POOL = previous_min_pool
     app.dependency_overrides.clear()
 
 
 def test_authz_blocks_cross_user_inbox_and_ack():
+    previous_min_pool = main_module.COLD_START_MIN_POOL
+    main_module.COLD_START_MIN_POOL = 1
     repo = repository_module.InMemoryRepository()
     repo.candidate_pool = [
         Candidate(candidate_id="recipient", intensity="low", themes=[]),
@@ -121,6 +127,7 @@ def test_authz_blocks_cross_user_inbox_and_ack():
     )
     assert forbidden.status_code == 403
 
+    main_module.COLD_START_MIN_POOL = previous_min_pool
     app.dependency_overrides.clear()
 
 
