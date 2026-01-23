@@ -28,10 +28,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-023] Keep Dart format gate strict while printing git status+diff on mismatch
 - [T-024] Enforce one-shot acknowledgements via idempotent repository writes (already_recorded on duplicates)
 - [T-025] Ship Profile MVP (private identity) with Settings entry; keep About & Safety as last item in Settings; stabilize Reflection widget test
+- [T-026] Profile dashboard: local mood history (7/30) with frequency + volatility at day-level (UTC), private-only
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-026] Profile dashboard: local mood history (7/30), frequency, volatility
 
 ## Next
 
