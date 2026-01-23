@@ -92,7 +92,9 @@ void main() {
     expect(find.byKey(const Key('profile_settings')), findsOneWidget);
   });
 
-  testWidgets('Settings includes Privacy and About & Safety last', (tester) async {
+  testWidgets('Settings includes Privacy and About & Safety last', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
