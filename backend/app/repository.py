@@ -107,6 +107,12 @@ class Repository(Protocol):
     def get_helped_count(self, principal_id: str) -> int:
         ...
 
+    def record_affinity(self, sender_id: str, theme_id: str, delta: float) -> None:
+        ...
+
+    def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
+        ...
+
     def get_eligible_candidates(
         self,
         sender_id: str,
@@ -128,6 +134,7 @@ class InMemoryRepository:
         self.eligible_principals = {}
         self.candidate_pool: List[Candidate] = []
         self.mood_events: List[MoodEventRecord] = []
+        self.affinity_scores: Dict[str, Dict[str, float]] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -197,6 +204,11 @@ class InMemoryRepository:
         self.acks[ack_key] = reaction
         item.state = "responded"
         item.ack_status = reaction
+        if reaction in {"thanks", "helpful", "relate"}:
+            message = self.messages.get(item.message_id)
+            theme_id = message.emotion if message else None
+            if message and theme_id:
+                self.record_affinity(message.principal_id, theme_id, 1.0)
         return "recorded"
 
     def get_helped_count(self, principal_id: str) -> int:
@@ -209,6 +221,16 @@ class InMemoryRepository:
                 continue
             recipients.add(recipient_id)
         return len(recipients)
+
+    def record_affinity(self, sender_id: str, theme_id: str, delta: float) -> None:
+        if not theme_id:
+            return
+        sender_scores = self.affinity_scores.setdefault(sender_id, {})
+        current = sender_scores.get(theme_id, 0.0)
+        sender_scores[theme_id] = min(50.0, current + delta)
+
+    def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
+        return dict(self.affinity_scores.get(sender_id, {}))
 
     def get_eligible_candidates(
         self,
@@ -481,6 +503,19 @@ class PostgresRepository:
             )
             inserted = cur.fetchone()
         if inserted:
+            if reaction in {"thanks", "helpful", "relate"}:
+                with self._conn() as conn, conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT origin_device_id, emotion
+                        FROM messages
+                        WHERE id = %s
+                        """,
+                        (message_id,),
+                    )
+                    row = cur.fetchone()
+                if row and row[0] and row[1]:
+                    self.record_affinity(row[0], row[1], 1.0)
             return "recorded"
         return "already_recorded"
 
@@ -498,6 +533,35 @@ class PostgresRepository:
             )
             row = cur.fetchone()
         return int(row[0] or 0)
+
+    def record_affinity(self, sender_id: str, theme_id: str, delta: float) -> None:
+        if not theme_id:
+            return
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO affinity_scores (sender_device_id, theme_id, score, updated_at)
+                VALUES (%s, %s, %s, now())
+                ON CONFLICT (sender_device_id, theme_id)
+                DO UPDATE SET
+                  score = LEAST(50, affinity_scores.score + EXCLUDED.score),
+                  updated_at = now()
+                """,
+                (sender_id, theme_id, delta),
+            )
+
+    def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT theme_id, score
+                FROM affinity_scores
+                WHERE sender_device_id = %s
+                """,
+                (sender_id,),
+            )
+            rows = cur.fetchall()
+        return {row[0]: float(row[1]) for row in rows}
 
     def get_eligible_candidates(
         self,

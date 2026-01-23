@@ -215,7 +215,11 @@ def submit_mood(
                 risk_level=result.risk_level,
             )
         )
-        repo.upsert_eligible_principal(principal.principal_id, payload.intensity, [])
+        repo.upsert_eligible_principal(
+            principal.principal_id,
+            payload.intensity,
+            [payload.emotion] if payload.emotion else [],
+        )
 
     safe_emit(
         emitter,
@@ -307,7 +311,11 @@ def submit_message(
                 reid_risk=result.reid_risk,
             )
         )
-        repo.upsert_eligible_principal(principal.principal_id, payload.intensity, [])
+        repo.upsert_eligible_principal(
+            principal.principal_id,
+            payload.intensity,
+            [payload.emotion] if payload.emotion else [],
+        )
         health = repo.get_matching_health(principal.principal_id, window_days=7)
         params = progressive_params(health.ratio)
         logger.info(
@@ -320,6 +328,7 @@ def submit_message(
             },
         )
         limit = max(1, int(MATCH_SAMPLE_LIMIT * (1 + params.pool_multiplier)))
+        affinity_map = repo.get_affinity_map(principal.principal_id)
         candidates = repo.get_eligible_candidates(
             principal.principal_id,
             payload.intensity,
@@ -335,6 +344,7 @@ def submit_message(
             dedupe_store=dedupe_store,
             intensity_band=params.intensity_band,
             allow_theme_relax=params.allow_theme_relax,
+            affinity_map=affinity_map,
         )
         safe_emit(
             emitter,

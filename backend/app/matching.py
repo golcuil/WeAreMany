@@ -1,6 +1,6 @@
 import hashlib
 from dataclasses import dataclass
-from typing import List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol
 
 import redis
 from fastapi import HTTPException, status
@@ -59,6 +59,7 @@ EMPATHY_TEMPLATES = [
 ]
 
 FINITE_CONTENT_CATEGORIES = ["reflection", "grounding", "perspective"]
+AFFINITY_ALPHA = 0.2
 
 
 def _select_empathy(principal_id: str) -> str:
@@ -88,6 +89,7 @@ def match_decision(
     dedupe_store: DedupeStore,
     intensity_band: int = 0,
     allow_theme_relax: bool = False,
+    affinity_map: Optional[Dict[str, float]] = None,
 ) -> MatchDecision:
     if risk_level == 2:
         return MatchDecision(
@@ -118,6 +120,8 @@ def match_decision(
         ]
     if not eligible:
         return MatchDecision(decision="HOLD", reason="no_eligible_candidates")
+
+    eligible = _apply_affinity_bias(eligible, affinity_map)
 
     for candidate in eligible:
         if dedupe_store.allow_target(principal_id, candidate.candidate_id, MATCH_COOLDOWN_SECONDS):
@@ -158,3 +162,39 @@ def _intensity_within_band(candidate: str, target: str, band: int) -> bool:
     if candidate not in levels or target not in levels:
         return candidate == target
     return abs(levels[candidate] - levels[target]) <= band
+
+
+def _apply_affinity_bias(
+    candidates: List[Candidate],
+    affinity_map: Optional[Dict[str, float]],
+) -> List[Candidate]:
+    if not affinity_map:
+        return candidates
+    max_score = max(affinity_map.values(), default=0.0)
+    if max_score <= 0:
+        return candidates
+
+    scored = []
+    for index, candidate in enumerate(candidates):
+        weight = _affinity_weight(candidate, affinity_map, max_score)
+        scored.append((-weight, index, candidate))
+    scored.sort()
+    return [item[2] for item in scored]
+
+
+def _affinity_weight(
+    candidate: Candidate,
+    affinity_map: Dict[str, float],
+    max_score: float,
+) -> float:
+    if not candidate.themes or max_score <= 0:
+        return 1.0
+    best = 0.0
+    for theme in candidate.themes:
+        score = affinity_map.get(theme, 0.0)
+        if score > best:
+            best = score
+    if best <= 0:
+        return 1.0
+    normalized = min(best / max_score, 1.0)
+    return 1.0 + (AFFINITY_ALPHA * normalized)
