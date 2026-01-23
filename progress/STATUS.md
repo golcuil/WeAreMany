@@ -34,10 +34,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-029] Reflection: local-only journal with day-lock (edit today only), 7/30 list, prompts, tests
 - [T-030] Backend matching: Progressive Delivery v1 driven by acknowledgement health (H)
 - [T-031] Backend matching: affinity learning v1 (theme scores from positive acks) biases candidate ordering
+- [T-032] Backend: canonical theme normalization + stored message theme_tags wired through matching and affinity
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-032] Backend: canonical theme_tags + deterministic mood→theme normalization for stable matching/affinity
 
 ## Next
 
