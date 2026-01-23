@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:we_are_many/app/app.dart';
 import 'package:we_are_many/core/network/api_client.dart';
@@ -48,6 +49,7 @@ class FakeReflectionApiClient extends ApiClient {
 
 void main() {
   testWidgets('Reflection screen renders summary', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
