@@ -228,3 +228,13 @@ class ReflectionSummary {
     );
   }
 }
+
+class ImpactResponse {
+  ImpactResponse({required this.helpedCount});
+
+  final int helpedCount;
+
+  factory ImpactResponse.fromJson(Map<String, dynamic> json) {
+    return ImpactResponse(helpedCount: json['helped_count'] as int? ?? 0);
+  }
+}

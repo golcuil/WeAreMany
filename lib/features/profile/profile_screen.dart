@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/local/mood_history_store.dart';
+import 'impact_provider.dart';
 import 'settings_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   static const routeName = '/profile';
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   static const _displayNameKey = 'display_name';
 
   final TextEditingController _nameController = TextEditingController();
@@ -76,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final impact = ref.watch(impactCountProvider);
     return Scaffold(
       key: const Key('profile_screen'),
       appBar: AppBar(title: const Text('Profile')),
@@ -164,6 +167,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           else ...[
             _DashboardSummary(entries: _historyEntries, days: _dashboardDays),
           ],
+          const SizedBox(height: 12),
+          impact.when(
+            data: (count) => Text('Your messages helped $count people'),
+            loading: () => const Text('Your messages helped — people'),
+            error: (error, stackTrace) =>
+                const Text('Your messages helped — people'),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Profile summary',

@@ -69,6 +69,9 @@ jobs:
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0002_eligible_principals.sql
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0003_mood_events.sql
+          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0004_message_origin.sql
+          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0005_ack_reaction_expansion.sql
+          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0003_mood_events.sql
 
       - name: Verify backend imports
         run: PYTHONPATH=backend python3 -c "import fastapi; import app"

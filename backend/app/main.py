@@ -129,6 +129,9 @@ class AcknowledgementResponse(BaseModel):
     status: str
 
 
+class ImpactResponse(BaseModel):
+    helped_count: int
+
 class MatchCandidateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -468,6 +471,18 @@ def acknowledge_message(
     except PermissionError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     return AcknowledgementResponse(status=status_value)
+
+
+@app.get(
+    "/impact",
+    dependencies=[Depends(current_principal), Depends(rate_limit("read"))],
+)
+def get_impact(
+    principal=Depends(current_principal),
+    repo=Depends(get_repository),
+) -> ImpactResponse:
+    helped_count = repo.get_helped_count(principal.principal_id)
+    return ImpactResponse(helped_count=helped_count)
 
 
 def _coarsen_day_iso(value: str) -> str:

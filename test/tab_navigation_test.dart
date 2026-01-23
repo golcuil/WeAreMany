@@ -41,6 +41,11 @@ class FakeTabsApiClient extends ApiClient {
   ) async {
     return AcknowledgementResponse(status: 'recorded');
   }
+
+  @override
+  Future<ImpactResponse> fetchImpact() async {
+    return ImpactResponse(helpedCount: 0);
+  }
 }
 
 void main() {

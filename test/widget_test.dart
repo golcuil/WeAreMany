@@ -66,6 +66,11 @@ class FakeApiClient extends ApiClient {
   ) async {
     return AcknowledgementResponse(status: 'recorded');
   }
+
+  @override
+  Future<ImpactResponse> fetchImpact() async {
+    return ImpactResponse(helpedCount: 0);
+  }
 }
 
 class NonCrisisApiClient extends ApiClient {
@@ -124,6 +129,11 @@ class NonCrisisApiClient extends ApiClient {
     AcknowledgementRequest request,
   ) async {
     return AcknowledgementResponse(status: 'recorded');
+  }
+
+  @override
+  Future<ImpactResponse> fetchImpact() async {
+    return ImpactResponse(helpedCount: 0);
   }
 }
 

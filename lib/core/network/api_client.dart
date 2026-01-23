@@ -65,6 +65,14 @@ class ApiClient {
     return _parseResponse(response, ReflectionSummary.fromJson);
   }
 
+  Future<ImpactResponse> fetchImpact() async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/impact'),
+      headers: _headers(),
+    );
+    return _parseResponse(response, ImpactResponse.fromJson);
+  }
+
   Map<String, String> _headers() {
     return {
       'Content-Type': 'application/json',

@@ -97,6 +97,9 @@ class Repository(Protocol):
     def acknowledge(self, inbox_item_id: str, recipient_id: str, reaction: str) -> str:
         ...
 
+    def get_helped_count(self, principal_id: str) -> int:
+        ...
+
     def get_eligible_candidates(
         self,
         sender_id: str,
@@ -185,6 +188,17 @@ class InMemoryRepository:
         item.state = "responded"
         item.ack_status = reaction
         return "recorded"
+
+    def get_helped_count(self, principal_id: str) -> int:
+        recipients = set()
+        for (message_id, recipient_id), reaction in self.acks.items():
+            message = self.messages.get(message_id)
+            if message is None or message.principal_id != principal_id:
+                continue
+            if reaction not in {"thanks", "helpful", "relate"}:
+                continue
+            recipients.add(recipient_id)
+        return len(recipients)
 
     def get_eligible_candidates(
         self,
@@ -295,8 +309,17 @@ class PostgresRepository:
             cur.execute(
                 """
                 INSERT INTO messages
-                (valence, intensity, emotion, risk_level, sanitized_text, reid_risk, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                (
+                  valence,
+                  intensity,
+                  emotion,
+                  risk_level,
+                  sanitized_text,
+                  reid_risk,
+                  status,
+                  origin_device_id
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -307,6 +330,7 @@ class PostgresRepository:
                     record.sanitized_text,
                     record.reid_risk,
                     "queued",
+                    record.principal_id,
                 ),
             )
             return str(cur.fetchone()[0])
@@ -421,6 +445,21 @@ class PostgresRepository:
         if inserted:
             return "recorded"
         return "already_recorded"
+
+    def get_helped_count(self, principal_id: str) -> int:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(DISTINCT a.recipient_device_id)
+                FROM acknowledgements a
+                JOIN messages m ON m.id = a.message_id
+                WHERE m.origin_device_id = %s
+                  AND a.reaction IN ('thanks', 'helpful', 'relate')
+                """,
+                (principal_id,),
+            )
+            row = cur.fetchone()
+        return int(row[0] or 0)
 
     def get_eligible_candidates(
         self,

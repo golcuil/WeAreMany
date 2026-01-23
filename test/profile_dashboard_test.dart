@@ -38,6 +38,11 @@ class FakeDashboardApiClient extends ApiClient {
   }
 
   @override
+  Future<ImpactResponse> fetchImpact() async {
+    return ImpactResponse(helpedCount: 3);
+  }
+
+  @override
   Future<AcknowledgementResponse> acknowledge(
     AcknowledgementRequest request,
   ) async {
@@ -88,6 +93,7 @@ void main() {
       find.textContaining('You marked your mood 1 times (last 7 days)'),
       findsOneWidget,
     );
+    expect(find.text('Your messages helped 3 people'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('dashboard_toggle_30')));
     await tester.pump();

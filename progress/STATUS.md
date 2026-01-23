@@ -32,6 +32,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-027] Profile dashboard: message impact (helped_count) via backend aggregation (private-only)
 
 ## Next
 

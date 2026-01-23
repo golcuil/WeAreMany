@@ -43,6 +43,11 @@ class FakeInboxApiClient extends ApiClient {
   }
 
   @override
+  Future<ImpactResponse> fetchImpact() async {
+    return ImpactResponse(helpedCount: 0);
+  }
+
+  @override
   Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
     return ReflectionSummary(
       windowDays: windowDays,
