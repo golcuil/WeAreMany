@@ -31,6 +31,7 @@ class MoodEventRecord:
     intensity: str
     expressed_emotion: Optional[str]
     risk_level: int
+    theme_tag: Optional[str] = None
 
 
 @dataclass
@@ -126,6 +127,15 @@ class Repository(Protocol):
     def get_matching_health(self, principal_id: str, window_days: int = 7) -> MatchingHealth:
         ...
 
+    def get_similar_count(
+        self,
+        principal_id: str,
+        theme_tag: str,
+        valence: str,
+        window_days: int,
+    ) -> int:
+        ...
+
 
 class InMemoryRepository:
     def __init__(self) -> None:
@@ -146,6 +156,29 @@ class InMemoryRepository:
     def get_reflection_summary(self, principal_id: str, window_days: int) -> ReflectionSummary:
         records = _filter_mood_events(self.mood_events, principal_id, window_days)
         return _summarize_mood_events(records, window_days)
+
+    def get_similar_count(
+        self,
+        principal_id: str,
+        theme_tag: str,
+        valence: str,
+        window_days: int,
+    ) -> int:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+        principals = set()
+        for record in self.mood_events:
+            if record.risk_level == 2:
+                continue
+            if record.created_at < cutoff:
+                continue
+            if record.principal_id == principal_id:
+                continue
+            if record.theme_tag != theme_tag:
+                continue
+            if record.valence != valence:
+                continue
+            principals.add(record.principal_id)
+        return len(principals)
 
     def save_message(self, record: MessageRecord) -> str:
         message_id = _new_uuid()
@@ -326,8 +359,8 @@ class PostgresRepository:
             cur.execute(
                 """
                 INSERT INTO mood_events
-                (device_id, valence, intensity, expressed_emotion, risk_level, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (device_id, valence, intensity, expressed_emotion, risk_level, theme_tag, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     record.principal_id,
@@ -335,6 +368,7 @@ class PostgresRepository:
                     record.intensity,
                     record.expressed_emotion,
                     record.risk_level,
+                    record.theme_tag,
                     record.created_at,
                 ),
             )
@@ -344,7 +378,7 @@ class PostgresRepository:
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT created_at, valence, intensity, expressed_emotion, risk_level
+                SELECT created_at, valence, intensity, expressed_emotion, risk_level, theme_tag
                 FROM mood_events
                 WHERE device_id = %s AND created_at >= %s
                 ORDER BY created_at ASC
@@ -360,6 +394,7 @@ class PostgresRepository:
                 intensity=row[2],
                 expressed_emotion=row[3],
                 risk_level=row[4],
+                theme_tag=row[5],
             )
             for row in rows
         ]
@@ -628,6 +663,30 @@ class PostgresRepository:
             positive_ack_count=positive_ack_count,
             ratio=ratio,
         )
+
+    def get_similar_count(
+        self,
+        principal_id: str,
+        theme_tag: str,
+        valence: str,
+        window_days: int,
+    ) -> int:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(DISTINCT device_id)
+                FROM mood_events
+                WHERE theme_tag = %s
+                  AND valence = %s
+                  AND risk_level != 2
+                  AND device_id != %s
+                  AND created_at >= %s
+                """,
+                (theme_tag, valence, principal_id, cutoff),
+            )
+            row = cur.fetchone()
+        return int(row[0] or 0)
 
 
 _default_repo = InMemoryRepository()

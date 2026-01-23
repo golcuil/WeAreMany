@@ -27,6 +27,7 @@ def test_reflection_summary_returns_distribution_trend_and_volatility():
             intensity="low",
             expressed_emotion="calm",
             risk_level=0,
+            theme_tag="calm",
         ),
         repository_module.MoodEventRecord(
             principal_id="test",
@@ -35,6 +36,7 @@ def test_reflection_summary_returns_distribution_trend_and_volatility():
             intensity="medium",
             expressed_emotion="sad",
             risk_level=0,
+            theme_tag="grief",
         ),
         repository_module.MoodEventRecord(
             principal_id="test",
@@ -43,6 +45,7 @@ def test_reflection_summary_returns_distribution_trend_and_volatility():
             intensity="high",
             expressed_emotion="sad",
             risk_level=0,
+            theme_tag="grief",
         ),
     ]
     for event in events:

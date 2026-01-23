@@ -5,7 +5,14 @@ from typing import Callable, Dict, List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from .config import API_VERSION, COLD_START_MIN_POOL, MATCH_SAMPLE_LIMIT, MAX_BODY_BYTES
+from .config import (
+    API_VERSION,
+    COLD_START_MIN_POOL,
+    K_ANON_MIN,
+    MATCH_SAMPLE_LIMIT,
+    MAX_BODY_BYTES,
+    SIMILAR_WINDOW_DAYS,
+)
 from .bridge import SYSTEM_SENDER_ID, build_reflective_message
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
@@ -79,6 +86,7 @@ class MoodResponse(BaseModel):
     identity_leak: bool
     leak_types: List[str]
     crisis_action: Optional[str]
+    similar_count: Optional[int] = None
 
 
 class ReflectionSummaryResponse(BaseModel):
@@ -173,6 +181,8 @@ def submit_mood(
     request_id = new_request_id()
     text = payload.free_text or ""
     result = moderate_text(text, principal.principal_id, leak_throttle)
+    mood_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
+    primary_theme = mood_themes[0] if mood_themes else "calm"
 
     if result.risk_level == 2:
         repo.record_mood_event(
@@ -183,6 +193,7 @@ def submit_mood(
                 intensity=payload.intensity,
                 expressed_emotion=payload.emotion,
                 risk_level=result.risk_level,
+                theme_tag=primary_theme,
             )
         )
         return MoodResponse(
@@ -193,6 +204,7 @@ def submit_mood(
             identity_leak=result.identity_leak,
             leak_types=result.leak_types,
             crisis_action="show_resources",
+            similar_count=None,
         )
 
     crisis_action = None
@@ -215,9 +227,9 @@ def submit_mood(
                 intensity=payload.intensity,
                 expressed_emotion=payload.emotion,
                 risk_level=result.risk_level,
+                theme_tag=primary_theme,
             )
         )
-        mood_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
         repo.upsert_eligible_principal(principal.principal_id, payload.intensity, mood_themes)
 
     safe_emit(
@@ -248,6 +260,17 @@ def submit_mood(
             {"request_id": request_id, "risk_bucket": result.risk_level},
         )
 
+    similar_count = None
+    if result.risk_level != 2:
+        count = repo.get_similar_count(
+            principal.principal_id,
+            primary_theme,
+            payload.valence,
+            SIMILAR_WINDOW_DAYS,
+        )
+        if count >= K_ANON_MIN:
+            similar_count = count
+
     return MoodResponse(
         status="ok",
         sanitized_text=result.sanitized_text,
@@ -256,6 +279,7 @@ def submit_mood(
         identity_leak=result.identity_leak,
         leak_types=result.leak_types,
         crisis_action=crisis_action,
+        similar_count=similar_count,
     )
 
 

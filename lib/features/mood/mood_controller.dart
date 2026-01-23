@@ -4,6 +4,7 @@ import '../../core/config/app_config.dart';
 import '../../core/local/mood_history_store.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
+import '../home/home_providers.dart';
 import '../profile/profile_providers.dart';
 
 class MoodState {
@@ -43,11 +44,13 @@ class MoodController extends StateNotifier<MoodState> {
     required this.apiClient,
     required this.simulateEnabled,
     required this.refreshHistory,
+    required this.setSimilarCount,
   }) : super(MoodState(simulateEnabled: simulateEnabled));
 
   final ApiClient apiClient;
   final bool simulateEnabled;
   final void Function() refreshHistory;
+  final void Function(int?) setSimilarCount;
 
   Future<MoodResponse> submitMood(MoodRequest request) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -59,6 +62,7 @@ class MoodController extends StateNotifier<MoodState> {
         intensity: request.intensity,
       );
       refreshHistory();
+      setSimilarCount(response.similarCount);
       state = state.copyWith(isLoading: false, response: response);
       return response;
     } on ApiError catch (error) {
@@ -89,6 +93,8 @@ final moodControllerProvider = StateNotifierProvider<MoodController, MoodState>(
       apiClient: apiClient,
       simulateEnabled: config.simulateEnabled,
       refreshHistory: () => ref.invalidate(moodHistoryEntriesProvider),
+      setSimilarCount: (count) =>
+          ref.read(similarCountProvider.notifier).state = count,
     );
   },
 );

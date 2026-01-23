@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:we_are_many/core/local/mood_history_store.dart';
 import 'package:we_are_many/features/home/home_screen.dart';
+import 'package:we_are_many/features/home/home_providers.dart';
 import 'package:we_are_many/features/profile/profile_providers.dart';
 
 void main() {
@@ -34,5 +35,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Helpful Series'), findsWidgets);
+  });
+
+  testWidgets('Home shows similar count card when available', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          moodHistoryEntriesProvider.overrideWith((ref) async => []),
+          similarCountProvider.overrideWith((ref) => StateController(28)),
+        ],
+        child: const MaterialApp(home: HomeScreen()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('similar_count_card')), findsOneWidget);
+    expect(find.textContaining('28 people felt similarly'), findsOneWidget);
   });
 }

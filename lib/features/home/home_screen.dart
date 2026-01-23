@@ -5,6 +5,7 @@ import '../../content/helpful_series_v1.dart';
 import '../inbox/inbox_screen.dart';
 import '../mood/mood_entry_screen.dart';
 import '../reflection/reflection_screen.dart';
+import 'home_providers.dart';
 import '../profile/profile_providers.dart';
 import 'helpful_detail_screen.dart';
 
@@ -16,6 +17,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final historyAsync = ref.watch(moodHistoryEntriesProvider);
+    final similarCount = ref.watch(similarCountProvider);
     return Scaffold(
       key: const Key('home_screen'),
       appBar: AppBar(title: const Text('We Are Many')),
@@ -42,6 +44,17 @@ class HomeScreen extends ConsumerWidget {
             child: const Text('Reflection'),
           ),
           const SizedBox(height: 24),
+          if (similarCount != null)
+            Card(
+              key: const Key('similar_count_card'),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  '$similarCount people felt similarly recently.',
+                ),
+              ),
+            ),
+          if (similarCount != null) const SizedBox(height: 16),
           historyAsync.when(
             data: (entries) {
               final card = pickHelpfulCard(entries);

@@ -39,6 +39,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-034] Home: k-anon “similar_count” aggregate insight (shown only when >=K)
 
 ## Next
 

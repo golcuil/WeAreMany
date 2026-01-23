@@ -45,6 +45,7 @@ class MoodResponse {
     required this.identityLeak,
     required this.leakTypes,
     required this.crisisAction,
+    this.similarCount,
   });
 
   final String status;
@@ -54,6 +55,7 @@ class MoodResponse {
   final bool identityLeak;
   final List<String> leakTypes;
   final String? crisisAction;
+  final int? similarCount;
 
   factory MoodResponse.fromJson(Map<String, dynamic> json) {
     return MoodResponse(
@@ -66,6 +68,7 @@ class MoodResponse {
           .map((item) => item.toString())
           .toList(),
       crisisAction: json['crisis_action'] as String?,
+      similarCount: json['similar_count'] as int?,
     );
   }
 }
