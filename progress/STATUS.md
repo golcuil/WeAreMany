@@ -32,10 +32,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-027] Profile dashboard: private impact counter via /impact (distinct recipients for positive acknowledgements)
 - [T-028] Add Privacy Controls screen (truthful copy + local clear/reset controls) linked from Settings/Profile
 - [T-029] Reflection: local-only journal with day-lock (edit today only), 7/30 list, prompts, tests
+- [T-030] Backend matching: Progressive Delivery v1 driven by acknowledgement health (H)
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-030] Backend matching: Progressive Delivery v1 based on acknowledgement health (H)
 
 ## Next
 
