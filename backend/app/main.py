@@ -12,6 +12,7 @@ from .matching import Candidate, get_dedupe_store, match_decision, progressive_p
 from .moderation import get_leak_throttle, moderate_text
 from .rate_limit import rate_limit
 from .repository import MessageRecord, MoodEventRecord, MoodRecord, get_repository
+from .themes import map_mood_to_themes, normalize_theme_tags
 from .security import current_principal
 
 logger = configure_logging()
@@ -215,11 +216,8 @@ def submit_mood(
                 risk_level=result.risk_level,
             )
         )
-        repo.upsert_eligible_principal(
-            principal.principal_id,
-            payload.intensity,
-            [payload.emotion] if payload.emotion else [],
-        )
+        mood_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
+        repo.upsert_eligible_principal(principal.principal_id, payload.intensity, mood_themes)
 
     safe_emit(
         emitter,
@@ -300,22 +298,20 @@ def submit_message(
     hold_reason: Optional[str] = None
 
     if result.risk_level != 2:
+        message_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
         message_id = repo.save_message(
             MessageRecord(
                 principal_id=principal.principal_id,
                 valence=payload.valence,
                 intensity=payload.intensity,
                 emotion=payload.emotion,
+                theme_tags=message_themes,
                 risk_level=result.risk_level,
                 sanitized_text=result.sanitized_text,
                 reid_risk=result.reid_risk,
             )
         )
-        repo.upsert_eligible_principal(
-            principal.principal_id,
-            payload.intensity,
-            [payload.emotion] if payload.emotion else [],
-        )
+        repo.upsert_eligible_principal(principal.principal_id, payload.intensity, message_themes)
         health = repo.get_matching_health(principal.principal_id, window_days=7)
         params = progressive_params(health.ratio)
         logger.info(
@@ -332,14 +328,14 @@ def submit_message(
         candidates = repo.get_eligible_candidates(
             principal.principal_id,
             payload.intensity,
-            [],
+            message_themes,
             limit=limit,
         )
         decision = match_decision(
             principal_id=principal.principal_id,
             risk_level=result.risk_level,
             intensity=payload.intensity,
-            themes=[],
+            themes=message_themes,
             candidates=candidates,
             dedupe_store=dedupe_store,
             intensity_band=params.intensity_band,
@@ -428,11 +424,12 @@ def simulate_match(
     emitter=Depends(get_event_emitter),
 ) -> MatchSimulateResponse:
     request_id = new_request_id()
+    normalized_themes = normalize_theme_tags(payload.themes)
     candidates = [
         Candidate(
             candidate_id=item.candidate_id,
             intensity=item.intensity,
-            themes=item.themes,
+            themes=normalize_theme_tags(item.themes),
         )
         for item in payload.candidates
     ]
@@ -440,7 +437,7 @@ def simulate_match(
         principal_id=principal.principal_id,
         risk_level=payload.risk_level,
         intensity=payload.intensity,
-        themes=payload.themes,
+        themes=normalized_themes,
         candidates=candidates,
         dedupe_store=dedupe_store,
     )

@@ -19,9 +19,9 @@ def test_postgres_candidate_pool_sampling_respects_filters():
     repo = PostgresRepository(POSTGRES_DSN)
     now_bucket = datetime.now(timezone.utc)
     principals = [
-        ("p1", "low", ["loss"], now_bucket),
+        ("p1", "low", ["grief"], now_bucket),
         ("p2", "low", ["uncertainty"], now_bucket),
-        ("p3", "high", ["loss"], now_bucket),
+        ("p3", "high", ["grief"], now_bucket),
     ]
 
     with psycopg.connect(POSTGRES_DSN) as conn, conn.cursor() as cur:
@@ -37,7 +37,7 @@ def test_postgres_candidate_pool_sampling_respects_filters():
             )
 
     try:
-        candidates = repo.get_eligible_candidates("sender", "low", ["loss"], limit=10)
+        candidates = repo.get_eligible_candidates("sender", "low", ["grief"], limit=10)
         ids = {candidate.candidate_id for candidate in candidates}
         assert "p1" in ids
         assert "p2" not in ids

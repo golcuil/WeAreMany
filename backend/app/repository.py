@@ -55,6 +55,7 @@ class MessageRecord:
     valence: str
     intensity: str
     emotion: Optional[str]
+    theme_tags: List[str]
     risk_level: int
     sanitized_text: Optional[str]
     reid_risk: float
@@ -206,7 +207,7 @@ class InMemoryRepository:
         item.ack_status = reaction
         if reaction in {"thanks", "helpful", "relate"}:
             message = self.messages.get(item.message_id)
-            theme_id = message.emotion if message else None
+            theme_id = message.theme_tags[0] if message and message.theme_tags else None
             if message and theme_id:
                 self.record_affinity(message.principal_id, theme_id, 1.0)
         return "recorded"
@@ -373,19 +374,21 @@ class PostgresRepository:
                   valence,
                   intensity,
                   emotion,
+                  theme_tags,
                   risk_level,
                   sanitized_text,
                   reid_risk,
                   status,
                   origin_device_id
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
                     record.valence,
                     record.intensity,
                     record.emotion,
+                    record.theme_tags,
                     record.risk_level,
                     record.sanitized_text,
                     record.reid_risk,
@@ -507,7 +510,7 @@ class PostgresRepository:
                 with self._conn() as conn, conn.cursor() as cur:
                     cur.execute(
                         """
-                        SELECT origin_device_id, emotion
+                        SELECT origin_device_id, theme_tags
                         FROM messages
                         WHERE id = %s
                         """,
@@ -515,7 +518,9 @@ class PostgresRepository:
                     )
                     row = cur.fetchone()
                 if row and row[0] and row[1]:
-                    self.record_affinity(row[0], row[1], 1.0)
+                    theme_id = row[1][0] if row[1] else None
+                    if theme_id:
+                        self.record_affinity(row[0], theme_id, 1.0)
             return "recorded"
         return "already_recorded"
 

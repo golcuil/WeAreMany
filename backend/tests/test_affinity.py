@@ -20,6 +20,7 @@ def test_positive_ack_updates_affinity_once():
             valence="neutral",
             intensity="low",
             emotion="calm",
+            theme_tags=["calm"],
             risk_level=0,
             sanitized_text="safe",
             reid_risk=0.0,

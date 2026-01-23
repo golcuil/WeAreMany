@@ -44,7 +44,7 @@ def test_cold_start_triggers_hold_path():
     payload = {
         "risk_level": 0,
         "intensity": "low",
-        "themes": ["loss"],
+        "themes": ["grief"],
         "candidates": [],
     }
     response = client.post("/match/simulate", json=payload, headers=_headers())
@@ -87,11 +87,11 @@ def test_cooldown_prevents_duplicate_targeting():
     payload = {
         "risk_level": 0,
         "intensity": "low",
-        "themes": ["loss"],
+        "themes": ["grief"],
         "candidates": [
-            {"candidate_id": "c1", "intensity": "low", "themes": ["loss"]},
-            {"candidate_id": "c2", "intensity": "low", "themes": ["loss"]},
-            {"candidate_id": "c3", "intensity": "low", "themes": ["loss"]},
+            {"candidate_id": "c1", "intensity": "low", "themes": ["grief"]},
+            {"candidate_id": "c2", "intensity": "low", "themes": ["grief"]},
+            {"candidate_id": "c3", "intensity": "low", "themes": ["grief"]},
         ],
     }
     first = client.post("/match/simulate", json=payload, headers=_headers())
