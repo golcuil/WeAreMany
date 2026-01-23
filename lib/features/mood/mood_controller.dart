@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/local/mood_history_store.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/models.dart';
 
@@ -47,6 +48,11 @@ class MoodController extends StateNotifier<MoodState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await apiClient.submitMood(request);
+      await MoodHistoryStore.recordEntry(
+        emotionLabel: request.emotion ?? request.valence,
+        valence: request.valence,
+        intensity: request.intensity,
+      );
       state = state.copyWith(isLoading: false, response: response);
       return response;
     } on ApiError catch (error) {

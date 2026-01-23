@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:we_are_many/app/app.dart';
 import 'package:we_are_many/core/network/api_client.dart';
@@ -13,7 +14,9 @@ class FakeApiClient extends ApiClient {
     : super(
         baseUrl: 'http://localhost',
         token: 'dev_test',
-        httpClient: http.Client(),
+        httpClient: MockClient((_) async {
+          throw StateError('Unexpected HTTP call in widget test.');
+        }),
       );
 
   @override
@@ -70,7 +73,9 @@ class NonCrisisApiClient extends ApiClient {
     : super(
         baseUrl: 'http://localhost',
         token: 'dev_test',
-        httpClient: http.Client(),
+        httpClient: MockClient((_) async {
+          throw StateError('Unexpected HTTP call in widget test.');
+        }),
       );
 
   @override
@@ -126,6 +131,7 @@ void main() {
   testWidgets('Navigates to CrisisScreen when crisis_action is set', (
     tester,
   ) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(FakeApiClient())],
@@ -134,16 +140,19 @@ void main() {
     );
 
     await tester.tap(find.text('Share a mood'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(MoodEntryScreen), findsOneWidget);
 
     await tester.tap(find.text('Submit mood'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byKey(const Key('crisis_screen')), findsOneWidget);
   });
 
   testWidgets('Non-crisis response shows sanitized text only', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(NonCrisisApiClient())],
@@ -152,11 +161,13 @@ void main() {
     );
 
     await tester.tap(find.text('Share a mood'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     await tester.enterText(find.byType(TextField), 'raw secret text');
     await tester.tap(find.text('Submit mood'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.textContaining('Sanitized:'), findsOneWidget);
     expect(find.text('raw secret text'), findsNothing);
