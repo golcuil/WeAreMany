@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Protocol
 import os
 
 from .matching import Candidate
-from .config import ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
+from .config import CRISIS_WINDOW_HOURS, ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
 
 try:
     import psycopg
@@ -115,6 +115,22 @@ class Repository(Protocol):
     def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
         ...
 
+    def record_crisis_action(
+        self,
+        principal_id: str,
+        action: str,
+        now: Optional[datetime] = None,
+    ) -> None:
+        ...
+
+    def is_in_crisis_window(
+        self,
+        principal_id: str,
+        window_hours: int,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        ...
+
     def get_eligible_candidates(
         self,
         sender_id: str,
@@ -146,6 +162,7 @@ class InMemoryRepository:
         self.candidate_pool: List[Candidate] = []
         self.mood_events: List[MoodEventRecord] = []
         self.affinity_scores: Dict[str, Dict[str, float]] = {}
+        self.crisis_state: Dict[str, Dict[str, datetime]] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -266,6 +283,28 @@ class InMemoryRepository:
     def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
         return dict(self.affinity_scores.get(sender_id, {}))
 
+    def record_crisis_action(
+        self,
+        principal_id: str,
+        action: str,
+        now: Optional[datetime] = None,
+    ) -> None:
+        timestamp = now or datetime.now(timezone.utc)
+        self.crisis_state[principal_id] = {"action": action, "at": timestamp}
+
+    def is_in_crisis_window(
+        self,
+        principal_id: str,
+        window_hours: int,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        record = self.crisis_state.get(principal_id)
+        if record is None:
+            return False
+        now_value = now or datetime.now(timezone.utc)
+        cutoff = now_value - timedelta(hours=window_hours)
+        return record["at"] >= cutoff
+
     def get_eligible_candidates(
         self,
         sender_id: str,
@@ -274,12 +313,20 @@ class InMemoryRepository:
         limit: int = MATCH_SAMPLE_LIMIT,
     ) -> List[Candidate]:
         if self.candidate_pool:
-            return list(self.candidate_pool)[:limit]
+            filtered = [
+                candidate
+                for candidate in self.candidate_pool
+                if candidate.candidate_id != sender_id
+                and not self.is_in_crisis_window(candidate.candidate_id, CRISIS_WINDOW_HOURS)
+            ]
+            return list(filtered)[:limit]
 
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
         candidates: List[Candidate] = []
         for principal_id, data in self.eligible_principals.items():
             if principal_id == sender_id:
+                continue
+            if self.is_in_crisis_window(principal_id, CRISIS_WINDOW_HOURS):
                 continue
             if data["intensity_bucket"] != intensity_bucket:
                 continue
@@ -603,6 +650,49 @@ class PostgresRepository:
             rows = cur.fetchall()
         return {row[0]: float(row[1]) for row in rows}
 
+    def record_crisis_action(
+        self,
+        principal_id: str,
+        action: str,
+        now: Optional[datetime] = None,
+    ) -> None:
+        timestamp = now or datetime.now(timezone.utc)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO principal_crisis_state
+                (principal_id, last_action, last_action_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (principal_id)
+                DO UPDATE SET
+                  last_action = EXCLUDED.last_action,
+                  last_action_at = EXCLUDED.last_action_at
+                """,
+                (principal_id, action, timestamp),
+            )
+
+    def is_in_crisis_window(
+        self,
+        principal_id: str,
+        window_hours: int,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        now_value = now or datetime.now(timezone.utc)
+        cutoff = now_value - timedelta(hours=window_hours)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT last_action_at
+                FROM principal_crisis_state
+                WHERE principal_id = %s
+                """,
+                (principal_id,),
+            )
+            row = cur.fetchone()
+        if row is None or row[0] is None:
+            return False
+        return row[0] >= cutoff
+
     def get_eligible_candidates(
         self,
         sender_id: str,
@@ -611,6 +701,7 @@ class PostgresRepository:
         limit: int = MATCH_SAMPLE_LIMIT,
     ) -> List[Candidate]:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
+        crisis_cutoff = datetime.now(timezone.utc) - timedelta(hours=CRISIS_WINDOW_HOURS)
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -619,11 +710,25 @@ class PostgresRepository:
                 WHERE principal_id != %s
                   AND intensity_bucket = %s
                   AND last_active_bucket >= %s
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM principal_crisis_state pcs
+                    WHERE pcs.principal_id = eligible_principals.principal_id
+                      AND pcs.last_action_at >= %s
+                  )
                   AND (%s = '{}' OR theme_tags && %s)
                 ORDER BY random()
                 LIMIT %s
                 """,
-                (sender_id, intensity_bucket, cutoff, theme_tags, theme_tags, limit),
+                (
+                    sender_id,
+                    intensity_bucket,
+                    cutoff,
+                    crisis_cutoff,
+                    theme_tags,
+                    theme_tags,
+                    limit,
+                ),
             )
             rows = cur.fetchall()
         return [

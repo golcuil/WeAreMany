@@ -42,6 +42,7 @@ class FakeRepo:
     def __init__(self):
         self.saved_moods = 0
         self.saved_messages = 0
+        self.crisis_actions = 0
 
     def save_mood(self, record: repository_module.MoodRecord) -> None:
         self.saved_moods += 1
@@ -57,6 +58,12 @@ class FakeRepo:
 
     def get_eligible_candidates(self, sender_id: str, intensity_bucket: str, theme_tags, limit=50):
         return []
+
+    def record_crisis_action(self, principal_id: str, action: str, now=None) -> None:
+        self.crisis_actions += 1
+
+    def is_in_crisis_window(self, principal_id: str, window_hours: int, now=None) -> bool:
+        return False
 
 
 class InMemoryRateLimiter:

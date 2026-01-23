@@ -27,6 +27,7 @@ class FakeRepo:
         self.saved_moods = 0
         self.upserts = 0
         self.mood_events = 0
+        self.crisis_actions = 0
 
     def save_mood(self, record: repository_module.MoodRecord) -> None:
         self.saved_moods += 1
@@ -41,6 +42,14 @@ class FakeRepo:
 
     def record_mood_event(self, record: repository_module.MoodEventRecord) -> None:
         self.mood_events += 1
+
+    def record_crisis_action(
+        self,
+        principal_id: str,
+        action: str,
+        now=None,
+    ) -> None:
+        self.crisis_actions += 1
 
 
 class FakeEmitter:
@@ -73,6 +82,7 @@ def test_mood_crisis_blocks_and_skips_persistence_and_events():
     assert fake_repo.saved_moods == 0
     assert fake_repo.upserts == 0
     assert fake_repo.mood_events == 1
+    assert fake_repo.crisis_actions == 1
     assert fake_emitter.records == []
 
     app.dependency_overrides.clear()
