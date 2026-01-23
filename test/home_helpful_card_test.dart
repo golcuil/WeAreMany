@@ -7,7 +7,7 @@ import 'package:we_are_many/features/home/home_screen.dart';
 import 'package:we_are_many/features/profile/profile_providers.dart';
 
 void main() {
-  testWidgets('Home shows Faydalı Serisi card and opens detail', (
+  testWidgets('Home shows Helpful Series card and opens detail', (
     tester,
   ) async {
     final entries = [
@@ -22,8 +22,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          moodHistoryEntriesProvider.overrideWithValue(
-            AsyncValue.data(entries),
+          moodHistoryEntriesProvider.overrideWith(
+            (ref) async => entries,
           ),
         ],
         child: const MaterialApp(home: HomeScreen()),
@@ -31,10 +31,10 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byKey(const Key('faydali_card')), findsOneWidget);
+    expect(find.byKey(const Key('helpful_card')), findsOneWidget);
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Faydalı Serisi'), findsWidgets);
+    expect(find.textContaining('Helpful Series'), findsWidgets);
   });
 }

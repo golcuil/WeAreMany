@@ -1,7 +1,7 @@
 import '../core/local/mood_history_store.dart';
 
-class FaydaliCard {
-  const FaydaliCard({
+class HelpfulCard {
+  const HelpfulCard({
     required this.id,
     required this.title,
     required this.bullets,
@@ -18,10 +18,10 @@ class FaydaliCard {
   final List<String> intensityBuckets;
 }
 
-const faydaliSerisiCards = <FaydaliCard>[
-  FaydaliCard(
+const helpfulSeriesCards = <HelpfulCard>[
+  HelpfulCard(
     id: 'calm_reset',
-    title: 'Faydalı Serisi: Small calm reset',
+    title: 'Helpful Series: Small calm reset',
     bullets: [
       'Name one thing you can see, hear, and feel.',
       'Take three slow breaths, longer on the exhale.',
@@ -30,9 +30,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['calm', 'overwhelm'],
     intensityBuckets: ['low', 'medium'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'anxiety_anchor',
-    title: 'Faydalı Serisi: Anxiety anchor',
+    title: 'Helpful Series: Anxiety anchor',
     bullets: [
       'Place both feet on the floor and notice contact points.',
       'Pick a simple next step you can do in under 5 minutes.',
@@ -41,9 +41,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['anxiety'],
     intensityBuckets: ['medium', 'high'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'overwhelm_sort',
-    title: 'Faydalı Serisi: Overwhelm sorter',
+    title: 'Helpful Series: Overwhelm sorter',
     bullets: [
       'Write down everything on your mind in a short list.',
       'Circle just one item to address today.',
@@ -52,9 +52,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['overwhelm', 'work_stress'],
     intensityBuckets: ['high'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'self_worth_reframe',
-    title: 'Faydalı Serisi: Self-worth reframe',
+    title: 'Helpful Series: Self-worth reframe',
     bullets: [
       'Name one thing you did well this week.',
       'Speak to yourself as you would to a friend.',
@@ -63,9 +63,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['self_worth'],
     intensityBuckets: ['low', 'medium'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'loneliness_gentle',
-    title: 'Faydalı Serisi: Gentle connection',
+    title: 'Helpful Series: Gentle connection',
     bullets: [
       'Send a simple check-in to someone you trust.',
       'Step outside or open a window for fresh air.',
@@ -74,9 +74,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['loneliness', 'relationship'],
     intensityBuckets: ['low', 'medium'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'grief_soften',
-    title: 'Faydalı Serisi: Grief softener',
+    title: 'Helpful Series: Grief softener',
     bullets: [
       'Give yourself permission to feel what is present.',
       'Pick one comforting ritual for today.',
@@ -85,9 +85,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['grief'],
     intensityBuckets: ['medium', 'high'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'anger_pause',
-    title: 'Faydalı Serisi: Anger pause',
+    title: 'Helpful Series: Anger pause',
     bullets: [
       'Pause before responding and count to five.',
       'Move your body for one minute to release tension.',
@@ -96,9 +96,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['anger'],
     intensityBuckets: ['medium', 'high'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'hope_seed',
-    title: 'Faydalı Serisi: Hope seed',
+    title: 'Helpful Series: Hope seed',
     bullets: [
       'Name a small thing you are looking forward to.',
       'List one resource that has helped before.',
@@ -107,9 +107,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['hope', 'motivation'],
     intensityBuckets: ['low', 'medium'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'motivation_nudge',
-    title: 'Faydalı Serisi: Motivation nudge',
+    title: 'Helpful Series: Motivation nudge',
     bullets: [
       'Break the task into a 2-minute starter step.',
       'Set a timer and stop when it ends.',
@@ -118,9 +118,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['motivation', 'work_stress'],
     intensityBuckets: ['low', 'medium'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'relationship_boundaries',
-    title: 'Faydalı Serisi: Relationship boundaries',
+    title: 'Helpful Series: Relationship boundaries',
     bullets: [
       'Name one boundary that protects your energy.',
       'Practice a short, respectful phrase to use it.',
@@ -129,9 +129,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['relationship'],
     intensityBuckets: ['medium'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'work_reset',
-    title: 'Faydalı Serisi: Work reset',
+    title: 'Helpful Series: Work reset',
     bullets: [
       'Sort tasks into: now, later, delegate.',
       'Block a 15-minute focus window.',
@@ -140,9 +140,9 @@ const faydaliSerisiCards = <FaydaliCard>[
     themes: ['work_stress', 'overwhelm'],
     intensityBuckets: ['medium', 'high'],
   ),
-  FaydaliCard(
+  HelpfulCard(
     id: 'calm_hold',
-    title: 'Faydalı Serisi: Calm hold',
+    title: 'Helpful Series: Calm hold',
     bullets: [
       'Notice the calm and name where you feel it.',
       'Take a moment to appreciate the quiet.',
@@ -153,7 +153,7 @@ const faydaliSerisiCards = <FaydaliCard>[
   ),
 ];
 
-FaydaliCard? pickFaydaliCard(List<MoodHistoryEntry> entries) {
+HelpfulCard? pickHelpfulCard(List<MoodHistoryEntry> entries) {
   if (entries.isEmpty) {
     return null;
   }
@@ -162,9 +162,9 @@ FaydaliCard? pickFaydaliCard(List<MoodHistoryEntry> entries) {
   final themes = _mapMoodToThemes(latest);
   final intensity = latest.intensity;
 
-  FaydaliCard? best;
+  HelpfulCard? best;
   var bestScore = -1;
-  for (final card in faydaliSerisiCards) {
+  for (final card in helpfulSeriesCards) {
     final overlap = themes.where(card.themes.contains).length;
     final intensityMatch = card.intensityBuckets.contains(intensity) ? 1 : 0;
     final score = overlap * 2 + intensityMatch;
@@ -173,19 +173,19 @@ FaydaliCard? pickFaydaliCard(List<MoodHistoryEntry> entries) {
       best = card;
     }
   }
-  return best ?? faydaliSerisiCards.first;
+  return best ?? helpfulSeriesCards.first;
 }
 
 List<String> _mapMoodToThemes(MoodHistoryEntry entry) {
   final emotion = entry.emotionLabel;
-  final mapped = _EMOTION_TO_THEMES[emotion];
+  final mapped = _emotionToThemes[emotion];
   if (mapped != null && mapped.isNotEmpty) {
     return mapped;
   }
-  return _VALENCE_FALLBACK[entry.valence] ?? const ['calm'];
+  return _valenceFallback[entry.valence] ?? const ['calm'];
 }
 
-const _EMOTION_TO_THEMES = {
+const _emotionToThemes = {
   'calm': ['calm'],
   'content': ['calm'],
   'hopeful': ['hope', 'motivation'],
@@ -198,7 +198,7 @@ const _EMOTION_TO_THEMES = {
   'numb': ['overwhelm', 'loneliness'],
 };
 
-const _VALENCE_FALLBACK = {
+const _valenceFallback = {
   'positive': ['hope'],
   'neutral': ['calm'],
   'negative': ['self_worth'],

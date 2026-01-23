@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../content/faydali_serisi_v1.dart';
+import '../../content/helpful_series_v1.dart';
 import '../inbox/inbox_screen.dart';
 import '../mood/mood_entry_screen.dart';
 import '../reflection/reflection_screen.dart';
 import '../profile/profile_providers.dart';
-import 'faydali_detail_screen.dart';
+import 'helpful_detail_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -44,12 +44,12 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           historyAsync.when(
             data: (entries) {
-              final card = pickFaydaliCard(entries);
+              final card = pickHelpfulCard(entries);
               if (card == null) {
                 return const SizedBox.shrink();
               }
               return Card(
-                key: const Key('faydali_card'),
+                key: const Key('helpful_card'),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -72,7 +72,7 @@ class HomeScreen extends ConsumerWidget {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => FaydaliDetailScreen(card: card),
+                                builder: (_) => HelpfulDetailScreen(card: card),
                               ),
                             );
                           },

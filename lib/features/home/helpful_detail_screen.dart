@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../content/faydali_serisi_v1.dart';
+import '../../content/helpful_series_v1.dart';
 
-class FaydaliDetailScreen extends StatelessWidget {
-  const FaydaliDetailScreen({super.key, required this.card});
+class HelpfulDetailScreen extends StatelessWidget {
+  const HelpfulDetailScreen({super.key, required this.card});
 
-  final FaydaliCard card;
+  final HelpfulCard card;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Faydalı Serisi')),
+      appBar: AppBar(title: const Text('Helpful Series')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
