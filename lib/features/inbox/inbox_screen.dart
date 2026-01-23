@@ -13,6 +13,8 @@ class InboxScreen extends ConsumerStatefulWidget {
 }
 
 class _InboxScreenState extends ConsumerState<InboxScreen> {
+  static const int inboxLockDays = 7;
+
   @override
   void initState() {
     super.initState();
@@ -52,15 +54,41 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               itemBuilder: (context, index) {
                 final item = state.items[index];
                 final isResponded = item.ackStatus != null;
+                final isLocked = _isLocked(item.receivedAt);
+                final isRead =
+                    isResponded || state.readIds.contains(item.inboxItemId);
+                final status = isLocked
+                    ? 'Locked'
+                    : isResponded
+                        ? 'Responded'
+                        : null;
+                final timestamp = _formatTimestamp(item.receivedAt);
+                final subtitle = status == null
+                    ? timestamp
+                    : '$timestamp \u00b7 $status';
                 return ListTile(
+                  onTap: () => ref
+                      .read(inboxControllerProvider.notifier)
+                      .markRead(item.inboxItemId),
+                  leading: isRead
+                      ? const SizedBox(width: 8)
+                      : Container(
+                          key: Key('inbox_unread_dot_${item.inboxItemId}'),
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
                   title: Text(item.text),
-                  subtitle: Text(_formatTimestamp(item.receivedAt)),
+                  subtitle: Text(subtitle),
                   trailing: Wrap(
                     spacing: 8,
                     children: [
                       _AckButton(
                         label: 'Thanks',
-                        enabled: !isResponded,
+                        enabled: !isResponded && !isLocked,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
                             .acknowledge(
@@ -70,7 +98,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       ),
                       _AckButton(
                         label: 'I relate',
-                        enabled: !isResponded,
+                        enabled: !isResponded && !isLocked,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
                             .acknowledge(
@@ -80,7 +108,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       ),
                       _AckButton(
                         label: 'Helpful',
-                        enabled: !isResponded,
+                        enabled: !isResponded && !isLocked,
                         onPressed: () => ref
                             .read(inboxControllerProvider.notifier)
                             .acknowledge(
@@ -107,8 +135,29 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     if (parsed == null) {
       return value;
     }
-    final day = parsed.toUtc().toIso8601String().split('T').first;
-    return day;
+    final day = DateTime.utc(parsed.year, parsed.month, parsed.day);
+    final now = DateTime.now().toUtc();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final diffDays = today.difference(day).inDays;
+    if (diffDays == 0) {
+      return 'Today';
+    }
+    if (diffDays == 1) {
+      return 'Yesterday';
+    }
+    return day.toIso8601String().split('T').first;
+  }
+
+  bool _isLocked(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      return false;
+    }
+    final day = DateTime.utc(parsed.year, parsed.month, parsed.day);
+    final now = DateTime.now().toUtc();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final diffDays = today.difference(day).inDays;
+    return diffDays >= inboxLockDays;
   }
 }
 

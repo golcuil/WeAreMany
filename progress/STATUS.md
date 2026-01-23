@@ -41,6 +41,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-036] Inbox lifecycle: unread (local), responded, locked-after-7d + day-level relative timestamps
 
 ## Next
 
