@@ -31,10 +31,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-026] Profile dashboard: local mood history (7/30) with frequency + volatility at day-level (UTC), private-only
 - [T-027] Profile dashboard: private impact counter via /impact (distinct recipients for positive acknowledgements)
 - [T-028] Add Privacy Controls screen (truthful copy + local clear/reset controls) linked from Settings/Profile
+- [T-029] Reflection: local-only journal with day-lock (edit today only), 7/30 list, prompts, tests
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-029] Reflection journal: local-only with day-lock and 7/30 list
 
 ## Next
 
