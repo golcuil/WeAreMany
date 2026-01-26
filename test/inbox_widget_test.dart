@@ -261,20 +261,17 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final fixedNow = DateTime.utc(2026, 1, 23, 12);
     final today = DateTime.utc(fixedNow.year, fixedNow.month, fixedNow.day);
-    final client = FakeInboxApiClient(
-      [
-        InboxItem(
-          itemType: 'second_touch_offer',
-          inboxItemId: '',
-          text: '',
-          receivedAt: today.toIso8601String(),
-          ackStatus: null,
-          offerId: 'offer_1',
-          offerState: 'available',
-        ),
-      ],
-      sendResponse: SecondTouchSendResponse(status: 'queued'),
-    );
+    final client = FakeInboxApiClient([
+      InboxItem(
+        itemType: 'second_touch_offer',
+        inboxItemId: '',
+        text: '',
+        receivedAt: today.toIso8601String(),
+        ackStatus: null,
+        offerId: 'offer_1',
+        offerState: 'available',
+      ),
+    ], sendResponse: SecondTouchSendResponse(status: 'queued'));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(client)],

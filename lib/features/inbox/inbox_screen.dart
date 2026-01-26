@@ -243,9 +243,9 @@ class _SecondTouchOfferCardState extends State<_SecondTouchOfferCard> {
         return;
       }
       if (response.status == 'queued') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('One-time note sent.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('One-time note sent.')));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not send right now.')),
@@ -299,7 +299,12 @@ class _SecondTouchComposerState extends State<_SecondTouchComposer> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: bottom + 16),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: bottom + 16,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
