@@ -921,34 +921,60 @@ def _apply_affinity_decay(
     ) -> List[Candidate]:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
         crisis_cutoff = datetime.now(timezone.utc) - timedelta(hours=CRISIS_WINDOW_HOURS)
+        safe_limit = min(max(int(limit), 1), 100)
         with self._conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT principal_id, intensity_bucket, theme_tags
-                FROM eligible_principals
-                WHERE principal_id != %s
-                  AND intensity_bucket = %s
-                  AND last_active_bucket >= %s
-                  AND NOT EXISTS (
-                    SELECT 1
-                    FROM principal_crisis_state pcs
-                    WHERE pcs.principal_id = eligible_principals.principal_id
-                      AND pcs.last_action_at >= %s
-                  )
-                  AND (%s = '{}' OR theme_tags && %s)
-                ORDER BY random()
-                LIMIT %s
-                """,
-                (
-                    sender_id,
-                    intensity_bucket,
-                    cutoff,
-                    crisis_cutoff,
-                    theme_tags,
-                    theme_tags,
-                    limit,
-                ),
-            )
+            if theme_tags:
+                cur.execute(
+                    """
+                    SELECT principal_id, intensity_bucket, theme_tags
+                    FROM eligible_principals
+                    WHERE principal_id != %s
+                      AND intensity_bucket = %s
+                      AND last_active_bucket >= %s
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM principal_crisis_state pcs
+                        WHERE pcs.principal_id = eligible_principals.principal_id
+                          AND pcs.last_action_at >= %s
+                      )
+                      AND theme_tags && %s
+                    ORDER BY random()
+                    LIMIT %s
+                    """,
+                    (
+                        sender_id,
+                        intensity_bucket,
+                        cutoff,
+                        crisis_cutoff,
+                        theme_tags,
+                        safe_limit,
+                    ),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT principal_id, intensity_bucket, theme_tags
+                    FROM eligible_principals
+                    WHERE principal_id != %s
+                      AND intensity_bucket = %s
+                      AND last_active_bucket >= %s
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM principal_crisis_state pcs
+                        WHERE pcs.principal_id = eligible_principals.principal_id
+                          AND pcs.last_action_at >= %s
+                      )
+                    ORDER BY random()
+                    LIMIT %s
+                    """,
+                    (
+                        sender_id,
+                        intensity_bucket,
+                        cutoff,
+                        crisis_cutoff,
+                        safe_limit,
+                    ),
+                )
             rows = cur.fetchall()
         return [
             Candidate(candidate_id=row[0], intensity=row[1], themes=row[2] or [])
@@ -1015,10 +1041,9 @@ def _apply_affinity_decay(
     def record_security_event(self, record: SecurityEventRecord) -> None:
         with self._conn() as conn, conn.cursor() as cur:
             meta_payload = record.meta or {}
-            if psycopg is not None:
-                from psycopg.types.json import Json
+            from psycopg.types.json import Json
 
-                meta_payload = Json(meta_payload)
+            meta_payload = Json(meta_payload)
             cur.execute(
                 """
                 INSERT INTO security_events
