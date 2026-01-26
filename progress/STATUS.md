@@ -45,6 +45,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-040] Add privacy-safe security event logging for identity leak and throttle events
 
 ## Next
 

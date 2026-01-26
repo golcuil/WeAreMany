@@ -73,6 +73,13 @@ class InboxItemRecord:
     ack_status: Optional[str]
 
 
+@dataclass
+class SecurityEventRecord:
+    actor_hash: str
+    event_type: str
+    meta: Dict[str, object]
+
+
 class Repository(Protocol):
     def save_mood(self, record: MoodRecord) -> None:
         ...
@@ -152,6 +159,9 @@ class Repository(Protocol):
     ) -> int:
         ...
 
+    def record_security_event(self, record: SecurityEventRecord) -> None:
+        ...
+
 
 class InMemoryRepository:
     def __init__(self) -> None:
@@ -163,6 +173,7 @@ class InMemoryRepository:
         self.mood_events: List[MoodEventRecord] = []
         self.affinity_scores: Dict[str, Dict[str, float]] = {}
         self.crisis_state: Dict[str, Dict[str, datetime]] = {}
+        self.security_events: List[SecurityEventRecord] = []
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -372,6 +383,9 @@ class InMemoryRepository:
             positive_ack_count=positive_ack_count,
             ratio=ratio,
         )
+
+    def record_security_event(self, record: SecurityEventRecord) -> None:
+        self.security_events.append(record)
 
 
 class PostgresRepository:
@@ -792,6 +806,17 @@ class PostgresRepository:
             )
             row = cur.fetchone()
         return int(row[0] or 0)
+
+    def record_security_event(self, record: SecurityEventRecord) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO security_events
+                (actor_hash, event_type, meta, created_at)
+                VALUES (%s, %s, %s, now())
+                """,
+                (record.actor_hash, record.event_type, record.meta),
+            )
 
 
 _default_repo = InMemoryRepository()

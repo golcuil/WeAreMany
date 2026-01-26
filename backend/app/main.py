@@ -21,6 +21,7 @@ from .matching import Candidate, get_dedupe_store, match_decision, progressive_p
 from .moderation import get_leak_throttle, get_shadow_throttle, moderate_text
 from .rate_limit import rate_limit
 from .repository import MessageRecord, MoodEventRecord, MoodRecord, get_repository
+from .security_events import safe_record_security_event
 from .themes import map_mood_to_themes, normalize_theme_tags
 from .security import current_principal
 
@@ -184,7 +185,17 @@ def submit_mood(
     text = payload.free_text or ""
     result = moderate_text(text, principal.principal_id, leak_throttle)
     if result.identity_leak:
-        shadow_throttle.increment(principal.principal_id)
+        count = shadow_throttle.increment(principal.principal_id)
+        safe_record_security_event(
+            repo,
+            principal.principal_id,
+            "identity_leak_detected",
+            {
+                "endpoint": "/mood",
+                "pii_kinds": list(result.leak_types),
+                "throttle_count": count,
+            },
+        )
     mood_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
     primary_theme = mood_themes[0] if mood_themes else "calm"
 
@@ -328,6 +339,16 @@ def submit_message(
     identity_leak_count = None
     if result.identity_leak:
         identity_leak_count = shadow_throttle.increment(principal.principal_id)
+        safe_record_security_event(
+            repo,
+            principal.principal_id,
+            "identity_leak_detected",
+            {
+                "endpoint": "/messages",
+                "pii_kinds": list(result.leak_types),
+                "throttle_count": identity_leak_count,
+            },
+        )
     crisis_action = "show_crisis" if result.risk_level == 2 else None
     status_value = "blocked" if result.risk_level == 2 else "queued"
     hold_reason: Optional[str] = None
@@ -337,6 +358,15 @@ def submit_message(
         if identity_leak_count is not None and shadow_throttle.is_throttled(principal.principal_id):
             status_value = "held"
             hold_reason = "identity_leak"
+            safe_record_security_event(
+                repo,
+                principal.principal_id,
+                "identity_leak_throttle_held",
+                {
+                    "endpoint": "/messages",
+                    "throttle_count": identity_leak_count,
+                },
+            )
         elif repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
             system_text = build_reflective_message(
                 message_themes,

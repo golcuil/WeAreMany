@@ -45,6 +45,7 @@ class InMemoryDedupeStore:
 class FakeRepo:
     def __init__(self) -> None:
         self.saved_messages = 0
+        self.security_events = []
 
     def save_message(self, record: repository_module.MessageRecord) -> str:
         self.saved_messages += 1
@@ -86,6 +87,9 @@ class FakeRepo:
     ) -> int:
         return 0
 
+    def record_security_event(self, record: repository_module.SecurityEventRecord) -> None:
+        self.security_events.append(record)
+
 
 def _headers(token: str = "dev_test"):
     return {"Authorization": f"Bearer {token}"}
@@ -122,6 +126,7 @@ def test_shadow_throttle_holds_on_threshold():
     assert third.json()["hold_reason"] == "identity_leak"
     assert "test@example.com" not in third.json()["sanitized_text"]
     assert repo.saved_messages == count_after_second
+    assert any(event.event_type == "identity_leak_throttle_held" for event in repo.security_events)
 
     app.dependency_overrides.clear()
 
