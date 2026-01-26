@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-059] Unified ops runner (metrics + watchdog + tuning)
 - [T-058] Matching Health watchdog CLI (exit-code alerting)
 - [T-057] Daily privacy-safe acknowledgement aggregates for monitoring (counts only)
 - [T-056] Deterministic candidate sampling (seeded) with parity across stores
@@ -64,7 +65,6 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-059] Unified ops runner (metrics + watchdog + tuning)
 
 ## Next
 
