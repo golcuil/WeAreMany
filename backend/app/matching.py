@@ -19,6 +19,7 @@ from .config import (
     MATCH_TUNING_POOL_MULTIPLIER_HIGH,
     MATCH_TUNING_POOL_MULTIPLIER_LOW,
 )
+from .finite_content import select_finite_content
 from .hold_reasons import HoldReason
 
 
@@ -90,8 +91,6 @@ EMPATHY_TEMPLATES = [
     "Sometimes emotions feel intense and quiet at the same time.",
     "It's okay to sit with this feeling for a moment.",
 ]
-
-FINITE_CONTENT_CATEGORIES = ["reflection", "grounding", "perspective"]
 AFFINITY_ALPHA = 0.2
 
 
@@ -101,10 +100,14 @@ def _select_empathy(principal_id: str) -> str:
     return EMPATHY_TEMPLATES[idx]
 
 
-def _select_content_bridge(principal_id: str) -> str:
-    digest = hashlib.sha256((principal_id + "content").encode("utf-8")).hexdigest()
-    idx = int(digest, 16) % len(FINITE_CONTENT_CATEGORIES)
-    return FINITE_CONTENT_CATEGORIES[idx]
+def _select_content_bridge(
+    valence: str,
+    intensity: str,
+    theme_tags: List[str],
+) -> str:
+    primary_theme = theme_tags[0] if theme_tags else None
+    item = select_finite_content(valence, intensity, theme_id=primary_theme)
+    return item.content_id
 
 
 def _themes_compatible(sender_themes: List[str], candidate_themes: List[str]) -> bool:
@@ -117,6 +120,7 @@ def match_decision(
     principal_id: str,
     risk_level: int,
     intensity: str,
+    valence: str,
     themes: List[str],
     candidates: List[Candidate],
     dedupe_store: DedupeStore,
@@ -136,7 +140,7 @@ def match_decision(
             decision="HOLD",
             reason=HoldReason.INSUFFICIENT_POOL.value,
             system_generated_empathy=_select_empathy(principal_id),
-            finite_content_bridge=_select_content_bridge(principal_id),
+            finite_content_bridge=_select_content_bridge(valence, intensity, themes),
         )
 
     eligible = [

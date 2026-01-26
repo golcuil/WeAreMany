@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 from fastapi.testclient import TestClient
@@ -58,7 +59,12 @@ def test_cold_start_returns_system_message():
     assert len(system_messages) == 1
     system_text = system_messages[0].sanitized_text or ""
     assert system_text
+    assert "hello" not in system_text
     assert "real person" not in system_text
     assert "written by" not in system_text
+    assert not re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", system_text, re.IGNORECASE)
+    assert not re.search(r"\+?\d[\d\s().-]{7,}\d", system_text)
+
+    assert any(tag.startswith("content:") for tag in system_messages[0].theme_tags)
 
     app.dependency_overrides.clear()

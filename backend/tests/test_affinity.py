@@ -47,6 +47,7 @@ def test_affinity_bias_prefers_higher_scored_theme():
         principal_id="sender",
         risk_level=0,
         intensity="low",
+        valence="neutral",
         themes=[],
         candidates=candidates,
         dedupe_store=AllowAllDedupeStore(),

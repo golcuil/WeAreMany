@@ -15,6 +15,7 @@ from .config import (
     SIMILAR_WINDOW_DAYS,
 )
 from .bridge import SYSTEM_SENDER_ID, build_reflective_message
+from .finite_content import select_finite_content
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
 from .hold_reasons import HoldReason
@@ -191,7 +192,7 @@ def submit_mood(
         safe_record_security_event(
             repo,
             principal.principal_id,
-        SecurityEventType.IDENTITY_LEAK_DETECTED.value,
+            SecurityEventType.IDENTITY_LEAK_DETECTED.value,
             {
                 "endpoint": "/mood",
                 "pii_kinds": list(result.leak_types),
@@ -357,6 +358,7 @@ def submit_message(
 
     if result.risk_level != 2:
         message_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
+        primary_theme = message_themes[0] if message_themes else "calm"
         if identity_leak_count is not None and shadow_throttle.is_throttled(principal.principal_id):
             status_value = "held"
             hold_reason = HoldReason.IDENTITY_LEAK.value
@@ -437,13 +439,19 @@ def submit_message(
                     payload.valence,
                     payload.intensity,
                 )
+                finite_content = select_finite_content(
+                    payload.valence,
+                    payload.intensity,
+                    theme_id=primary_theme,
+                )
+                system_theme_tags = list(message_themes) + [f"content:{finite_content.content_id}"]
                 system_message_id = repo.save_message(
                     MessageRecord(
                         principal_id=SYSTEM_SENDER_ID,
                         valence=payload.valence,
                         intensity=payload.intensity,
                         emotion=payload.emotion,
-                        theme_tags=message_themes,
+                        theme_tags=system_theme_tags,
                         risk_level=0,
                         sanitized_text=system_text,
                         reid_risk=0.0,
@@ -462,6 +470,7 @@ def submit_message(
                     principal_id=principal.principal_id,
                     risk_level=result.risk_level,
                     intensity=payload.intensity,
+                    valence=payload.valence,
                     themes=message_themes,
                     candidates=candidates,
                     dedupe_store=dedupe_store,
@@ -564,6 +573,7 @@ def simulate_match(
         principal_id=principal.principal_id,
         risk_level=payload.risk_level,
         intensity=payload.intensity,
+        valence="neutral",
         themes=normalized_themes,
         candidates=candidates,
         dedupe_store=dedupe_store,
