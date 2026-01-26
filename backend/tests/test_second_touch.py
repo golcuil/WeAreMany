@@ -10,11 +10,16 @@ from app.main import app  # noqa: E402
 from app import main as main_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
 from app.repository import MessageRecord, MoodEventRecord  # noqa: E402
+from app.security import _verify_token  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 
 
 def _headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
+
+
+def _principal_id(token: str) -> str:
+    return _verify_token(token).principal_id
 
 
 class InMemoryRateLimiter:
@@ -53,15 +58,17 @@ def test_second_touch_offer_and_send_flow():
     main_module.COLD_START_MIN_POOL = 1
     repo = repository_module.InMemoryRepository()
     now = datetime.now(timezone.utc)
-    sender = "dev_sender"
-    recipient = "dev_recipient"
-    _seed_moods(repo, now, sender, "positive")
-    _seed_moods(repo, now, recipient, "positive")
-    _seed_positive_pair(repo, now, sender, recipient)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
     _override_deps(repo)
     client = TestClient(app)
 
-    inbox = client.get("/inbox", headers=_headers(recipient))
+    inbox = client.get("/inbox", headers=_headers(recipient_token))
     assert inbox.status_code == 200
     items = inbox.json()["items"]
     offer_items = [item for item in items if item["item_type"] == "second_touch_offer"]
@@ -70,20 +77,20 @@ def test_second_touch_offer_and_send_flow():
 
     response = client.post(
         "/second_touch/send",
-        headers=_headers(recipient),
+        headers=_headers(recipient_token),
         json={"offer_id": offer_id, "free_text": "thanks for your note"},
     )
     assert response.status_code == 200
     assert response.json()["status"] == "queued"
 
-    inbox_sender = client.get("/inbox", headers=_headers(sender))
+    inbox_sender = client.get("/inbox", headers=_headers(sender_token))
     assert inbox_sender.status_code == 200
     sender_items = inbox_sender.json()["items"]
     assert any(item["item_type"] == "message" for item in sender_items)
 
     repeat = client.post(
         "/second_touch/send",
-        headers=_headers(recipient),
+        headers=_headers(recipient_token),
         json={"offer_id": offer_id, "free_text": "second try"},
     )
     assert repeat.status_code == 200
@@ -96,16 +103,18 @@ def test_second_touch_offer_and_send_flow():
 def test_second_touch_offer_blocked_on_crisis():
     repo = repository_module.InMemoryRepository()
     now = datetime.now(timezone.utc)
-    sender = "dev_sender"
-    recipient = "dev_recipient"
-    _seed_moods(repo, now, sender, "positive")
-    _seed_moods(repo, now, recipient, "positive")
-    _seed_positive_pair(repo, now, sender, recipient)
-    repo.record_crisis_action(recipient, "show_crisis", now=now)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    repo.record_crisis_action(recipient_id, "show_crisis", now=now)
     _override_deps(repo)
     client = TestClient(app)
 
-    inbox = client.get("/inbox", headers=_headers(recipient))
+    inbox = client.get("/inbox", headers=_headers(recipient_token))
     assert inbox.status_code == 200
     assert not any(item["item_type"] == "second_touch_offer" for item in inbox.json()["items"])
 
@@ -115,14 +124,16 @@ def test_second_touch_offer_blocked_on_crisis():
 def test_second_touch_offer_blocked_after_identity_leak():
     repo = repository_module.InMemoryRepository()
     now = datetime.now(timezone.utc)
-    sender = "dev_sender"
-    recipient = "dev_recipient"
-    _seed_moods(repo, now, sender, "positive")
-    _seed_moods(repo, now, recipient, "positive")
-    _seed_positive_pair(repo, now, sender, recipient)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
     message_id = repo.save_message(
         MessageRecord(
-            principal_id=sender,
+            principal_id=sender_id,
             valence="neutral",
             intensity="low",
             emotion=None,
@@ -133,11 +144,11 @@ def test_second_touch_offer_blocked_after_identity_leak():
             identity_leak=True,
         )
     )
-    repo.create_inbox_item(message_id, recipient, "hello")
+    repo.create_inbox_item(message_id, recipient_id, "hello")
     _override_deps(repo)
     client = TestClient(app)
 
-    inbox = client.get("/inbox", headers=_headers(recipient))
+    inbox = client.get("/inbox", headers=_headers(recipient_token))
     assert inbox.status_code == 200
     assert not any(item["item_type"] == "second_touch_offer" for item in inbox.json()["items"])
 
