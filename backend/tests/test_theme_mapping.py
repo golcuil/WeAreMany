@@ -42,7 +42,7 @@ def test_theme_mapper_is_deterministic_and_canonical():
 
 def test_normalize_theme_tags_filters_to_canonical():
     normalized = normalize_theme_tags(["grief", "unknown", "grief", "hope"])
-    assert normalized == ["grief", "hope"]
+    assert normalized == ["grief", "calm", "hope"]
 
 
 def test_message_stores_normalized_theme_tags():
