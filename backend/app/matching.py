@@ -11,6 +11,8 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
     redis = None
 
 from .config import (
+    AFFINITY_MAX_BIAS,
+    AFFINITY_SCALE,
     MATCH_COOLDOWN_SECONDS,
     MATCH_MIN_POOL_K,
     REDIS_URL,
@@ -112,7 +114,7 @@ EMPATHY_TEMPLATES = [
     "Sometimes emotions feel intense and quiet at the same time.",
     "It's okay to sit with this feeling for a moment.",
 ]
-AFFINITY_ALPHA = 0.2
+AFFINITY_ALPHA = AFFINITY_SCALE
 
 
 def _select_empathy(principal_id: str) -> str:
@@ -283,4 +285,5 @@ def _affinity_weight(
     if best <= 0:
         return 1.0
     normalized = min(best / max_score, 1.0)
-    return 1.0 + (AFFINITY_ALPHA * normalized)
+    bias = _clamp(AFFINITY_ALPHA * normalized, 0.0, AFFINITY_MAX_BIAS)
+    return 1.0 + bias
