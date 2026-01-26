@@ -20,10 +20,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install backend deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r backend/requirements.txt
+          if [ -f backend/requirements.txt ]; then
+            python -m pip install -r backend/requirements.txt
+          elif [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+          python -m pip install pyyaml
 
       - name: Policy check
         run: python3 tools/policy_check.py
