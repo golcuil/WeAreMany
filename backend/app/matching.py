@@ -1,8 +1,12 @@
 import hashlib
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Protocol
 
-import redis
+try:
+    import redis
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    redis = None
 from fastapi import HTTPException, status
 
 from .config import (
@@ -81,7 +85,23 @@ class RedisDedupeStore:
         return bool(self._client.set(key, "1", nx=True, ex=cooldown_seconds))
 
 
+class InMemoryDedupeStore:
+    def __init__(self) -> None:
+        self._seen: Dict[str, datetime] = {}
+
+    def allow_target(self, sender_id: str, recipient_id: str, cooldown_seconds: int) -> bool:
+        key = f"{sender_id}:{recipient_id}"
+        now = datetime.now(timezone.utc)
+        expiry = self._seen.get(key)
+        if expiry and expiry > now:
+            return False
+        self._seen[key] = now + timedelta(seconds=cooldown_seconds)
+        return True
+
+
 def get_dedupe_store() -> DedupeStore:
+    if redis is None:
+        return InMemoryDedupeStore()
     client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
     return RedisDedupeStore(client)
 
