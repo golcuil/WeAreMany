@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Protocol
 import os
 
 from .bridge import SYSTEM_SENDER_ID
+from .inbox_origin import InboxOrigin
 from .matching import Candidate, MatchingTuning, default_matching_tuning
 from .config import CRISIS_WINDOW_HOURS, ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
 
@@ -72,6 +73,7 @@ class InboxItemRecord:
     created_at: str
     state: str
     ack_status: Optional[str]
+    origin: str
 
 
 @dataclass
@@ -249,6 +251,12 @@ class InMemoryRepository:
 
     def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
         inbox_item_id = _new_uuid()
+        message = self.messages.get(message_id)
+        origin = (
+            InboxOrigin.SYSTEM.value
+            if message and message.principal_id == SYSTEM_SENDER_ID
+            else InboxOrigin.PEER.value
+        )
         self.inbox_items[inbox_item_id] = InboxItemRecord(
             inbox_item_id=inbox_item_id,
             message_id=message_id,
@@ -257,6 +265,7 @@ class InMemoryRepository:
             created_at=datetime.now(timezone.utc).isoformat(),
             state="unread",
             ack_status=None,
+            origin=origin,
         )
         return inbox_item_id
 
@@ -267,6 +276,13 @@ class InMemoryRepository:
             if ack_key in self.acks:
                 item.ack_status = self.acks[ack_key]
                 item.state = "responded"
+            if not item.origin:
+                message = self.messages.get(item.message_id)
+                item.origin = (
+                    InboxOrigin.SYSTEM.value
+                    if message and message.principal_id == SYSTEM_SENDER_ID
+                    else InboxOrigin.PEER.value
+                )
         return items
 
     def acknowledge(self, inbox_item_id: str, recipient_id: str, reaction: str) -> str:
@@ -608,7 +624,8 @@ class PostgresRepository:
                 """
                 SELECT i.id, i.message_id, i.recipient_device_id, i.state, i.received_at,
                        m.sanitized_text,
-                       a.reaction
+                       a.reaction,
+                       m.origin_device_id
                 FROM inbox_items i
                 JOIN messages m ON m.id = i.message_id
                 LEFT JOIN acknowledgements a
@@ -621,6 +638,11 @@ class PostgresRepository:
             rows = cur.fetchall()
         items: List[InboxItemRecord] = []
         for row in rows:
+            origin = (
+                InboxOrigin.SYSTEM.value
+                if row[7] == SYSTEM_SENDER_ID
+                else InboxOrigin.PEER.value
+            )
             items.append(
                 InboxItemRecord(
                     inbox_item_id=str(row[0]),
@@ -630,6 +652,7 @@ class PostgresRepository:
                     created_at=row[4].isoformat(),
                     text=row[5] or "",
                     ack_status=row[6],
+                    origin=origin,
                 )
             )
         return items

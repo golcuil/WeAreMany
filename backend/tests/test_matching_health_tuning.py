@@ -27,6 +27,7 @@ def test_global_matching_health_ratio():
         created_at=now.isoformat(),
         state="unread",
         ack_status=None,
+        origin="peer",
     )
     repo.acks[(message_id, "recipient-a")] = "thanks"
 
