@@ -78,6 +78,7 @@ class SecurityEventRecord:
     actor_hash: str
     event_type: str
     meta: Dict[str, object]
+    created_at: datetime
 
 
 class Repository(Protocol):
@@ -160,6 +161,9 @@ class Repository(Protocol):
         ...
 
     def record_security_event(self, record: SecurityEventRecord) -> None:
+        ...
+
+    def prune_security_events(self, now: datetime, retention_days: Optional[int] = None) -> int:
         ...
 
 
@@ -386,6 +390,17 @@ class InMemoryRepository:
 
     def record_security_event(self, record: SecurityEventRecord) -> None:
         self.security_events.append(record)
+
+    def prune_security_events(self, now: datetime, retention_days: Optional[int] = None) -> int:
+        from .config import SECURITY_EVENTS_RETENTION_DAYS
+
+        days = retention_days if retention_days is not None else SECURITY_EVENTS_RETENTION_DAYS
+        cutoff = now - timedelta(days=days)
+        before = len(self.security_events)
+        self.security_events = [
+            record for record in self.security_events if record.created_at >= cutoff
+        ]
+        return before - len(self.security_events)
 
 
 class PostgresRepository:
@@ -813,10 +828,26 @@ class PostgresRepository:
                 """
                 INSERT INTO security_events
                 (actor_hash, event_type, meta, created_at)
-                VALUES (%s, %s, %s, now())
+                VALUES (%s, %s, %s, %s)
                 """,
-                (record.actor_hash, record.event_type, record.meta),
+                (record.actor_hash, record.event_type, record.meta, record.created_at),
             )
+
+    def prune_security_events(self, now: datetime, retention_days: Optional[int] = None) -> int:
+        from .config import SECURITY_EVENTS_RETENTION_DAYS
+
+        days = retention_days if retention_days is not None else SECURITY_EVENTS_RETENTION_DAYS
+        cutoff = now - timedelta(days=days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM security_events
+                WHERE created_at < %s
+                """,
+                (cutoff,),
+            )
+            deleted = cur.rowcount or 0
+        return int(deleted)
 
 
 _default_repo = InMemoryRepository()

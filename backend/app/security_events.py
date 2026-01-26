@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from .config import SECURITY_EVENT_HMAC_KEY
@@ -24,7 +25,8 @@ def safe_record_security_event(
                 actor_hash=actor_hash(principal_id),
                 event_type=event_type,
                 meta=meta or {},
-            )
+                created_at=datetime.now(timezone.utc),
+            ),
         )
     except Exception:
         return None
