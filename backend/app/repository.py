@@ -94,6 +94,14 @@ class SecurityEventRecord:
     created_at: datetime
 
 
+@dataclass
+class DailyAckAggregate:
+    utc_day: str
+    theme_id: str
+    delivered_count: int
+    positive_ack_count: int
+
+
 class Repository(Protocol):
     def save_mood(self, record: MoodRecord) -> None:
         ...
@@ -189,6 +197,13 @@ class Repository(Protocol):
     def prune_security_events(self, now: datetime, retention_days: Optional[int] = None) -> int:
         ...
 
+    def list_daily_ack_aggregates(
+        self,
+        days: int,
+        theme_id: Optional[str] = None,
+    ) -> List[DailyAckAggregate]:
+        ...
+
     def get_matching_tuning(self) -> MatchingTuning:
         ...
 
@@ -222,6 +237,7 @@ class InMemoryRepository:
         self.security_events: List[SecurityEventRecord] = []
         self.matching_tuning = default_matching_tuning()
         self.finite_content_selections: Dict[str, str] = {}
+        self.daily_ack_aggregates: Dict[tuple[str, str], DailyAckAggregate] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -288,6 +304,7 @@ class InMemoryRepository:
             if message and message.principal_id == SYSTEM_SENDER_ID
             else InboxOrigin.PEER.value
         )
+        theme_id = _normalize_theme_id(message.theme_tags[0]) if message and message.theme_tags else "unknown"
         self.inbox_items[inbox_item_id] = InboxItemRecord(
             inbox_item_id=inbox_item_id,
             message_id=message_id,
@@ -297,6 +314,12 @@ class InMemoryRepository:
             state="unread",
             ack_status=None,
             origin=origin,
+        )
+        self._increment_daily_ack_aggregate(
+            _utc_day_key(),
+            theme_id,
+            delivered_delta=1,
+            positive_delta=0,
         )
         return inbox_item_id
 
@@ -333,6 +356,13 @@ class InMemoryRepository:
             theme_id = message.theme_tags[0] if message and message.theme_tags else None
             if message and theme_id:
                 self.record_affinity(message.principal_id, theme_id, 1.0)
+            if message:
+                self._increment_daily_ack_aggregate(
+                    _utc_day_key(),
+                    _normalize_theme_id(theme_id),
+                    delivered_delta=0,
+                    positive_delta=1,
+                )
         return "recorded"
 
     def get_helped_count(self, principal_id: str) -> int:
@@ -483,6 +513,44 @@ class InMemoryRepository:
             record for record in self.security_events if record.created_at >= cutoff
         ]
         return before - len(self.security_events)
+
+    def list_daily_ack_aggregates(
+        self,
+        days: int,
+        theme_id: Optional[str] = None,
+    ) -> List[DailyAckAggregate]:
+        day_cutoff = datetime.now(timezone.utc).date() - timedelta(days=max(days - 1, 0))
+        theme_key = _normalize_theme_id(theme_id) if theme_id is not None else None
+        results: List[DailyAckAggregate] = []
+        for record in self.daily_ack_aggregates.values():
+            record_day = datetime.fromisoformat(record.utc_day).date()
+            if record_day < day_cutoff:
+                continue
+            if theme_key is not None and record.theme_id != theme_key:
+                continue
+            results.append(record)
+        results.sort(key=lambda item: item.utc_day, reverse=True)
+        return results
+
+    def _increment_daily_ack_aggregate(
+        self,
+        day_key: str,
+        theme_id: str,
+        delivered_delta: int,
+        positive_delta: int,
+    ) -> None:
+        key = (day_key, theme_id)
+        existing = self.daily_ack_aggregates.get(key)
+        if existing is None:
+            existing = DailyAckAggregate(
+                utc_day=day_key,
+                theme_id=theme_id,
+                delivered_count=0,
+                positive_ack_count=0,
+            )
+            self.daily_ack_aggregates[key] = existing
+        existing.delivered_count += delivered_delta
+        existing.positive_ack_count += positive_delta
 
     def get_matching_tuning(self) -> MatchingTuning:
         return self.matching_tuning
@@ -686,6 +754,16 @@ class PostgresRepository:
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
+                SELECT theme_tags
+                FROM messages
+                WHERE id = %s
+                """,
+                (message_id,),
+            )
+            row = cur.fetchone()
+            theme_id = _normalize_theme_id(row[0][0]) if row and row[0] else "unknown"
+            cur.execute(
+                """
                 INSERT INTO inbox_items
                 (message_id, recipient_device_id, state)
                 VALUES (%s, %s, %s)
@@ -693,7 +771,15 @@ class PostgresRepository:
                 """,
                 (message_id, recipient_id, "unread"),
             )
-            return str(cur.fetchone()[0])
+            inbox_item_id = str(cur.fetchone()[0])
+            self._increment_daily_ack_aggregate(
+                cur,
+                _utc_day_key(),
+                theme_id,
+                delivered_delta=1,
+                positive_delta=0,
+            )
+            return inbox_item_id
 
     def list_inbox_items(self, recipient_id: str) -> List[InboxItemRecord]:
         with self._conn() as conn, conn.cursor() as cur:
@@ -775,6 +861,14 @@ class PostgresRepository:
                     theme_id = row[1][0] if row[1] else None
                     if theme_id:
                         self.record_affinity(row[0], theme_id, 1.0)
+                    with self._conn() as conn, conn.cursor() as cur:
+                        self._increment_daily_ack_aggregate(
+                            cur,
+                            _utc_day_key(),
+                            _normalize_theme_id(theme_id),
+                            delivered_delta=0,
+                            positive_delta=1,
+                        )
             return "recorded"
         return "already_recorded"
 
@@ -1058,6 +1152,66 @@ class PostgresRepository:
             deleted = cur.rowcount or 0
         return int(deleted)
 
+    def list_daily_ack_aggregates(
+        self,
+        days: int,
+        theme_id: Optional[str] = None,
+    ) -> List[DailyAckAggregate]:
+        cutoff = datetime.now(timezone.utc).date() - timedelta(days=max(days - 1, 0))
+        with self._conn() as conn, conn.cursor() as cur:
+            if theme_id is None:
+                cur.execute(
+                    """
+                    SELECT utc_day, theme_id, delivered_count, positive_ack_count
+                    FROM daily_ack_aggregates
+                    WHERE utc_day >= %s
+                    ORDER BY utc_day DESC, theme_id
+                    """,
+                    (cutoff,),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT utc_day, theme_id, delivered_count, positive_ack_count
+                    FROM daily_ack_aggregates
+                    WHERE utc_day >= %s AND theme_id = %s
+                    ORDER BY utc_day DESC, theme_id
+                    """,
+                    (cutoff, _normalize_theme_id(theme_id)),
+                )
+            rows = cur.fetchall()
+        return [
+            DailyAckAggregate(
+                utc_day=row[0].isoformat(),
+                theme_id=row[1],
+                delivered_count=int(row[2] or 0),
+                positive_ack_count=int(row[3] or 0),
+            )
+            for row in rows
+        ]
+
+    def _increment_daily_ack_aggregate(
+        self,
+        cur,
+        day_key: str,
+        theme_id: str,
+        delivered_delta: int,
+        positive_delta: int,
+    ) -> None:
+        cur.execute(
+            """
+            INSERT INTO daily_ack_aggregates
+              (utc_day, theme_id, delivered_count, positive_ack_count, updated_at)
+            VALUES (%s, %s, %s, %s, now())
+            ON CONFLICT (utc_day, theme_id)
+            DO UPDATE SET
+              delivered_count = daily_ack_aggregates.delivered_count + EXCLUDED.delivered_count,
+              positive_ack_count = daily_ack_aggregates.positive_ack_count + EXCLUDED.positive_ack_count,
+              updated_at = now()
+            """,
+            (day_key, theme_id, delivered_delta, positive_delta),
+        )
+
     def get_matching_tuning(self) -> MatchingTuning:
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
@@ -1215,6 +1369,15 @@ def _candidate_seed(sender_id: str, day_key: str) -> str:
 def _candidate_sort_key(candidate_id: str, seed: str) -> str:
     digest = hashlib.sha256(f"{candidate_id}:{seed}".encode("utf-8")).hexdigest()
     return digest
+
+
+def _utc_day_key(now: Optional[datetime] = None) -> str:
+    timestamp = now or datetime.now(timezone.utc)
+    return timestamp.date().isoformat()
+
+
+def _normalize_theme_id(theme_id: Optional[str]) -> str:
+    return theme_id or "unknown"
 
 
 _default_repo = InMemoryRepository()

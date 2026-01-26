@@ -62,6 +62,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-057] Daily privacy-safe acknowledgement aggregates for monitoring (counts only)
 
 ## Next
 
