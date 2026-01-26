@@ -10,6 +10,8 @@ from .config import (
     LEAK_ATTEMPT_LIMIT,
     LEAK_ATTEMPT_WINDOW_SECONDS,
     REDIS_URL,
+    SHADOW_LEAK_THRESHOLD,
+    SHADOW_LEAK_WINDOW_SECONDS,
 )
 
 PHONE_RE = re.compile(r"\+?\d[\d\s().-]{7,}\d")
@@ -43,6 +45,14 @@ class LeakThrottle(Protocol):
         ...
 
 
+class ShadowLeakThrottle(Protocol):
+    def increment(self, principal_id: str) -> int:
+        ...
+
+    def is_throttled(self, principal_id: str) -> bool:
+        ...
+
+
 class RedisLeakThrottle:
     def __init__(self, client: redis.Redis):
         self._client = client
@@ -67,6 +77,93 @@ def _leak_key(principal_id: str) -> str:
 def get_leak_throttle() -> LeakThrottle:
     client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
     return RedisLeakThrottle(client)
+
+
+class RedisShadowLeakThrottle:
+    def __init__(self, client: redis.Redis):
+        self._client = client
+
+    def increment(self, principal_id: str) -> int:
+        key = _shadow_key(principal_id)
+        count = int(self._client.incr(key))
+        if count == 1:
+            self._client.expire(key, SHADOW_LEAK_WINDOW_SECONDS)
+        return count
+
+    def is_throttled(self, principal_id: str) -> bool:
+        value = self._client.get(_shadow_key(principal_id))
+        if value is None:
+            return False
+        return int(value) >= SHADOW_LEAK_THRESHOLD
+
+
+class InMemoryShadowLeakThrottle:
+    def __init__(self) -> None:
+        self._data: dict[str, tuple[int, float]] = {}
+
+    def increment(self, principal_id: str) -> int:
+        now = time.time()
+        count, expires_at = self._data.get(principal_id, (0, now + SHADOW_LEAK_WINDOW_SECONDS))
+        if now > expires_at:
+            count = 0
+            expires_at = now + SHADOW_LEAK_WINDOW_SECONDS
+        count += 1
+        self._data[principal_id] = (count, expires_at)
+        return count
+
+    def is_throttled(self, principal_id: str) -> bool:
+        now = time.time()
+        count, expires_at = self._data.get(principal_id, (0, now + SHADOW_LEAK_WINDOW_SECONDS))
+        if now > expires_at:
+            return False
+        return count >= SHADOW_LEAK_THRESHOLD
+
+
+class FallbackShadowLeakThrottle:
+    def __init__(self) -> None:
+        self._in_memory = InMemoryShadowLeakThrottle()
+        self._redis: Optional[RedisShadowLeakThrottle] = None
+
+    def _ensure_redis(self) -> None:
+        if self._redis is not None or not REDIS_URL:
+            return
+        try:
+            client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+            client.ping()
+            self._redis = RedisShadowLeakThrottle(client)
+        except redis.RedisError:
+            self._redis = None
+
+    def increment(self, principal_id: str) -> int:
+        self._ensure_redis()
+        if self._redis is None:
+            return self._in_memory.increment(principal_id)
+        try:
+            return self._redis.increment(principal_id)
+        except redis.RedisError:
+            self._redis = None
+            return self._in_memory.increment(principal_id)
+
+    def is_throttled(self, principal_id: str) -> bool:
+        self._ensure_redis()
+        if self._redis is None:
+            return self._in_memory.is_throttled(principal_id)
+        try:
+            return self._redis.is_throttled(principal_id)
+        except redis.RedisError:
+            self._redis = None
+            return self._in_memory.is_throttled(principal_id)
+
+
+def _shadow_key(principal_id: str) -> str:
+    return f"shadow_leak:{principal_id}"
+
+
+_shadow_throttle = FallbackShadowLeakThrottle()
+
+
+def get_shadow_throttle() -> ShadowLeakThrottle:
+    return _shadow_throttle
 
 
 def detect_identity_leaks(text: str) -> List[str]:

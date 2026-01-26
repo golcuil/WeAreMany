@@ -18,7 +18,7 @@ from .bridge import SYSTEM_SENDER_ID, build_reflective_message
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
 from .matching import Candidate, get_dedupe_store, match_decision, progressive_params
-from .moderation import get_leak_throttle, moderate_text
+from .moderation import get_leak_throttle, get_shadow_throttle, moderate_text
 from .rate_limit import rate_limit
 from .repository import MessageRecord, MoodEventRecord, MoodRecord, get_repository
 from .themes import map_mood_to_themes, normalize_theme_tags
@@ -177,11 +177,14 @@ def submit_mood(
     principal=Depends(current_principal),
     repo=Depends(get_repository),
     leak_throttle=Depends(get_leak_throttle),
+    shadow_throttle=Depends(get_shadow_throttle),
     emitter=Depends(get_event_emitter),
 ) -> MoodResponse:
     request_id = new_request_id()
     text = payload.free_text or ""
     result = moderate_text(text, principal.principal_id, leak_throttle)
+    if result.identity_leak:
+        shadow_throttle.increment(principal.principal_id)
     mood_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
     primary_theme = mood_themes[0] if mood_themes else "calm"
 
@@ -316,18 +319,25 @@ def submit_message(
     principal=Depends(current_principal),
     repo=Depends(get_repository),
     leak_throttle=Depends(get_leak_throttle),
+    shadow_throttle=Depends(get_shadow_throttle),
     emitter=Depends(get_event_emitter),
     dedupe_store=Depends(get_dedupe_store),
 ) -> MessageResponse:
     request_id = new_request_id()
     result = moderate_text(payload.free_text, principal.principal_id, leak_throttle)
+    identity_leak_count = None
+    if result.identity_leak:
+        identity_leak_count = shadow_throttle.increment(principal.principal_id)
     crisis_action = "show_crisis" if result.risk_level == 2 else None
     status_value = "blocked" if result.risk_level == 2 else "queued"
     hold_reason: Optional[str] = None
 
     if result.risk_level != 2:
         message_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
-        if repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
+        if identity_leak_count is not None and shadow_throttle.is_throttled(principal.principal_id):
+            status_value = "held"
+            hold_reason = "identity_leak"
+        elif repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
             system_text = build_reflective_message(
                 message_themes,
                 payload.valence,
