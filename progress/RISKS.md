@@ -2,13 +2,13 @@
 
 ## R-001 Identity leak attempts in user text
 - Risk: Users share phone/email/@handles leading to re-identification.
-- Mitigation: detect -> strip -> rewrite; block repeated attempts; rate limits; safety event logging without raw text.
+- Mitigation: detect -> strip -> rewrite; block repeated attempts; shadow throttling; safety event logging without raw text.
 - Owner: SecurityEngineer
 - Status: OPEN
 
 ## R-002 Social graph inference via metadata
 - Risk: timestamps/IDs/ordering reveal relationships.
-- Mitigation: non-guessable IDs, coarsened times, no sender info, no correlation-friendly logs.
+- Mitigation: non-guessable IDs, day-level timestamps, k-anon aggregate insights only, no sender info/logs.
 - Owner: CTO + DataEngineer
 - Status: OPEN
 
@@ -40,4 +40,16 @@
 - Risk: backend pytest runs in CI but fails locally due to dependency/import path drift.
 - Mitigation: T-013 standardizes install command and import paths for local parity.
 - Owner: Backend
+- Status: OPEN
+
+## R-008 Second-touch abuse or overuse
+- Risk: repeated “second-touch” offers could be spammy or coercive.
+- Mitigation: strict eligibility, cooldowns, monthly caps, negative-ack disable, identity-leak permanent block.
+- Owner: CTO + SecurityEngineer
+- Status: OPEN
+
+## R-009 Ops false positives in empty environments
+- Risk: watchdog runs in CI without data and fails noisily.
+- Mitigation: ops_daily supports CI-safe mode; production runs remain strict.
+- Owner: CTO
 - Status: OPEN
