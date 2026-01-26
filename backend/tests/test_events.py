@@ -14,6 +14,8 @@ from app import events as events_module  # noqa: E402
 from app import matching as matching_module  # noqa: E402
 from app import moderation as moderation_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
+from app import repository as repository_module  # noqa: E402
+from typing import Optional
 
 
 class InMemoryRateLimiter:
@@ -52,6 +54,86 @@ def _override_rate_limit():
     app.dependency_overrides[rate_limit_module.get_rate_limiter] = lambda: InMemoryRateLimiter()
 
 
+class FakeRepo:
+    def save_mood(self, record: repository_module.MoodRecord) -> None:
+        return None
+
+    def record_mood_event(self, record: repository_module.MoodEventRecord) -> None:
+        return None
+
+    def save_message(self, record: repository_module.MessageRecord) -> str:
+        return "msg-1"
+
+    def upsert_eligible_principal(self, principal_id: str, intensity_bucket: str, theme_tags):
+        return None
+
+    def touch_eligible_principal(self, principal_id: str, intensity_bucket: str):
+        return None
+
+    def get_eligible_candidates(self, sender_id: str, intensity_bucket: str, theme_tags, limit=50):
+        return []
+
+    def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
+        return "inbox-1"
+
+    def acknowledge(self, inbox_item_id: str, recipient_id: str, reaction: str) -> str:
+        return "recorded"
+
+    def get_helped_count(self, principal_id: str) -> int:
+        return 0
+
+    def record_affinity(self, sender_id: str, theme_id: str, delta: float) -> None:
+        return None
+
+    def get_affinity_map(self, sender_id: str):
+        return {}
+
+    def record_crisis_action(self, principal_id: str, action: str, now=None) -> None:
+        return None
+
+    def is_in_crisis_window(self, principal_id: str, window_hours: int, now=None) -> bool:
+        return False
+
+    def get_matching_health(self, principal_id: str, window_days: int = 7):
+        return repository_module.MatchingHealth(
+            delivered_count=0,
+            positive_ack_count=0,
+            ratio=0.0,
+        )
+
+    def record_security_event(self, record: repository_module.SecurityEventRecord) -> None:
+        return None
+
+    def prune_security_events(self, now, retention_days=None) -> int:
+        return 0
+
+    def get_matching_tuning(self):
+        return matching_module.default_matching_tuning()
+
+    def update_matching_tuning(self, tuning, now):
+        return None
+
+    def get_global_matching_health(self, window_days: int = 7):
+        return repository_module.MatchingHealth(
+            delivered_count=0,
+            positive_ack_count=0,
+            ratio=0.0,
+        )
+
+    def get_or_create_finite_content(
+        self,
+        principal_id: str,
+        day_key: str,
+        valence_bucket: str,
+        intensity_bucket: str,
+        theme_id: Optional[str],
+    ) -> str:
+        return "content-1"
+
+    def get_similar_count(self, principal_id: str, theme_tag: str, valence: str, window_days: int) -> int:
+        return 0
+
+
 def test_event_schema_rejects_unknown_fields():
     with pytest.raises(ValidationError):
         MoodSubmittedEvent(
@@ -67,6 +149,7 @@ def test_events_emit_without_forbidden_keys():
     client = TestClient(app)
     store = events_module.InMemoryEventStore()
     app.dependency_overrides[events_module.get_event_emitter] = lambda: store
+    app.dependency_overrides[repository_module.get_repository] = lambda: FakeRepo()
     app.dependency_overrides[moderation_module.get_leak_throttle] = (
         lambda: InMemoryLeakThrottle(limit=10)
     )

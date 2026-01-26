@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from app.matching import default_matching_tuning
 from app.matching_tuning import tune_matching
+from app.inbox_origin import InboxOrigin
 from app.repository import InMemoryRepository, InboxItemRecord, MessageRecord
 
 
@@ -27,7 +28,7 @@ def test_global_matching_health_ratio():
         created_at=now.isoformat(),
         state="unread",
         ack_status=None,
-        origin="peer",
+        origin=InboxOrigin.PEER.value,
     )
     repo.acks[(message_id, "recipient-a")] = "thanks"
 

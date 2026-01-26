@@ -35,6 +35,7 @@ def _headers(token: str = "dev_sender") -> dict:
 
 def test_cold_start_returns_system_message():
     repo = repository_module.InMemoryRepository()
+    repo.get_or_create_finite_content = lambda *args, **kwargs: "content-1"
     app.dependency_overrides[repository_module.get_repository] = lambda: repo
     app.dependency_overrides[rate_limit_module.get_rate_limiter] = lambda: InMemoryRateLimiter()
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle()

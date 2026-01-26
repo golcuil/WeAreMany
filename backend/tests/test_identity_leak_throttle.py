@@ -11,6 +11,7 @@ from app import moderation as moderation_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
 from app.repository import MatchingHealth  # noqa: E402
+from typing import Optional
 from app.matching import default_matching_tuning  # noqa: E402
 from app.hold_reasons import HoldReason  # noqa: E402
 from app.security_event_types import SecurityEventType  # noqa: E402
@@ -101,6 +102,16 @@ class FakeRepo:
 
     def get_global_matching_health(self, window_days: int = 7):
         return MatchingHealth(delivered_count=0, positive_ack_count=0, ratio=0.0)
+
+    def get_or_create_finite_content(
+        self,
+        principal_id: str,
+        day_key: str,
+        valence_bucket: str,
+        intensity_bucket: str,
+        theme_id: Optional[str],
+    ) -> str:
+        return "content-1"
 
 
 def _headers(token: str = "dev_test"):

@@ -15,7 +15,7 @@ from .config import (
     SIMILAR_WINDOW_DAYS,
 )
 from .bridge import SYSTEM_SENDER_ID, build_reflective_message
-from .finite_content import select_finite_content
+from .finite_content_store import finite_content_day_key
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
 from .hold_reasons import HoldReason
@@ -345,7 +345,7 @@ def submit_message(
         safe_record_security_event(
             repo,
             principal.principal_id,
-        SecurityEventType.IDENTITY_LEAK_DETECTED.value,
+            SecurityEventType.IDENTITY_LEAK_DETECTED.value,
             {
                 "endpoint": "/messages",
                 "pii_kinds": list(result.leak_types),
@@ -439,12 +439,15 @@ def submit_message(
                     payload.valence,
                     payload.intensity,
                 )
-                finite_content = select_finite_content(
+                day_key = finite_content_day_key()
+                content_id = repo.get_or_create_finite_content(
+                    principal.principal_id,
+                    day_key,
                     payload.valence,
                     payload.intensity,
-                    theme_id=primary_theme,
+                    primary_theme,
                 )
-                system_theme_tags = list(message_themes) + [f"content:{finite_content.content_id}"]
+                system_theme_tags = list(message_themes) + [f"content:{content_id}"]
                 system_message_id = repo.save_message(
                     MessageRecord(
                         principal_id=SYSTEM_SENDER_ID,

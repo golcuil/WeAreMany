@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Protocol
 import os
 
 from .bridge import SYSTEM_SENDER_ID
+from .finite_content_store import select_finite_content_id
 from .inbox_origin import InboxOrigin
 from .matching import Candidate, MatchingTuning, default_matching_tuning
 from .config import CRISIS_WINDOW_HOURS, ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
@@ -178,6 +179,16 @@ class Repository(Protocol):
     def get_global_matching_health(self, window_days: int = 7) -> MatchingHealth:
         ...
 
+    def get_or_create_finite_content(
+        self,
+        principal_id: str,
+        day_key: str,
+        valence_bucket: str,
+        intensity_bucket: str,
+        theme_id: Optional[str],
+    ) -> str:
+        ...
+
 
 class InMemoryRepository:
     def __init__(self) -> None:
@@ -191,6 +202,7 @@ class InMemoryRepository:
         self.crisis_state: Dict[str, Dict[str, datetime]] = {}
         self.security_events: List[SecurityEventRecord] = []
         self.matching_tuning = default_matching_tuning()
+        self.finite_content_selections: Dict[str, str] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -460,6 +472,28 @@ class InMemoryRepository:
             positive_ack_count=positive_ack_count,
             ratio=ratio,
         )
+
+    def get_or_create_finite_content(
+        self,
+        principal_id: str,
+        day_key: str,
+        valence_bucket: str,
+        intensity_bucket: str,
+        theme_id: Optional[str],
+    ) -> str:
+        key = f"{principal_id}:{day_key}:{valence_bucket}:{intensity_bucket}:{theme_id or 'none'}"
+        existing = self.finite_content_selections.get(key)
+        if existing:
+            return existing
+        content_id = select_finite_content_id(
+            principal_id,
+            day_key,
+            valence_bucket,
+            intensity_bucket,
+            theme_id,
+        )
+        self.finite_content_selections[key] = content_id
+        return content_id
 
 
 class PostgresRepository:
@@ -1002,6 +1036,55 @@ class PostgresRepository:
             positive_ack_count=positive_ack_count,
             ratio=ratio,
         )
+
+    def get_or_create_finite_content(
+        self,
+        principal_id: str,
+        day_key: str,
+        valence_bucket: str,
+        intensity_bucket: str,
+        theme_id: Optional[str],
+    ) -> str:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT content_id
+                FROM finite_content_selections
+                WHERE principal_id = %s
+                  AND day_key = %s
+                  AND valence_bucket = %s
+                  AND intensity_bucket = %s
+                  AND theme_id = %s
+                """,
+                (principal_id, day_key, valence_bucket, intensity_bucket, theme_id),
+            )
+            row = cur.fetchone()
+            if row:
+                return row[0]
+
+            content_id = select_finite_content_id(
+                principal_id,
+                day_key,
+                valence_bucket,
+                intensity_bucket,
+                theme_id,
+            )
+            cur.execute(
+                """
+                INSERT INTO finite_content_selections
+                (principal_id, day_key, valence_bucket, intensity_bucket, theme_id, content_id, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, now())
+                """,
+                (
+                    principal_id,
+                    day_key,
+                    valence_bucket,
+                    intensity_bucket,
+                    theme_id,
+                    content_id,
+                ),
+            )
+            return content_id
 
 
 _default_repo = InMemoryRepository()

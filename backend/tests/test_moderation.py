@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 from pathlib import Path
 import sys
 
@@ -64,6 +65,29 @@ class FakeRepo:
 
     def is_in_crisis_window(self, principal_id: str, window_hours: int, now=None) -> bool:
         return False
+
+    def get_matching_tuning(self):
+        return matching_module.default_matching_tuning()
+
+    def update_matching_tuning(self, tuning, now):
+        return None
+
+    def get_global_matching_health(self, window_days: int = 7):
+        return repository_module.MatchingHealth(
+            delivered_count=0,
+            positive_ack_count=0,
+            ratio=0.0,
+        )
+
+    def get_or_create_finite_content(
+        self,
+        principal_id: str,
+        day_key: str,
+        valence_bucket: str,
+        intensity_bucket: str,
+        theme_id: Optional[str],
+    ) -> str:
+        return "content-1"
 
 
 class InMemoryRateLimiter:

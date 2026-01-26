@@ -77,6 +77,7 @@ jobs:
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0009_principal_crisis_state.sql
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0010_security_events.sql
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0011_matching_tuning.sql
+          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0012_finite_content_selections.sql
           psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0003_mood_events.sql
 
       - name: Verify backend imports
