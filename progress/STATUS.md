@@ -50,10 +50,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-045] Matching Health (H) feedback loop for auto-tuning matching parameters
 - [T-046] Add finite content catalog + deterministic selection (backend)
 - [T-047] Cold-start bridge: system inbox message + finite content selection
+- [T-048] Standardize inbox item origin (system vs peer) and test invariants
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-048] Standardize inbox item origin (system vs peer) and test invariants
 
 ## Next
 
