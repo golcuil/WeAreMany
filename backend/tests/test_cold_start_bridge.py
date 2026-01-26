@@ -12,6 +12,9 @@ from app import moderation as moderation_module  # noqa: E402
 from app import matching as matching_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
+from app.finite_content_store import finite_content_day_key  # noqa: E402
+from app.reflective_mirror_templates import select_reflective_template  # noqa: E402
+from app.themes import map_mood_to_themes  # noqa: E402
 
 
 class InMemoryRateLimiter:
@@ -59,6 +62,11 @@ def test_cold_start_returns_system_message():
     system_messages = [record for record in repo.messages.values() if record.principal_id == "system"]
     assert len(system_messages) == 1
     system_text = system_messages[0].sanitized_text or ""
+    day_key = finite_content_day_key()
+    themes = map_mood_to_themes(None, "neutral", "low")
+    primary_theme = themes[0] if themes else "calm"
+    expected = select_reflective_template(primary_theme, "neutral", "low", day_key).text
+    assert system_text == expected
     assert system_text
     assert "hello" not in system_text
     assert "real person" not in system_text

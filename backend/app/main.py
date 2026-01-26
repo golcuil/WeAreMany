@@ -372,10 +372,12 @@ def submit_message(
                 },
             )
         elif repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
+            day_key = finite_content_day_key()
             system_text = build_reflective_message(
                 message_themes,
                 payload.valence,
                 payload.intensity,
+                utc_day=day_key,
             )
             system_message_id = repo.save_message(
                 MessageRecord(
@@ -434,12 +436,13 @@ def submit_message(
                 limit=candidate_limit,
             )
             if len(candidates) < cold_start_min:
+                day_key = finite_content_day_key()
                 system_text = build_reflective_message(
                     message_themes,
                     payload.valence,
                     payload.intensity,
+                    utc_day=day_key,
                 )
-                day_key = finite_content_day_key()
                 content_id = repo.get_or_create_finite_content(
                     principal.principal_id,
                     day_key,
