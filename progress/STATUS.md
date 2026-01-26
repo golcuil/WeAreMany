@@ -39,10 +39,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-034] Home: k-anon similar_count insight (shown only when >=K) via /mood optional field
 - [T-035] Backend: crisis-aware delivery gate + inbox shielding (system-only during crisis window)
 - [T-036] Inbox lifecycle: unread (local), responded, locked-after-7d + day-level relative timestamps
+- [T-037] Stabilize inbox lifecycle tests with fixed UTC now injection
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-037] Stabilize inbox lifecycle tests with fixed UTC now injection
 
 ## Next
 
