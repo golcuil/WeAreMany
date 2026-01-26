@@ -17,6 +17,12 @@ from .config import (
     ELIGIBLE_RECENCY_HOURS,
     MATCH_SAMPLE_LIMIT,
     SECURITY_EVENT_HMAC_KEY,
+    SECOND_TOUCH_COOLDOWN_DAYS,
+    SECOND_TOUCH_DISABLE_DAYS,
+    SECOND_TOUCH_MIN_AFFINITY,
+    SECOND_TOUCH_MIN_POSITIVE,
+    SECOND_TOUCH_MIN_SPAN_DAYS,
+    SECOND_TOUCH_MONTHLY_CAP,
 )
 
 try:
@@ -72,6 +78,7 @@ class MessageRecord:
     risk_level: int
     sanitized_text: Optional[str]
     reid_risk: float
+    identity_leak: bool = False
 
 
 @dataclass
@@ -84,6 +91,27 @@ class InboxItemRecord:
     state: str
     ack_status: Optional[str]
     origin: str
+
+
+@dataclass
+class InboxListItem:
+    item_type: str
+    created_at: str
+    text: str
+    ack_status: Optional[str]
+    inbox_item_id: Optional[str] = None
+    offer_id: Optional[str] = None
+    offer_state: Optional[str] = None
+
+
+@dataclass
+class SecondTouchOfferRecord:
+    offer_id: str
+    offer_to_id: str
+    counterpart_id: str
+    state: str
+    created_at: datetime
+    used_at: Optional[datetime]
 
 
 @dataclass
@@ -133,6 +161,35 @@ class Repository(Protocol):
         ...
 
     def acknowledge(self, inbox_item_id: str, recipient_id: str, reaction: str) -> str:
+        ...
+
+    def list_inbox_items_with_offers(self, recipient_id: str) -> List[InboxListItem]:
+        ...
+
+    def create_second_touch_offer(self, offer_to_id: str, counterpart_id: str) -> str:
+        ...
+
+    def get_second_touch_offer(self, offer_id: str) -> Optional[SecondTouchOfferRecord]:
+        ...
+
+    def mark_second_touch_offer_used(self, offer_id: str) -> None:
+        ...
+
+    def list_second_touch_offers(self, offer_to_id: str) -> List[SecondTouchOfferRecord]:
+        ...
+
+    def update_second_touch_pair_positive(
+        self, sender_id: str, recipient_id: str, now: datetime
+    ) -> None:
+        ...
+
+    def block_second_touch_pair(
+        self,
+        sender_id: str,
+        recipient_id: str,
+        until: Optional[datetime],
+        permanent: bool,
+    ) -> None:
         ...
 
     def get_helped_count(self, principal_id: str) -> int:
@@ -238,6 +295,8 @@ class InMemoryRepository:
         self.matching_tuning = default_matching_tuning()
         self.finite_content_selections: Dict[str, str] = {}
         self.daily_ack_aggregates: Dict[tuple[str, str], DailyAckAggregate] = {}
+        self.second_touch_pairs: Dict[tuple[str, str], Dict[str, object]] = {}
+        self.second_touch_offers: Dict[str, SecondTouchOfferRecord] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -315,6 +374,10 @@ class InMemoryRepository:
             ack_status=None,
             origin=origin,
         )
+        if message and message.identity_leak and message.principal_id != SYSTEM_SENDER_ID:
+            self.block_second_touch_pair(
+                message.principal_id, recipient_id, until=None, permanent=True
+            )
         self._increment_daily_ack_aggregate(
             _utc_day_key(),
             theme_id,
@@ -351,8 +414,8 @@ class InMemoryRepository:
         self.acks[ack_key] = reaction
         item.state = "responded"
         item.ack_status = reaction
+        message = self.messages.get(item.message_id)
         if reaction in {"thanks", "helpful", "relate"}:
-            message = self.messages.get(item.message_id)
             theme_id = message.theme_tags[0] if message and message.theme_tags else None
             if message and theme_id:
                 self.record_affinity(message.principal_id, theme_id, 1.0)
@@ -362,6 +425,17 @@ class InMemoryRepository:
                     _normalize_theme_id(theme_id),
                     delivered_delta=0,
                     positive_delta=1,
+                )
+                self.update_second_touch_pair_positive(
+                    message.principal_id, recipient_id, datetime.now(timezone.utc)
+                )
+        else:
+            if message:
+                disable_until = datetime.now(timezone.utc) + timedelta(
+                    days=SECOND_TOUCH_DISABLE_DAYS
+                )
+                self.block_second_touch_pair(
+                    message.principal_id, recipient_id, disable_until, permanent=False
                 )
         return "recorded"
 
@@ -552,6 +626,166 @@ class InMemoryRepository:
         existing.delivered_count += delivered_delta
         existing.positive_ack_count += positive_delta
 
+    def list_inbox_items_with_offers(self, recipient_id: str) -> List[InboxListItem]:
+        items = [
+            InboxListItem(
+                item_type="message",
+                inbox_item_id=item.inbox_item_id,
+                offer_id=None,
+                offer_state=None,
+                text=item.text,
+                created_at=item.created_at,
+                ack_status=item.ack_status,
+            )
+            for item in self.list_inbox_items(recipient_id)
+        ]
+        now = datetime.now(timezone.utc)
+        if not any(offer.state == "available" for offer in self.list_second_touch_offers(recipient_id)):
+            self._maybe_create_second_touch_offer(recipient_id, now)
+        for offer in self.list_second_touch_offers(recipient_id):
+            if offer.state != "available":
+                continue
+            created_at = offer.created_at.date().isoformat()
+            items.append(
+                InboxListItem(
+                    item_type="second_touch_offer",
+                    inbox_item_id=None,
+                    offer_id=offer.offer_id,
+                    offer_state=offer.state,
+                    text="",
+                    created_at=created_at,
+                    ack_status=None,
+                )
+            )
+        items.sort(key=lambda item: item.created_at, reverse=True)
+        return items
+
+    def create_second_touch_offer(self, offer_to_id: str, counterpart_id: str) -> str:
+        offer_id = _new_uuid()
+        record = SecondTouchOfferRecord(
+            offer_id=offer_id,
+            offer_to_id=offer_to_id,
+            counterpart_id=counterpart_id,
+            state="available",
+            created_at=datetime.now(timezone.utc),
+            used_at=None,
+        )
+        self.second_touch_offers[offer_id] = record
+        return offer_id
+
+    def get_second_touch_offer(self, offer_id: str) -> Optional[SecondTouchOfferRecord]:
+        return self.second_touch_offers.get(offer_id)
+
+    def mark_second_touch_offer_used(self, offer_id: str) -> None:
+        record = self.second_touch_offers.get(offer_id)
+        if record is None:
+            return
+        record.state = "used"
+        record.used_at = datetime.now(timezone.utc)
+
+    def list_second_touch_offers(self, offer_to_id: str) -> List[SecondTouchOfferRecord]:
+        return [
+            offer
+            for offer in self.second_touch_offers.values()
+            if offer.offer_to_id == offer_to_id
+        ]
+
+    def update_second_touch_pair_positive(
+        self, sender_id: str, recipient_id: str, now: datetime
+    ) -> None:
+        a_id, b_id = _pair_key(sender_id, recipient_id)
+        record = self.second_touch_pairs.get((a_id, b_id))
+        if record is None:
+            record = {
+                "a_id": a_id,
+                "b_id": b_id,
+                "positive_count": 0,
+                "first_positive_at": now,
+                "last_positive_at": now,
+                "last_offer_at": None,
+                "disabled_until": None,
+                "disabled_permanent": False,
+                "identity_leak_blocked": False,
+            }
+            self.second_touch_pairs[(a_id, b_id)] = record
+        record["positive_count"] = int(record["positive_count"]) + 1
+        record["last_positive_at"] = now
+        if record.get("first_positive_at") is None:
+            record["first_positive_at"] = now
+
+    def block_second_touch_pair(
+        self,
+        sender_id: str,
+        recipient_id: str,
+        until: Optional[datetime],
+        permanent: bool,
+    ) -> None:
+        a_id, b_id = _pair_key(sender_id, recipient_id)
+        record = self.second_touch_pairs.get((a_id, b_id))
+        if record is None:
+            record = {
+                "a_id": a_id,
+                "b_id": b_id,
+                "positive_count": 0,
+                "first_positive_at": None,
+                "last_positive_at": None,
+                "last_offer_at": None,
+                "disabled_until": None,
+                "disabled_permanent": False,
+                "identity_leak_blocked": False,
+            }
+            self.second_touch_pairs[(a_id, b_id)] = record
+        if permanent:
+            record["disabled_permanent"] = True
+            record["identity_leak_blocked"] = True
+        if until:
+            current = record.get("disabled_until")
+            if current is None or until > current:
+                record["disabled_until"] = until
+
+    def _maybe_create_second_touch_offer(self, recipient_id: str, now: datetime) -> None:
+        for (a_id, b_id), record in self.second_touch_pairs.items():
+            if recipient_id not in (a_id, b_id):
+                continue
+            counterpart_id = b_id if recipient_id == a_id else a_id
+            if record.get("disabled_permanent"):
+                continue
+            disabled_until = record.get("disabled_until")
+            if disabled_until and disabled_until > now:
+                continue
+            positive_count = int(record.get("positive_count") or 0)
+            if positive_count < SECOND_TOUCH_MIN_POSITIVE or positive_count < SECOND_TOUCH_MIN_AFFINITY:
+                continue
+            first_positive_at = record.get("first_positive_at")
+            last_positive_at = record.get("last_positive_at")
+            if not first_positive_at or not last_positive_at:
+                continue
+            if (last_positive_at - first_positive_at).days < SECOND_TOUCH_MIN_SPAN_DAYS:
+                continue
+            if (now - last_positive_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                continue
+            last_offer_at = record.get("last_offer_at")
+            if last_offer_at and (now - last_offer_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                continue
+            if self.is_in_crisis_window(recipient_id, CRISIS_WINDOW_HOURS, now):
+                continue
+            if self.is_in_crisis_window(counterpart_id, CRISIS_WINDOW_HOURS, now):
+                continue
+            offers_last_month = [
+                offer
+                for offer in self.list_second_touch_offers(recipient_id)
+                if (now - offer.created_at).days < 30
+            ]
+            if len(offers_last_month) >= SECOND_TOUCH_MONTHLY_CAP:
+                continue
+            latest_a = _latest_mood_event(self.mood_events, recipient_id)
+            latest_b = _latest_mood_event(self.mood_events, counterpart_id)
+            if not _is_emotionally_compatible(latest_a, latest_b, now):
+                continue
+            self.create_second_touch_offer(recipient_id, counterpart_id)
+            record["last_offer_at"] = now
+            return
+
     def get_matching_tuning(self) -> MatchingTuning:
         return self.matching_tuning
 
@@ -693,10 +927,11 @@ class PostgresRepository:
                   risk_level,
                   sanitized_text,
                   reid_risk,
+                  identity_leak,
                   status,
                   origin_device_id
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -707,6 +942,7 @@ class PostgresRepository:
                     record.risk_level,
                     record.sanitized_text,
                     record.reid_risk,
+                    record.identity_leak,
                     "queued",
                     record.principal_id,
                 ),
@@ -754,7 +990,7 @@ class PostgresRepository:
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT theme_tags
+                SELECT theme_tags, origin_device_id, identity_leak
                 FROM messages
                 WHERE id = %s
                 """,
@@ -762,6 +998,8 @@ class PostgresRepository:
             )
             row = cur.fetchone()
             theme_id = _normalize_theme_id(row[0][0]) if row and row[0] else "unknown"
+            origin_device_id = row[1] if row else None
+            identity_leak = bool(row[2]) if row else False
             cur.execute(
                 """
                 INSERT INTO inbox_items
@@ -779,6 +1017,10 @@ class PostgresRepository:
                 delivered_delta=1,
                 positive_delta=0,
             )
+            if identity_leak and origin_device_id and origin_device_id != SYSTEM_SENDER_ID:
+                self.block_second_touch_pair(
+                    origin_device_id, recipient_id, until=None, permanent=True
+                )
             return inbox_item_id
 
     def list_inbox_items(self, recipient_id: str) -> List[InboxItemRecord]:
@@ -861,15 +1103,36 @@ class PostgresRepository:
                     theme_id = row[1][0] if row[1] else None
                     if theme_id:
                         self.record_affinity(row[0], theme_id, 1.0)
-                    with self._conn() as conn, conn.cursor() as cur:
-                        self._increment_daily_ack_aggregate(
-                            cur,
-                            _utc_day_key(),
-                            _normalize_theme_id(theme_id),
-                            delivered_delta=0,
-                            positive_delta=1,
+                        with self._conn() as conn, conn.cursor() as cur:
+                            self._increment_daily_ack_aggregate(
+                                cur,
+                                _utc_day_key(),
+                                _normalize_theme_id(theme_id),
+                                delivered_delta=0,
+                                positive_delta=1,
+                            )
+                        self.update_second_touch_pair_positive(
+                            row[0], recipient_id, datetime.now(timezone.utc)
                         )
             return "recorded"
+        if reaction not in {"thanks", "helpful", "relate"}:
+            with self._conn() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT origin_device_id
+                    FROM messages
+                    WHERE id = %s
+                    """,
+                    (message_id,),
+                )
+                row = cur.fetchone()
+            if row and row[0]:
+                disable_until = datetime.now(timezone.utc) + timedelta(
+                    days=SECOND_TOUCH_DISABLE_DAYS
+                )
+                self.block_second_touch_pair(
+                    row[0], recipient_id, disable_until, permanent=False
+                )
         return "already_recorded"
 
     def get_helped_count(self, principal_id: str) -> int:
@@ -1344,6 +1607,244 @@ class PostgresRepository:
             )
         return content_id
 
+    def list_inbox_items_with_offers(self, recipient_id: str) -> List[InboxListItem]:
+        items = [
+            InboxListItem(
+                item_type="message",
+                inbox_item_id=item.inbox_item_id,
+                offer_id=None,
+                offer_state=None,
+                text=item.text,
+                created_at=item.created_at,
+                ack_status=item.ack_status,
+            )
+            for item in self.list_inbox_items(recipient_id)
+        ]
+        now = datetime.now(timezone.utc)
+        if not any(offer.state == "available" for offer in self.list_second_touch_offers(recipient_id)):
+            self._maybe_create_second_touch_offer(recipient_id, now)
+        for offer in self.list_second_touch_offers(recipient_id):
+            if offer.state != "available":
+                continue
+            created_at = offer.created_at.date().isoformat()
+            items.append(
+                InboxListItem(
+                    item_type="second_touch_offer",
+                    inbox_item_id=None,
+                    offer_id=offer.offer_id,
+                    offer_state=offer.state,
+                    text="",
+                    created_at=created_at,
+                    ack_status=None,
+                )
+            )
+        items.sort(key=lambda item: item.created_at, reverse=True)
+        return items
+
+    def create_second_touch_offer(self, offer_to_id: str, counterpart_id: str) -> str:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO second_touch_offers
+                (offer_to_id, counterpart_id, state)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                (offer_to_id, counterpart_id, "available"),
+            )
+            return str(cur.fetchone()[0])
+
+    def get_second_touch_offer(self, offer_id: str) -> Optional[SecondTouchOfferRecord]:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, offer_to_id, counterpart_id, state, created_at, used_at
+                FROM second_touch_offers
+                WHERE id = %s
+                """,
+                (offer_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return None
+        return SecondTouchOfferRecord(
+            offer_id=str(row[0]),
+            offer_to_id=row[1],
+            counterpart_id=row[2],
+            state=row[3],
+            created_at=row[4],
+            used_at=row[5],
+        )
+
+    def mark_second_touch_offer_used(self, offer_id: str) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE second_touch_offers
+                SET state = 'used', used_at = now()
+                WHERE id = %s
+                """,
+                (offer_id,),
+            )
+
+    def list_second_touch_offers(self, offer_to_id: str) -> List[SecondTouchOfferRecord]:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, offer_to_id, counterpart_id, state, created_at, used_at
+                FROM second_touch_offers
+                WHERE offer_to_id = %s
+                ORDER BY created_at DESC
+                """,
+                (offer_to_id,),
+            )
+            rows = cur.fetchall()
+        return [
+            SecondTouchOfferRecord(
+                offer_id=str(row[0]),
+                offer_to_id=row[1],
+                counterpart_id=row[2],
+                state=row[3],
+                created_at=row[4],
+                used_at=row[5],
+            )
+            for row in rows
+        ]
+
+    def update_second_touch_pair_positive(
+        self, sender_id: str, recipient_id: str, now: datetime
+    ) -> None:
+        a_id, b_id = _pair_key(sender_id, recipient_id)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO second_touch_pairs
+                (sender_id, recipient_id, positive_count, first_positive_at, last_positive_at)
+                VALUES (%s, %s, 1, %s, %s)
+                ON CONFLICT (sender_id, recipient_id)
+                DO UPDATE SET
+                  positive_count = second_touch_pairs.positive_count + 1,
+                  last_positive_at = EXCLUDED.last_positive_at,
+                  first_positive_at = COALESCE(second_touch_pairs.first_positive_at, EXCLUDED.first_positive_at)
+                """,
+                (a_id, b_id, now, now),
+            )
+
+    def block_second_touch_pair(
+        self,
+        sender_id: str,
+        recipient_id: str,
+        until: Optional[datetime],
+        permanent: bool,
+    ) -> None:
+        a_id, b_id = _pair_key(sender_id, recipient_id)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO second_touch_pairs
+                (sender_id, recipient_id, disabled_until, disabled_permanent, identity_leak_blocked)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (sender_id, recipient_id)
+                DO UPDATE SET
+                  disabled_until = COALESCE(EXCLUDED.disabled_until, second_touch_pairs.disabled_until),
+                  disabled_permanent = second_touch_pairs.disabled_permanent OR EXCLUDED.disabled_permanent,
+                  identity_leak_blocked = second_touch_pairs.identity_leak_blocked OR EXCLUDED.identity_leak_blocked
+                """,
+                (a_id, b_id, until, permanent, permanent),
+            )
+
+    def _maybe_create_second_touch_offer(self, recipient_id: str, now: datetime) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT sender_id, recipient_id, positive_count, first_positive_at, last_positive_at,
+                       last_offer_at, disabled_until, disabled_permanent
+                FROM second_touch_pairs
+                WHERE sender_id = %s OR recipient_id = %s
+                """,
+                (recipient_id, recipient_id),
+            )
+            rows = cur.fetchall()
+        for row in rows:
+            a_id, b_id = row[0], row[1]
+            counterpart_id = b_id if recipient_id == a_id else a_id
+            positive_count = int(row[2] or 0)
+            first_positive_at = row[3]
+            last_positive_at = row[4]
+            last_offer_at = row[5]
+            disabled_until = row[6]
+            disabled_permanent = bool(row[7])
+            if disabled_permanent:
+                continue
+            if disabled_until and disabled_until > now:
+                continue
+            if positive_count < SECOND_TOUCH_MIN_POSITIVE or positive_count < SECOND_TOUCH_MIN_AFFINITY:
+                continue
+            if not first_positive_at or not last_positive_at:
+                continue
+            if (last_positive_at - first_positive_at).days < SECOND_TOUCH_MIN_SPAN_DAYS:
+                continue
+            if (now - last_positive_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                continue
+            if last_offer_at and (now - last_offer_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                continue
+            if self.is_in_crisis_window(recipient_id, CRISIS_WINDOW_HOURS, now):
+                continue
+            if self.is_in_crisis_window(counterpart_id, CRISIS_WINDOW_HOURS, now):
+                continue
+            with self._conn() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM second_touch_offers
+                    WHERE offer_to_id = %s AND created_at >= %s
+                    """,
+                    (recipient_id, now - timedelta(days=30)),
+                )
+                offer_count = int(cur.fetchone()[0] or 0)
+            if offer_count >= SECOND_TOUCH_MONTHLY_CAP:
+                continue
+            latest_a = self._latest_mood_event_db(recipient_id)
+            latest_b = self._latest_mood_event_db(counterpart_id)
+            if not _is_emotionally_compatible(latest_a, latest_b, now):
+                continue
+            self.create_second_touch_offer(recipient_id, counterpart_id)
+            with self._conn() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE second_touch_pairs
+                    SET last_offer_at = %s
+                    WHERE sender_id = %s AND recipient_id = %s
+                    """,
+                    (now, a_id, b_id),
+                )
+            return
+
+    def _latest_mood_event_db(self, principal_id: str) -> Optional[MoodEventRecord]:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT created_at, valence, intensity, expressed_emotion, risk_level, theme_tag
+                FROM mood_events
+                WHERE device_id = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (principal_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return None
+        return MoodEventRecord(
+            principal_id=principal_id,
+            created_at=row[0],
+            valence=row[1],
+            intensity=row[2],
+            expressed_emotion=row[3],
+            risk_level=row[4],
+            theme_tag=row[5],
+        )
+
 
 def _hash_affinity_actor(principal_id: str) -> str:
     key = SECURITY_EVENT_HMAC_KEY.encode("utf-8")
@@ -1380,6 +1881,10 @@ def _normalize_theme_id(theme_id: Optional[str]) -> str:
     return theme_id or "unknown"
 
 
+def _pair_key(a: str, b: str) -> tuple[str, str]:
+    return (a, b) if a <= b else (b, a)
+
+
 _default_repo = InMemoryRepository()
 
 
@@ -1407,6 +1912,32 @@ def _filter_mood_events(
         for record in records
         if record.principal_id == principal_id and record.created_at >= cutoff
     ]
+
+
+def _latest_mood_event(
+    records: List[MoodEventRecord],
+    principal_id: str,
+) -> Optional[MoodEventRecord]:
+    filtered = [record for record in records if record.principal_id == principal_id]
+    if not filtered:
+        return None
+    filtered.sort(key=lambda record: record.created_at, reverse=True)
+    return filtered[0]
+
+
+def _is_emotionally_compatible(
+    a: Optional[MoodEventRecord],
+    b: Optional[MoodEventRecord],
+    now: datetime,
+) -> bool:
+    if a is None or b is None:
+        return False
+    if a.risk_level == 2 or b.risk_level == 2:
+        return False
+    if a.valence != b.valence:
+        return False
+    recent_cutoff = now - timedelta(days=14)
+    return a.created_at >= recent_cutoff and b.created_at >= recent_cutoff
 
 
 def _summarize_mood_events(

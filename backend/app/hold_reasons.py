@@ -8,3 +8,4 @@ class HoldReason(str, Enum):
     RISK_LEVEL_2 = "risk_level_2"
     NO_ELIGIBLE_CANDIDATES = "no_eligible_candidates"
     COOLDOWN_ACTIVE = "cooldown_active"
+    OFFER_UNAVAILABLE = "offer_unavailable"

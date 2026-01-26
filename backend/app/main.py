@@ -124,10 +124,13 @@ class MessageResponse(BaseModel):
 
 
 class InboxItemResponse(BaseModel):
+    item_type: str = "message"
     inbox_item_id: str
     text: str
     created_at: str
     ack_status: Optional[str] = None
+    offer_id: Optional[str] = None
+    offer_state: Optional[str] = None
 
 
 class InboxResponse(BaseModel):
@@ -148,6 +151,18 @@ class AcknowledgementResponse(BaseModel):
 class ImpactResponse(BaseModel):
     helped_count: int
 
+
+class SecondTouchSendRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    offer_id: str
+    free_text: str
+
+
+class SecondTouchSendResponse(BaseModel):
+    status: str
+    hold_reason: Optional[str] = None
+    crisis_action: Optional[str] = None
 class MatchCandidateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -387,6 +402,7 @@ def submit_message(
                     risk_level=result.risk_level,
                     sanitized_text=result.sanitized_text,
                     reid_risk=result.reid_risk,
+                    identity_leak=result.identity_leak,
                 )
             )
             repo.upsert_eligible_principal(principal.principal_id, payload.intensity, message_themes)
@@ -450,6 +466,7 @@ def submit_message(
                     risk_level=0,
                     sanitized_text=system_text,
                     reid_risk=0.0,
+                    identity_leak=False,
                 )
             )
             repo.create_inbox_item(system_message_id, principal.principal_id, system_text)
@@ -608,13 +625,16 @@ def fetch_inbox(
     principal=Depends(current_principal),
     repo=Depends(get_repository),
 ) -> InboxResponse:
-    items = repo.list_inbox_items(principal.principal_id)
+    items = repo.list_inbox_items_with_offers(principal.principal_id)
     response_items = [
         InboxItemResponse(
-            inbox_item_id=item.inbox_item_id,
+            item_type=item.item_type,
+            inbox_item_id=item.inbox_item_id or "",
             text=item.text,
             created_at=_coarsen_day_iso(item.created_at),
             ack_status=item.ack_status,
+            offer_id=item.offer_id,
+            offer_state=item.offer_state,
         )
         for item in items
     ]
@@ -635,6 +655,78 @@ def acknowledge_message(
     except PermissionError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     return AcknowledgementResponse(status=status_value)
+
+
+@app.post(
+    "/second_touch/send",
+    dependencies=[Depends(current_principal), Depends(rate_limit("write"))],
+)
+def send_second_touch(
+    payload: SecondTouchSendRequest,
+    principal=Depends(current_principal),
+    repo=Depends(get_repository),
+    leak_throttle=Depends(get_leak_throttle),
+    shadow_throttle=Depends(get_shadow_throttle),
+) -> SecondTouchSendResponse:
+    offer = repo.get_second_touch_offer(payload.offer_id)
+    if not offer or offer.offer_to_id != principal.principal_id or offer.state != "available":
+        return SecondTouchSendResponse(
+            status="held",
+            hold_reason=HoldReason.OFFER_UNAVAILABLE.value,
+        )
+    if repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
+        return SecondTouchSendResponse(
+            status="held",
+            hold_reason=HoldReason.CRISIS_WINDOW.value,
+            crisis_action="show_crisis",
+        )
+    if repo.is_in_crisis_window(offer.counterpart_id, CRISIS_WINDOW_HOURS):
+        return SecondTouchSendResponse(
+            status="held",
+            hold_reason=HoldReason.CRISIS_WINDOW.value,
+        )
+    result = moderate_text(payload.free_text, principal.principal_id, leak_throttle)
+    if result.risk_level == 2:
+        return SecondTouchSendResponse(
+            status="held",
+            hold_reason=HoldReason.RISK_LEVEL_2.value,
+            crisis_action="show_crisis",
+        )
+    if result.identity_leak:
+        shadow_throttle.increment(principal.principal_id)
+        repo.block_second_touch_pair(
+            principal.principal_id,
+            offer.counterpart_id,
+            until=None,
+            permanent=True,
+        )
+        repo.mark_second_touch_offer_used(payload.offer_id)
+        return SecondTouchSendResponse(
+            status="held",
+            hold_reason=HoldReason.IDENTITY_LEAK.value,
+        )
+    if shadow_throttle.is_throttled(principal.principal_id):
+        return SecondTouchSendResponse(
+            status="held",
+            hold_reason=HoldReason.IDENTITY_LEAK.value,
+        )
+    message_themes = map_mood_to_themes(None, "neutral", "low")
+    message_id = repo.save_message(
+        MessageRecord(
+            principal_id=principal.principal_id,
+            valence="neutral",
+            intensity="low",
+            emotion=None,
+            theme_tags=message_themes,
+            risk_level=0,
+            sanitized_text=result.sanitized_text,
+            reid_risk=result.reid_risk,
+            identity_leak=False,
+        )
+    )
+    repo.create_inbox_item(message_id, offer.counterpart_id, result.sanitized_text or "")
+    repo.mark_second_touch_offer_used(payload.offer_id)
+    return SecondTouchSendResponse(status="queued")
 
 
 @app.get(
