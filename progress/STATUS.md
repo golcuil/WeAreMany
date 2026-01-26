@@ -43,10 +43,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-038] Harden identity-leak detection (PII) in moderation with tests
 - [T-039] Add identity leak shadow throttling (hold on repeated PII attempts)
 - [T-040] Add privacy-safe security event logging for identity leak and throttle events
+- [T-041] Deterministic shadow throttle window semantics (TTL reset) with tests
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-041] Deterministic shadow throttle window semantics (TTL reset) with tests
 
 ## Next
 
