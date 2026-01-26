@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import app  # noqa: E402
+from app.hold_reasons import HoldReason  # noqa: E402
 from app import matching as matching_module  # noqa: E402
 from app import moderation as moderation_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
@@ -58,7 +59,7 @@ def test_sender_in_crisis_window_gets_system_message():
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "held"
-    assert body["hold_reason"] == "crisis_window"
+    assert body["hold_reason"] == HoldReason.CRISIS_WINDOW.value
 
     sender_items = repo.list_inbox_items("sender")
     assert len(sender_items) == 1

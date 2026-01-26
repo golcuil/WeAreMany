@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import app  # noqa: E402
+from app.hold_reasons import HoldReason  # noqa: E402
 from app import matching as matching_module  # noqa: E402
 from app.matching import Candidate  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
@@ -51,7 +52,7 @@ def test_cold_start_triggers_hold_path():
     assert response.status_code == 200
     body = response.json()
     assert body["decision"] == "HOLD"
-    assert body["reason"] == "insufficient_pool"
+    assert body["reason"] == HoldReason.INSUFFICIENT_POOL.value
     assert body["system_generated_empathy"]
     assert body["finite_content_bridge"]
 
@@ -101,7 +102,7 @@ def test_cooldown_prevents_duplicate_targeting():
     second = client.post("/match/simulate", json=payload, headers=_headers())
     assert second.status_code == 200
     assert second.json()["decision"] in {"DELIVER", "HOLD"}
-    assert second.json()["reason"] in {"eligible", "cooldown_active"}
+    assert second.json()["reason"] in {"eligible", HoldReason.COOLDOWN_ACTIVE.value}
 
     app.dependency_overrides.clear()
 
@@ -151,7 +152,7 @@ def test_progressive_delivery_tightens_and_relaxes():
         allow_theme_relax=low_params.allow_theme_relax,
     )
     assert low_decision.decision == "HOLD"
-    assert low_decision.reason == "no_eligible_candidates"
+    assert low_decision.reason == HoldReason.NO_ELIGIBLE_CANDIDATES.value
 
     high_params = matching_module.progressive_params(0.9)
     high_decision = matching_module.match_decision(

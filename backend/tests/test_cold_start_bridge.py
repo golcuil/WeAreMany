@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.main import app  # noqa: E402
+from app.hold_reasons import HoldReason  # noqa: E402
 from app import moderation as moderation_module  # noqa: E402
 from app import matching as matching_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
@@ -47,7 +48,7 @@ def test_cold_start_returns_system_message():
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "held"
-    assert body["hold_reason"] == "insufficient_pool"
+    assert body["hold_reason"] == HoldReason.INSUFFICIENT_POOL.value
 
     inbox_items = list(repo.inbox_items.values())
     assert len(inbox_items) == 1

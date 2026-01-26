@@ -11,6 +11,7 @@ from app import moderation as moderation_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
 from app.repository import MatchingHealth  # noqa: E402
+from app.hold_reasons import HoldReason  # noqa: E402
 
 
 class InMemoryRateLimiter:
@@ -123,7 +124,7 @@ def test_shadow_throttle_holds_on_threshold():
     assert second.status_code == 200
     assert third.status_code == 200
     assert third.json()["status"] == "held"
-    assert third.json()["hold_reason"] == "identity_leak"
+    assert third.json()["hold_reason"] == HoldReason.IDENTITY_LEAK.value
     assert "test@example.com" not in third.json()["sanitized_text"]
     assert repo.saved_messages == count_after_second
     assert any(event.event_type == "identity_leak_throttle_held" for event in repo.security_events)
@@ -146,7 +147,7 @@ def test_non_pii_does_not_increment_or_hold():
     assert response.status_code == 200
     body = response.json()
     assert body["identity_leak"] is False
-    assert body["hold_reason"] != "identity_leak"
+    assert body["hold_reason"] != HoldReason.IDENTITY_LEAK.value
 
     app.dependency_overrides.clear()
 

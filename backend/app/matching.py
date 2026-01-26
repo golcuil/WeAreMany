@@ -6,6 +6,7 @@ import redis
 from fastapi import HTTPException, status
 
 from .config import MATCH_COOLDOWN_SECONDS, MATCH_MIN_POOL_K, REDIS_URL
+from .hold_reasons import HoldReason
 
 
 @dataclass(frozen=True)
@@ -94,14 +95,14 @@ def match_decision(
     if risk_level == 2:
         return MatchDecision(
             decision="CRISIS_BLOCK",
-            reason="risk_level_2",
+            reason=HoldReason.RISK_LEVEL_2.value,
             crisis_action="show_crisis",
         )
 
     if len(candidates) < MATCH_MIN_POOL_K:
         return MatchDecision(
             decision="HOLD",
-            reason="insufficient_pool",
+            reason=HoldReason.INSUFFICIENT_POOL.value,
             system_generated_empathy=_select_empathy(principal_id),
             finite_content_bridge=_select_content_bridge(principal_id),
         )
@@ -119,7 +120,7 @@ def match_decision(
             if _intensity_within_band(candidate.intensity, intensity, intensity_band)
         ]
     if not eligible:
-        return MatchDecision(decision="HOLD", reason="no_eligible_candidates")
+        return MatchDecision(decision="HOLD", reason=HoldReason.NO_ELIGIBLE_CANDIDATES.value)
 
     eligible = _apply_affinity_bias(eligible, affinity_map)
 
@@ -131,7 +132,7 @@ def match_decision(
                 recipient_id=candidate.candidate_id,
             )
 
-    return MatchDecision(decision="HOLD", reason="cooldown_active")
+    return MatchDecision(decision="HOLD", reason=HoldReason.COOLDOWN_ACTIVE.value)
 
 
 def progressive_params(health_ratio: float) -> ProgressiveParams:

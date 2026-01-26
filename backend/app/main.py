@@ -17,6 +17,7 @@ from .config import (
 from .bridge import SYSTEM_SENDER_ID, build_reflective_message
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
+from .hold_reasons import HoldReason
 from .matching import Candidate, get_dedupe_store, match_decision, progressive_params
 from .moderation import get_leak_throttle, get_shadow_throttle, moderate_text
 from .rate_limit import rate_limit
@@ -357,7 +358,7 @@ def submit_message(
         message_themes = map_mood_to_themes(payload.emotion, payload.valence, payload.intensity)
         if identity_leak_count is not None and shadow_throttle.is_throttled(principal.principal_id):
             status_value = "held"
-            hold_reason = "identity_leak"
+            hold_reason = HoldReason.IDENTITY_LEAK.value
             safe_record_security_event(
                 repo,
                 principal.principal_id,
@@ -392,7 +393,7 @@ def submit_message(
                 {"request_id": request_id, "outcome": "crisis_gate"},
             )
             status_value = "held"
-            hold_reason = "crisis_window"
+            hold_reason = HoldReason.CRISIS_WINDOW.value
         else:
             message_id = repo.save_message(
                 MessageRecord(
@@ -453,7 +454,7 @@ def submit_message(
                     {"request_id": request_id, "outcome": "system_fallback"},
                 )
                 status_value = "held"
-                hold_reason = "insufficient_pool"
+                hold_reason = HoldReason.INSUFFICIENT_POOL.value
             else:
                 decision = match_decision(
                     principal_id=principal.principal_id,
