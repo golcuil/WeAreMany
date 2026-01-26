@@ -17,6 +17,16 @@ def _get_csv(name: str) -> list[str]:
     return [token for token in tokens if token]
 
 
+def _get_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 API_VERSION = os.getenv("API_VERSION", "0.1.0")
 AUTH_TOKEN_PREFIX = os.getenv("AUTH_TOKEN_PREFIX", "dev_")
 DEV_BEARER_TOKENS = _get_csv("DEV_BEARER_TOKENS")
@@ -46,6 +56,8 @@ MATCH_TUNING_INTENSITY_MIN = _get_int("MATCH_TUNING_INTENSITY_MIN", 0)
 MATCH_TUNING_INTENSITY_MAX = _get_int("MATCH_TUNING_INTENSITY_MAX", 2)
 MATCH_TUNING_POOL_MIN = float(os.getenv("MATCH_TUNING_POOL_MIN", "-0.7"))
 MATCH_TUNING_POOL_MAX = float(os.getenv("MATCH_TUNING_POOL_MAX", "0.7"))
+AFFINITY_SCORE_MAX = _get_float("AFFINITY_SCORE_MAX", 50.0)
+AFFINITY_DECAY_PER_DAY = _get_float("AFFINITY_DECAY_PER_DAY", 0.98)
 
 MATCH_MIN_POOL_K = _get_int("MATCH_MIN_POOL_K", 3)
 MATCH_COOLDOWN_SECONDS = _get_int("MATCH_COOLDOWN_SECONDS", 3600)

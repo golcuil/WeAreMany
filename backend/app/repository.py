@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+import hashlib
+import hmac
 from typing import Dict, List, Optional, Protocol
 
 import os
@@ -8,7 +10,14 @@ from .bridge import SYSTEM_SENDER_ID
 from .finite_content_store import select_finite_content_id
 from .inbox_origin import InboxOrigin
 from .matching import Candidate, MatchingTuning, default_matching_tuning
-from .config import CRISIS_WINDOW_HOURS, ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
+from .config import (
+    AFFINITY_DECAY_PER_DAY,
+    AFFINITY_SCORE_MAX,
+    CRISIS_WINDOW_HOURS,
+    ELIGIBLE_RECENCY_HOURS,
+    MATCH_SAMPLE_LIMIT,
+    SECURITY_EVENT_HMAC_KEY,
+)
 
 try:
     import psycopg
@@ -121,10 +130,20 @@ class Repository(Protocol):
     def get_helped_count(self, principal_id: str) -> int:
         ...
 
-    def record_affinity(self, sender_id: str, theme_id: str, delta: float) -> None:
+    def record_affinity(
+        self,
+        sender_id: str,
+        theme_id: str,
+        delta: float,
+        now: Optional[datetime] = None,
+    ) -> None:
         ...
 
-    def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
+    def get_affinity_map(
+        self,
+        sender_id: str,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, float]:
         ...
 
     def record_crisis_action(
@@ -198,7 +217,7 @@ class InMemoryRepository:
         self.eligible_principals = {}
         self.candidate_pool: List[Candidate] = []
         self.mood_events: List[MoodEventRecord] = []
-        self.affinity_scores: Dict[str, Dict[str, float]] = {}
+        self.affinity_scores: Dict[str, Dict[str, tuple[float, datetime]]] = {}
         self.crisis_state: Dict[str, Dict[str, datetime]] = {}
         self.security_events: List[SecurityEventRecord] = []
         self.matching_tuning = default_matching_tuning()
@@ -327,15 +346,37 @@ class InMemoryRepository:
             recipients.add(recipient_id)
         return len(recipients)
 
-    def record_affinity(self, sender_id: str, theme_id: str, delta: float) -> None:
+    def record_affinity(
+        self,
+        sender_id: str,
+        theme_id: str,
+        delta: float,
+        now: Optional[datetime] = None,
+    ) -> None:
         if not theme_id:
             return
-        sender_scores = self.affinity_scores.setdefault(sender_id, {})
-        current = sender_scores.get(theme_id, 0.0)
-        sender_scores[theme_id] = min(50.0, current + delta)
+        actor_id = _hash_affinity_actor(sender_id)
+        sender_scores = self.affinity_scores.setdefault(actor_id, {})
+        timestamp = now or datetime.now(timezone.utc)
+        current_score, updated_at = sender_scores.get(theme_id, (0.0, timestamp))
+        decayed = _apply_affinity_decay(current_score, updated_at, timestamp)
+        next_score = min(AFFINITY_SCORE_MAX, decayed + delta)
+        sender_scores[theme_id] = (next_score, timestamp)
 
-    def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
-        return dict(self.affinity_scores.get(sender_id, {}))
+    def get_affinity_map(
+        self,
+        sender_id: str,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, float]:
+        actor_id = _hash_affinity_actor(sender_id)
+        timestamp = now or datetime.now(timezone.utc)
+        scores = self.affinity_scores.get(actor_id, {})
+        result: Dict[str, float] = {}
+        for theme_id, (score, updated_at) in scores.items():
+            decayed = _apply_affinity_decay(score, updated_at, timestamp)
+            if decayed > 0:
+                result[theme_id] = decayed
+        return result
 
     def record_crisis_action(
         self,
@@ -750,34 +791,83 @@ class PostgresRepository:
             row = cur.fetchone()
         return int(row[0] or 0)
 
-    def record_affinity(self, sender_id: str, theme_id: str, delta: float) -> None:
+    def record_affinity(
+        self,
+        sender_id: str,
+        theme_id: str,
+        delta: float,
+        now: Optional[datetime] = None,
+    ) -> None:
         if not theme_id:
             return
+        actor_id = _hash_affinity_actor(sender_id)
+        timestamp = now or datetime.now(timezone.utc)
         with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT score, updated_at
+                FROM affinity_scores
+                WHERE sender_device_id = %s AND theme_id = %s
+                """,
+                (actor_id, theme_id),
+            )
+            row = cur.fetchone()
+            current = float(row[0]) if row else 0.0
+            updated_at = row[1] if row else timestamp
+            decayed = _apply_affinity_decay(current, updated_at, timestamp)
+            next_score = min(AFFINITY_SCORE_MAX, decayed + delta)
             cur.execute(
                 """
                 INSERT INTO affinity_scores (sender_device_id, theme_id, score, updated_at)
-                VALUES (%s, %s, %s, now())
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (sender_device_id, theme_id)
                 DO UPDATE SET
-                  score = LEAST(50, affinity_scores.score + EXCLUDED.score),
-                  updated_at = now()
+                  score = EXCLUDED.score,
+                  updated_at = EXCLUDED.updated_at
                 """,
-                (sender_id, theme_id, delta),
+                (actor_id, theme_id, next_score, timestamp),
             )
 
-    def get_affinity_map(self, sender_id: str) -> Dict[str, float]:
+    def get_affinity_map(
+        self,
+        sender_id: str,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, float]:
+        actor_id = _hash_affinity_actor(sender_id)
+        timestamp = now or datetime.now(timezone.utc)
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT theme_id, score
+                SELECT theme_id, score, updated_at
                 FROM affinity_scores
                 WHERE sender_device_id = %s
                 """,
-                (sender_id,),
+                (actor_id,),
             )
             rows = cur.fetchall()
-        return {row[0]: float(row[1]) for row in rows}
+        result: Dict[str, float] = {}
+        for theme_id, score, updated_at in rows:
+            decayed = _apply_affinity_decay(float(score), updated_at, timestamp)
+            if decayed > 0:
+                result[theme_id] = decayed
+        return result
+
+
+def _hash_affinity_actor(principal_id: str) -> str:
+    key = SECURITY_EVENT_HMAC_KEY.encode("utf-8")
+    message = principal_id.encode("utf-8")
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
+
+
+def _apply_affinity_decay(
+    score: float,
+    updated_at: datetime,
+    now: datetime,
+) -> float:
+    elapsed_days = max(0, (now - updated_at).days)
+    if elapsed_days == 0:
+        return score
+    return score * (AFFINITY_DECAY_PER_DAY ** elapsed_days)
 
     def record_crisis_action(
         self,

@@ -3,6 +3,9 @@ import sys
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+from datetime import datetime, timedelta, timezone
+
+from app.config import AFFINITY_DECAY_PER_DAY, AFFINITY_SCORE_MAX  # noqa: E402
 from app.matching import Candidate, match_decision  # noqa: E402
 from app.repository import InMemoryRepository, MessageRecord  # noqa: E402
 
@@ -55,3 +58,20 @@ def test_affinity_bias_prefers_higher_scored_theme():
     )
     assert decision.decision == "DELIVER"
     assert decision.recipient_id == "high_theme"
+
+
+def test_affinity_decay_applies_over_days():
+    repo = InMemoryRepository()
+    now = datetime(2026, 1, 20, tzinfo=timezone.utc)
+    repo.record_affinity("sender", "calm", 1.0, now=now)
+    later = now + timedelta(days=2)
+    decayed = repo.get_affinity_map("sender", now=later)["calm"]
+    expected = 1.0 * (AFFINITY_DECAY_PER_DAY**2)
+    assert abs(decayed - expected) < 1e-6
+
+
+def test_affinity_score_is_bounded():
+    repo = InMemoryRepository()
+    now = datetime(2026, 1, 20, tzinfo=timezone.utc)
+    repo.record_affinity("sender", "calm", AFFINITY_SCORE_MAX + 10, now=now)
+    assert repo.get_affinity_map("sender", now=now)["calm"] == AFFINITY_SCORE_MAX

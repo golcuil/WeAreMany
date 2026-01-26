@@ -56,6 +56,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-050] Deterministic reflective mirror templates (finite + safe)
 - [T-052] Ops-safe minimum density K config + unified low-density check
 - [T-053] Canonical theme normalization (variants -> canonical IDs)
+- [T-054] Affinity learning from acknowledgements (theme-level bias, bounded + decay)
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
