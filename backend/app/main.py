@@ -15,6 +15,7 @@ from .config import (
     SIMILAR_WINDOW_DAYS,
 )
 from .bridge import SYSTEM_SENDER_ID, build_reflective_message
+from .delivery_decision import DeliveryMode, decide_delivery_mode
 from .finite_content_store import finite_content_day_key
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
@@ -371,35 +372,11 @@ def submit_message(
                     "throttle_count": identity_leak_count,
                 },
             )
-        elif repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
-            day_key = finite_content_day_key()
-            system_text = build_reflective_message(
-                message_themes,
-                payload.valence,
-                payload.intensity,
-                utc_day=day_key,
-            )
-            system_message_id = repo.save_message(
-                MessageRecord(
-                    principal_id=SYSTEM_SENDER_ID,
-                    valence=payload.valence,
-                    intensity=payload.intensity,
-                    emotion=payload.emotion,
-                    theme_tags=message_themes,
-                    risk_level=0,
-                    sanitized_text=system_text,
-                    reid_risk=0.0,
-                )
-            )
-            repo.create_inbox_item(system_message_id, principal.principal_id, system_text)
-            safe_emit(
-                emitter,
-                EventName.DELIVERY_ATTEMPTED,
-                {"request_id": request_id, "outcome": "crisis_gate"},
-            )
-            status_value = "held"
-            hold_reason = HoldReason.CRISIS_WINDOW.value
-        else:
+        in_crisis_window = repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS)
+        message_id = None
+        candidates = []
+        affinity_map = {}
+        if hold_reason is None and not in_crisis_window:
             message_id = repo.save_message(
                 MessageRecord(
                     principal_id=principal.principal_id,
@@ -435,14 +412,26 @@ def submit_message(
                 message_themes,
                 limit=candidate_limit,
             )
-            if len(candidates) < cold_start_min:
-                day_key = finite_content_day_key()
-                system_text = build_reflective_message(
-                    message_themes,
-                    payload.valence,
-                    payload.intensity,
-                    utc_day=day_key,
-                )
+        else:
+            params = progressive_params(0.0, repo.get_matching_tuning())
+            cold_start_min = max(COLD_START_MIN_POOL, 1)
+
+        decision = decide_delivery_mode(
+            in_crisis_window=in_crisis_window,
+            hold_reason=hold_reason,
+            recipient_pool_size=len(candidates),
+            min_pool_size=cold_start_min,
+        )
+        if decision.mode == DeliveryMode.BRIDGE_SYSTEM:
+            day_key = finite_content_day_key()
+            system_text = build_reflective_message(
+                message_themes,
+                payload.valence,
+                payload.intensity,
+                utc_day=day_key,
+            )
+            system_theme_tags = list(message_themes)
+            if decision.hold_reason == HoldReason.INSUFFICIENT_POOL.value:
                 content_id = repo.get_or_create_finite_content(
                     principal.principal_id,
                     day_key,
@@ -450,67 +439,77 @@ def submit_message(
                     payload.intensity,
                     primary_theme,
                 )
-                system_theme_tags = list(message_themes) + [f"content:{content_id}"]
-                system_message_id = repo.save_message(
-                    MessageRecord(
-                        principal_id=SYSTEM_SENDER_ID,
-                        valence=payload.valence,
-                        intensity=payload.intensity,
-                        emotion=payload.emotion,
-                        theme_tags=system_theme_tags,
-                        risk_level=0,
-                        sanitized_text=system_text,
-                        reid_risk=0.0,
-                    )
+                system_theme_tags.append(f"content:{content_id}")
+            system_message_id = repo.save_message(
+                MessageRecord(
+                    principal_id=SYSTEM_SENDER_ID,
+                    valence=payload.valence,
+                    intensity=payload.intensity,
+                    emotion=payload.emotion,
+                    theme_tags=system_theme_tags,
+                    risk_level=0,
+                    sanitized_text=system_text,
+                    reid_risk=0.0,
                 )
-                repo.create_inbox_item(system_message_id, principal.principal_id, system_text)
+            )
+            repo.create_inbox_item(system_message_id, principal.principal_id, system_text)
+            outcome = (
+                "crisis_gate"
+                if decision.hold_reason == HoldReason.CRISIS_WINDOW.value
+                else "system_fallback"
+            )
+            safe_emit(
+                emitter,
+                EventName.DELIVERY_ATTEMPTED,
+                {
+                    "request_id": request_id,
+                    "outcome": outcome,
+                },
+            )
+            status_value = "held"
+            hold_reason = decision.hold_reason
+        elif decision.mode == DeliveryMode.DELIVER_PEER:
+            match_result = match_decision(
+                principal_id=principal.principal_id,
+                risk_level=result.risk_level,
+                intensity=payload.intensity,
+                valence=payload.valence,
+                themes=message_themes,
+                candidates=candidates,
+                dedupe_store=dedupe_store,
+                intensity_band=params.intensity_band,
+                allow_theme_relax=params.allow_theme_relax,
+                affinity_map=affinity_map,
+            )
+            safe_emit(
+                emitter,
+                EventName.MATCH_DECISION,
+                {
+                    "request_id": request_id,
+                    "risk_bucket": result.risk_level,
+                    "intensity_bucket": payload.intensity,
+                    "decision": match_result.decision,
+                    "reason": match_result.reason,
+                },
+            )
+            if match_result.decision == "DELIVER" and match_result.recipient_id and result.sanitized_text:
+                repo.create_inbox_item(message_id, match_result.recipient_id, result.sanitized_text)
                 safe_emit(
                     emitter,
                     EventName.DELIVERY_ATTEMPTED,
-                    {"request_id": request_id, "outcome": "system_fallback"},
+                    {"request_id": request_id, "outcome": "delivered"},
                 )
-                status_value = "held"
-                hold_reason = HoldReason.INSUFFICIENT_POOL.value
-            else:
-                decision = match_decision(
-                    principal_id=principal.principal_id,
-                    risk_level=result.risk_level,
-                    intensity=payload.intensity,
-                    valence=payload.valence,
-                    themes=message_themes,
-                    candidates=candidates,
-                    dedupe_store=dedupe_store,
-                    intensity_band=params.intensity_band,
-                    allow_theme_relax=params.allow_theme_relax,
-                    affinity_map=affinity_map,
-                )
+                status_value = "queued"
+            elif match_result.decision == "HOLD":
+                hold_reason = match_result.reason
                 safe_emit(
                     emitter,
-                    EventName.MATCH_DECISION,
-                    {
-                        "request_id": request_id,
-                        "risk_bucket": result.risk_level,
-                        "intensity_bucket": payload.intensity,
-                        "decision": decision.decision,
-                        "reason": decision.reason,
-                    },
+                    EventName.DELIVERY_ATTEMPTED,
+                    {"request_id": request_id, "outcome": "held"},
                 )
-                if decision.decision == "DELIVER" and decision.recipient_id and result.sanitized_text:
-                    repo.create_inbox_item(message_id, decision.recipient_id, result.sanitized_text)
-                    safe_emit(
-                        emitter,
-                        EventName.DELIVERY_ATTEMPTED,
-                        {"request_id": request_id, "outcome": "delivered"},
-                    )
-                    status_value = "queued"
-                elif decision.decision == "HOLD":
-                    hold_reason = decision.reason
-                    safe_emit(
-                        emitter,
-                        EventName.DELIVERY_ATTEMPTED,
-                        {"request_id": request_id, "outcome": "held"},
-                    )
-                    status_value = "held"
+                status_value = "held"
+        else:
+            status_value = "held"
     else:
         repo.touch_eligible_principal(principal.principal_id, payload.intensity)
 
