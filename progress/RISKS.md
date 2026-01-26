@@ -53,3 +53,15 @@
 - Mitigation: ops_daily supports CI-safe mode; production runs remain strict.
 - Owner: CTO
 - Status: OPEN
+
+## R-010 System messages misinterpreted as human-written
+- Risk: system-origin empathy could be perceived as peer content.
+- Mitigation: system-origin only, templated copy, no identity cues, no human claims.
+- Owner: UX + Safety
+- Status: OPEN
+
+## R-011 Offer misuse / coercion via repeated acknowledgements
+- Risk: users may attempt to force “second-touch” offers via manipulation.
+- Mitigation: pair thresholds + day span, cooldown, monthly cap, negative-ack disable window.
+- Owner: CTO + SecurityEngineer
+- Status: OPEN

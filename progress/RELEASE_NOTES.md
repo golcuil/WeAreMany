@@ -2,28 +2,34 @@
 
 ## Unreleased
 ### Added
-- Bottom navigation with Home / Messages / Reflection / Profile, plus About & Safety inside Settings.
-- Inbox lifecycle: unread/read, responded, locked-after-7d states and day-level timestamps.
-- Reflection dashboard (weekly distribution, trend, volatility) and local mood history.
-- Privacy Controls screen with local clear/reset controls.
-- Cold-start bridge: system-origin inbox message + finite content catalog/selection.
-- Profile impact counter and matching health/affinity infrastructure (aggregate-only).
-- Ops tooling: daily aggregates, watchdog CLI, unified ops runner, scheduled workflow.
-- Second-touch one-shot offer in Inbox and send flow (no chat, no identity).
+- Mood entry flow with crisis UX and resources routing.
+- Inbox + acknowledgements flow; idempotent acks and ack_status in inbox.
+- Reflection tab: weekly distribution, trend, volatility; local-only mood history.
+- Profile tab: private identity dashboard with local display name, Settings entry.
+- Privacy Controls screen with local data reset and About & Safety access.
+- Cold-start bridge: system-origin inbox items + finite content selection.
+- Helpful Series finite content on Home, with detail view.
+- K-anon “similar_count” insight on Home (shown only when cohort >= K).
+- Second-touch one-shot offer as a system inbox card and send flow (no chat).
+- Ops tooling: daily aggregates, watchdog CLI, unified ops runner; scheduled workflow.
 
 ### Changed
-- Matching: progressive delivery, deterministic candidate sampling, canonical theme tags.
-- Inbox timestamps coarsened to day-level UTC to reduce correlation risk.
-- Delivery gating: crisis-aware sender gate + recipient shielding.
+- Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
+- Theme processing: canonical theme tags + normalization.
+- Inbox timestamps coarsened to day-level UTC and humanized labels.
+- Crisis safety: sender gate + recipient shielding for peer delivery.
 
 ### Fixed
-- CI/workflow stability (format gating, deps, import safety, optional redis/fastapi imports).
-- Repository compatibility regressions and Postgres JSON adaptation for security events.
+- CI/workflow stability (format gates, deps install, ops_daily run modes).
+- Import-time crashes (optional redis, decoupled domain logic).
+- Postgres repository compatibility and JSON meta adaptation.
+- Flaky tests (fixed time injection, deterministic sampling).
 
 ### Security / Privacy
-- Identity leak detection hardening, shadow throttling, and security event logging.
-- K-anon “similar_count” insight gated by cohort size.
-- Security events retention pruning with privacy-safe aggregates only.
+- Identity leak detection hardened (email/phone/url/handle patterns).
+- Shadow throttling for repeated identity leaks.
+- Privacy-safe security event logging + retention pruning.
+- Aggregate-only metrics/health signals (no identifiers).
 
 ---
 

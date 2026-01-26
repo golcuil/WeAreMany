@@ -29,3 +29,28 @@
 - Decision: Offer a one-time “second-touch” note as a system-origin inbox card with opaque offer_id.
 - Context: Allow deeper support without chat, identity surfaces, or threads.
 - Consequences: One-shot enforcement, cooldowns, and strict abuse guardrails.
+
+## D-007 (2026-01-26) — Inbox lifecycle is client-only
+- Decision: Unread/read state is client-only; responded and locked states are derived from ack_status and age.
+- Context: Avoid server state for read receipts; keep privacy posture strong.
+- Consequences: Local read store; backend schema unchanged.
+
+## D-008 (2026-01-26) — Crisis window safety gate
+- Decision: Block peer delivery and shield inbox during crisis window; allow system-only content.
+- Context: Avoid harm amplification during crisis; keep behavior server-side only.
+- Consequences: Crisis window check in matching and inbox eligibility; no client schema changes.
+
+## D-009 (2026-01-26) — Security events are privacy-safe, hashed
+- Decision: Log identity leak and throttle events with actor_hash (HMAC) and aggregate-only meta.
+- Context: Need observability without identifiers or raw text.
+- Consequences: Security events retention and pruning; no raw text stored.
+
+## D-010 (2026-01-26) — Canonical taxonomies are single-source
+- Decision: Centralize hold_reason values, security event types, and theme tags in canonical modules.
+- Context: Prevent drift across code paths and tests.
+- Consequences: Tests enforce uniqueness and naming conventions; reduced analytics ambiguity.
+
+## D-011 (2026-01-26) — Deterministic sampling + seeded ordering
+- Decision: Replace nondeterministic candidate sampling with seeded ordering for parity across stores.
+- Context: Reduce test flakiness and improve debuggability.
+- Consequences: Same inputs yield same candidate ordering; limit clamping enforced.
