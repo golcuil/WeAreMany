@@ -1,4 +1,4 @@
-from app.delivery_decision import DeliveryMode, decide_delivery_mode
+from app.delivery_decision import DeliveryMode, decide_delivery_mode, is_low_density
 from app.hold_reasons import HoldReason
 
 
@@ -44,3 +44,9 @@ def test_decision_deliver_peer():
     )
     assert decision.mode == DeliveryMode.DELIVER_PEER
     assert decision.hold_reason is None
+
+
+def test_is_low_density_boundaries():
+    assert is_low_density(4, 5)
+    assert not is_low_density(5, 5)
+    assert not is_low_density(6, 5)

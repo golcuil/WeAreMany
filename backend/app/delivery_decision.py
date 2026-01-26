@@ -31,9 +31,13 @@ def decide_delivery_mode(
         )
     if hold_reason:
         return DeliveryDecision(mode=DeliveryMode.HOLD, hold_reason=hold_reason)
-    if recipient_pool_size < min_pool_size:
+    if is_low_density(recipient_pool_size, min_pool_size):
         return DeliveryDecision(
             mode=DeliveryMode.BRIDGE_SYSTEM,
             hold_reason=HoldReason.INSUFFICIENT_POOL.value,
         )
     return DeliveryDecision(mode=DeliveryMode.DELIVER_PEER, hold_reason=None)
+
+
+def is_low_density(recipient_pool_size: int, min_pool_size: int) -> bool:
+    return recipient_pool_size < min_pool_size
