@@ -49,10 +49,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-044] Canonicalize security_events event_type taxonomy and update usages/tests
 - [T-045] Matching Health (H) feedback loop for auto-tuning matching parameters
 - [T-046] Add finite content catalog + deterministic selection (backend)
+- [T-047] Cold-start bridge: system inbox message + finite content selection
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-047] Cold-start bridge: system inbox message + finite content selection
 
 ## Next
 
