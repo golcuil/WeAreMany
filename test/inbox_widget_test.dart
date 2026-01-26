@@ -54,8 +54,8 @@ class FakeInboxApiClient extends ApiClient {
 void main() {
   testWidgets('Inbox loads and renders list', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    final now = DateTime.now().toUtc();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final fixedNow = DateTime.utc(2026, 1, 23, 12);
+    final today = DateTime.utc(fixedNow.year, fixedNow.month, fixedNow.day);
     final client = FakeInboxApiClient([
       InboxItem(
         inboxItemId: 'i1',
@@ -67,7 +67,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(client)],
-        child: const MaterialApp(home: InboxScreen()),
+        child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
     await tester.pumpAndSettle();
@@ -78,8 +78,8 @@ void main() {
 
   testWidgets('Ack button triggers call and updates UI', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    final now = DateTime.now().toUtc();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final fixedNow = DateTime.utc(2026, 1, 23, 12);
+    final today = DateTime.utc(fixedNow.year, fixedNow.month, fixedNow.day);
     final client = FakeInboxApiClient([
       InboxItem(
         inboxItemId: 'i1',
@@ -91,7 +91,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(client)],
-        child: const MaterialApp(home: InboxScreen()),
+        child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
     await tester.pumpAndSettle();
@@ -109,8 +109,8 @@ void main() {
 
   testWidgets('Unread indicator clears after tap', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    final now = DateTime.now().toUtc();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final fixedNow = DateTime.utc(2026, 1, 23, 12);
+    final today = DateTime.utc(fixedNow.year, fixedNow.month, fixedNow.day);
     final client = FakeInboxApiClient([
       InboxItem(
         inboxItemId: 'i1',
@@ -122,7 +122,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(client)],
-        child: const MaterialApp(home: InboxScreen()),
+        child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
     await tester.pumpAndSettle();
@@ -136,11 +136,11 @@ void main() {
 
   testWidgets('Locked items disable acknowledgements', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    final now = DateTime.now().toUtc();
+    final fixedNow = DateTime.utc(2026, 1, 23, 12);
     final day = DateTime.utc(
-      now.year,
-      now.month,
-      now.day,
+      fixedNow.year,
+      fixedNow.month,
+      fixedNow.day,
     ).subtract(const Duration(days: 8));
     final client = FakeInboxApiClient([
       InboxItem(
@@ -153,7 +153,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(client)],
-        child: const MaterialApp(home: InboxScreen()),
+        child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
     await tester.pumpAndSettle();
@@ -167,8 +167,8 @@ void main() {
 
   testWidgets('Timestamp uses Today and Yesterday labels', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    final now = DateTime.now().toUtc();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final fixedNow = DateTime.utc(2026, 1, 23, 12);
+    final today = DateTime.utc(fixedNow.year, fixedNow.month, fixedNow.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final client = FakeInboxApiClient([
       InboxItem(
@@ -187,7 +187,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(client)],
-        child: const MaterialApp(home: InboxScreen()),
+        child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
     await tester.pumpAndSettle();

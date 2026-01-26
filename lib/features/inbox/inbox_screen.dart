@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'inbox_controller.dart';
 
 class InboxScreen extends ConsumerStatefulWidget {
-  const InboxScreen({super.key});
+  const InboxScreen({super.key, this.nowUtc});
 
   static const routeName = '/inbox';
+
+  final DateTime? nowUtc;
 
   @override
   ConsumerState<InboxScreen> createState() => _InboxScreenState();
@@ -24,6 +26,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inboxControllerProvider);
+    final nowUtc = (widget.nowUtc ?? DateTime.now()).toUtc();
     return Scaffold(
       key: const Key('inbox_screen'),
       appBar: AppBar(
@@ -54,7 +57,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               itemBuilder: (context, index) {
                 final item = state.items[index];
                 final isResponded = item.ackStatus != null;
-                final isLocked = _isLocked(item.receivedAt);
+                final isLocked = _isLocked(item.receivedAt, nowUtc);
                 final isRead =
                     isResponded || state.readIds.contains(item.inboxItemId);
                 final status = isLocked
@@ -62,7 +65,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     : isResponded
                     ? 'Responded'
                     : null;
-                final timestamp = _formatTimestamp(item.receivedAt);
+                final timestamp = _formatTimestamp(item.receivedAt, nowUtc);
                 final subtitle = status == null
                     ? timestamp
                     : '$timestamp \u00b7 $status';
@@ -127,7 +130,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     );
   }
 
-  String _formatTimestamp(String value) {
+  String _formatTimestamp(String value, DateTime nowUtc) {
     if (value.isEmpty) {
       return 'Recently';
     }
@@ -136,8 +139,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       return value;
     }
     final day = DateTime.utc(parsed.year, parsed.month, parsed.day);
-    final now = DateTime.now().toUtc();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
     final diffDays = today.difference(day).inDays;
     if (diffDays == 0) {
       return 'Today';
@@ -148,14 +150,13 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     return day.toIso8601String().split('T').first;
   }
 
-  bool _isLocked(String value) {
+  bool _isLocked(String value, DateTime nowUtc) {
     final parsed = DateTime.tryParse(value);
     if (parsed == null) {
       return false;
     }
     final day = DateTime.utc(parsed.year, parsed.month, parsed.day);
-    final now = DateTime.now().toUtc();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
     final diffDays = today.difference(day).inDays;
     return diffDays >= inboxLockDays;
   }
