@@ -53,12 +53,12 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-048] Standardize inbox item origin (system vs peer) and test invariants
 - [T-049] Harden Home finite-content data path (persist + determinism)
 - [T-051] Centralize bridge decision logic (crisis/holds > low density > peer)
-
-## In progress
-- [T-022] CI format diff visibility (print formatter diff on failure)
 - [T-050] Deterministic reflective mirror templates (finite + safe)
 - [T-052] Ops-safe minimum density K config + unified low-density check
 - [T-053] Canonical theme normalization (variants -> canonical IDs)
+
+## In progress
+- [T-022] CI format diff visibility (print formatter diff on failure)
 
 ## Next
 
