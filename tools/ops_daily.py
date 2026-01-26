@@ -54,6 +54,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("tune")
 
+    subparsers.add_parser("smoke")
+
     all_parser = subparsers.add_parser("all")
     all_parser.add_argument("--days", type=int, default=7)
     all_parser.add_argument("--min-ratio", type=float, default=0.2)
@@ -73,6 +75,9 @@ def main(argv: list[str] | None = None) -> int:
             return run_metrics(args.days, args.theme).exit_code
         if args.command == "tune":
             return run_tune_task().exit_code
+        if args.command == "smoke":
+            print(f"generated_at={datetime.now(timezone.utc).isoformat()} status=ok")
+            return 0
         if args.command == "all":
             return run_all(args.days, args.min_ratio, args.theme).exit_code
     except Exception:
