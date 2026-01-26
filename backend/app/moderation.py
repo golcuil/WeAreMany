@@ -87,6 +87,7 @@ class RedisShadowLeakThrottle:
         key = _shadow_key(principal_id)
         count = int(self._client.incr(key))
         if count == 1:
+            # Fixed window: set TTL only on first event in the window.
             self._client.expire(key, SHADOW_LEAK_WINDOW_SECONDS)
         return count
 
@@ -98,21 +99,26 @@ class RedisShadowLeakThrottle:
 
 
 class InMemoryShadowLeakThrottle:
-    def __init__(self) -> None:
+    def __init__(self, now_fn=None) -> None:
         self._data: dict[str, tuple[int, float]] = {}
+        self._now_fn = now_fn or time.time
+
+    def _now(self) -> float:
+        return float(self._now_fn())
 
     def increment(self, principal_id: str) -> int:
-        now = time.time()
+        now = self._now()
         count, expires_at = self._data.get(principal_id, (0, now + SHADOW_LEAK_WINDOW_SECONDS))
         if now > expires_at:
             count = 0
             expires_at = now + SHADOW_LEAK_WINDOW_SECONDS
         count += 1
+        # Fixed window: keep the original expiry until it passes.
         self._data[principal_id] = (count, expires_at)
         return count
 
     def is_throttled(self, principal_id: str) -> bool:
-        now = time.time()
+        now = self._now()
         count, expires_at = self._data.get(principal_id, (0, now + SHADOW_LEAK_WINDOW_SECONDS))
         if now > expires_at:
             return False
