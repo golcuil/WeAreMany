@@ -7,7 +7,6 @@ try:
     import redis
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     redis = None
-from fastapi import HTTPException, status
 
 from .config import (
     MATCH_COOLDOWN_SECONDS,
