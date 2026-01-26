@@ -48,10 +48,10 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-043] Add retention (prune) for security_events with tests
 - [T-044] Canonicalize security_events event_type taxonomy and update usages/tests
 - [T-045] Matching Health (H) feedback loop for auto-tuning matching parameters
+- [T-046] Add finite content catalog + deterministic selection (backend)
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-046] Add finite content catalog + deterministic selection (backend)
 
 ## Next
 
