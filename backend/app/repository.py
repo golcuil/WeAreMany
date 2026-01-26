@@ -852,23 +852,6 @@ class PostgresRepository:
                 result[theme_id] = decayed
         return result
 
-
-def _hash_affinity_actor(principal_id: str) -> str:
-    key = SECURITY_EVENT_HMAC_KEY.encode("utf-8")
-    message = principal_id.encode("utf-8")
-    return hmac.new(key, message, hashlib.sha256).hexdigest()
-
-
-def _apply_affinity_decay(
-    score: float,
-    updated_at: datetime,
-    now: datetime,
-) -> float:
-    elapsed_days = max(0, (now - updated_at).days)
-    if elapsed_days == 0:
-        return score
-    return score * (AFFINITY_DECAY_PER_DAY ** elapsed_days)
-
     def record_crisis_action(
         self,
         principal_id: str,
@@ -1199,7 +1182,24 @@ def _apply_affinity_decay(
                     content_id,
                 ),
             )
-            return content_id
+        return content_id
+
+
+def _hash_affinity_actor(principal_id: str) -> str:
+    key = SECURITY_EVENT_HMAC_KEY.encode("utf-8")
+    message = principal_id.encode("utf-8")
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
+
+
+def _apply_affinity_decay(
+    score: float,
+    updated_at: datetime,
+    now: datetime,
+) -> float:
+    elapsed_days = max(0, (now - updated_at).days)
+    if elapsed_days == 0:
+        return score
+    return score * (AFFINITY_DECAY_PER_DAY ** elapsed_days)
 
 
 _default_repo = InMemoryRepository()
