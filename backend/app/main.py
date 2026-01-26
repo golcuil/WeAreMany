@@ -410,7 +410,8 @@ def submit_message(
             )
             repo.upsert_eligible_principal(principal.principal_id, payload.intensity, message_themes)
             health = repo.get_matching_health(principal.principal_id, window_days=7)
-            params = progressive_params(health.ratio)
+            tuning = repo.get_matching_tuning()
+            params = progressive_params(health.ratio, tuning)
             logger.info(
                 "matching_health",
                 {

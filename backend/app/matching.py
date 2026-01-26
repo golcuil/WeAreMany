@@ -5,7 +5,20 @@ from typing import Dict, List, Optional, Protocol
 import redis
 from fastapi import HTTPException, status
 
-from .config import MATCH_COOLDOWN_SECONDS, MATCH_MIN_POOL_K, REDIS_URL
+from .config import (
+    MATCH_COOLDOWN_SECONDS,
+    MATCH_MIN_POOL_K,
+    REDIS_URL,
+    MATCH_TUNING_ALLOW_THEME_RELAX_HIGH,
+    MATCH_TUNING_HIGH_INTENSITY_BAND,
+    MATCH_TUNING_INTENSITY_MAX,
+    MATCH_TUNING_INTENSITY_MIN,
+    MATCH_TUNING_LOW_INTENSITY_BAND,
+    MATCH_TUNING_POOL_MAX,
+    MATCH_TUNING_POOL_MIN,
+    MATCH_TUNING_POOL_MULTIPLIER_HIGH,
+    MATCH_TUNING_POOL_MULTIPLIER_LOW,
+)
 from .hold_reasons import HoldReason
 
 
@@ -32,6 +45,25 @@ class ProgressiveParams:
     allow_theme_relax: bool
     pool_multiplier: float
     bucket: str
+
+
+@dataclass(frozen=True)
+class MatchingTuning:
+    low_intensity_band: int
+    high_intensity_band: int
+    pool_multiplier_low: float
+    pool_multiplier_high: float
+    allow_theme_relax_high: bool
+
+
+def default_matching_tuning() -> MatchingTuning:
+    return MatchingTuning(
+        low_intensity_band=MATCH_TUNING_LOW_INTENSITY_BAND,
+        high_intensity_band=MATCH_TUNING_HIGH_INTENSITY_BAND,
+        pool_multiplier_low=MATCH_TUNING_POOL_MULTIPLIER_LOW,
+        pool_multiplier_high=MATCH_TUNING_POOL_MULTIPLIER_HIGH,
+        allow_theme_relax_high=MATCH_TUNING_ALLOW_THEME_RELAX_HIGH,
+    )
 
 
 class DedupeStore(Protocol):
@@ -135,23 +167,51 @@ def match_decision(
     return MatchDecision(decision="HOLD", reason=HoldReason.COOLDOWN_ACTIVE.value)
 
 
-def progressive_params(health_ratio: float) -> ProgressiveParams:
+def _clamp(value: float, min_value: float, max_value: float) -> float:
+    return max(min_value, min(max_value, value))
+
+
+def progressive_params(
+    health_ratio: float,
+    tuning: Optional[MatchingTuning] = None,
+) -> ProgressiveParams:
+    tuning = tuning or default_matching_tuning()
     if health_ratio < 0.2:
+        intensity_band = int(
+            _clamp(
+                tuning.low_intensity_band,
+                MATCH_TUNING_INTENSITY_MIN,
+                MATCH_TUNING_INTENSITY_MAX,
+            )
+        )
+        pool_multiplier = _clamp(
+            tuning.pool_multiplier_low,
+            MATCH_TUNING_POOL_MIN,
+            MATCH_TUNING_POOL_MAX,
+        )
         return ProgressiveParams(
-            intensity_band=0,
+            intensity_band=intensity_band,
             allow_theme_relax=False,
-            pool_multiplier=-0.5,
+            pool_multiplier=pool_multiplier,
             bucket="low",
         )
     if health_ratio > 0.6:
+        intensity_band = int(
+            _clamp(tuning.high_intensity_band, MATCH_TUNING_INTENSITY_MIN, MATCH_TUNING_INTENSITY_MAX)
+        )
+        pool_multiplier = _clamp(
+            tuning.pool_multiplier_high,
+            MATCH_TUNING_POOL_MIN,
+            MATCH_TUNING_POOL_MAX,
+        )
         return ProgressiveParams(
-            intensity_band=2,
-            allow_theme_relax=True,
-            pool_multiplier=0.5,
+            intensity_band=intensity_band,
+            allow_theme_relax=tuning.allow_theme_relax_high,
+            pool_multiplier=pool_multiplier,
             bucket="high",
         )
     return ProgressiveParams(
-        intensity_band=0,
+        intensity_band=MATCH_TUNING_LOW_INTENSITY_BAND,
         allow_theme_relax=False,
         pool_multiplier=0.0,
         bucket="neutral",

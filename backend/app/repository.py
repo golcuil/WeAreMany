@@ -4,7 +4,8 @@ from typing import Dict, List, Optional, Protocol
 
 import os
 
-from .matching import Candidate
+from .bridge import SYSTEM_SENDER_ID
+from .matching import Candidate, MatchingTuning, default_matching_tuning
 from .config import CRISIS_WINDOW_HOURS, ELIGIBLE_RECENCY_HOURS, MATCH_SAMPLE_LIMIT
 
 try:
@@ -166,6 +167,15 @@ class Repository(Protocol):
     def prune_security_events(self, now: datetime, retention_days: Optional[int] = None) -> int:
         ...
 
+    def get_matching_tuning(self) -> MatchingTuning:
+        ...
+
+    def update_matching_tuning(self, tuning: MatchingTuning, now: datetime) -> None:
+        ...
+
+    def get_global_matching_health(self, window_days: int = 7) -> MatchingHealth:
+        ...
+
 
 class InMemoryRepository:
     def __init__(self) -> None:
@@ -178,6 +188,7 @@ class InMemoryRepository:
         self.affinity_scores: Dict[str, Dict[str, float]] = {}
         self.crisis_state: Dict[str, Dict[str, datetime]] = {}
         self.security_events: List[SecurityEventRecord] = []
+        self.matching_tuning = default_matching_tuning()
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -401,6 +412,38 @@ class InMemoryRepository:
             record for record in self.security_events if record.created_at >= cutoff
         ]
         return before - len(self.security_events)
+
+    def get_matching_tuning(self) -> MatchingTuning:
+        return self.matching_tuning
+
+    def update_matching_tuning(self, tuning: MatchingTuning, now: datetime) -> None:
+        self.matching_tuning = tuning
+
+    def get_global_matching_health(self, window_days: int = 7) -> MatchingHealth:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+        delivered = []
+        for item in self.inbox_items.values():
+            created_at = _parse_iso(item.created_at)
+            if created_at is None or created_at < cutoff:
+                continue
+            message = self.messages.get(item.message_id)
+            if message is None:
+                continue
+            if message.principal_id == SYSTEM_SENDER_ID:
+                continue
+            delivered.append(item)
+        delivered_count = len(delivered)
+        positive_ack_count = 0
+        for item in delivered:
+            reaction = self.acks.get((item.message_id, item.recipient_id))
+            if reaction in {"thanks", "helpful", "relate"}:
+                positive_ack_count += 1
+        ratio = _safe_ratio(positive_ack_count, delivered_count)
+        return MatchingHealth(
+            delivered_count=delivered_count,
+            positive_ack_count=positive_ack_count,
+            ratio=ratio,
+        )
 
 
 class PostgresRepository:
@@ -853,6 +896,89 @@ class PostgresRepository:
             )
             deleted = cur.rowcount or 0
         return int(deleted)
+
+    def get_matching_tuning(self) -> MatchingTuning:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT low_intensity_band,
+                       high_intensity_band,
+                       pool_multiplier_low,
+                       pool_multiplier_high,
+                       allow_theme_relax_high
+                FROM matching_tuning
+                WHERE id = 1
+                """,
+            )
+            row = cur.fetchone()
+        if row is None:
+            return default_matching_tuning()
+        return MatchingTuning(
+            low_intensity_band=row[0],
+            high_intensity_band=row[1],
+            pool_multiplier_low=float(row[2]),
+            pool_multiplier_high=float(row[3]),
+            allow_theme_relax_high=bool(row[4]),
+        )
+
+    def update_matching_tuning(self, tuning: MatchingTuning, now: datetime) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO matching_tuning
+                (id, low_intensity_band, high_intensity_band, pool_multiplier_low, pool_multiplier_high, allow_theme_relax_high, updated_at)
+                VALUES (1, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id)
+                DO UPDATE SET
+                  low_intensity_band = EXCLUDED.low_intensity_band,
+                  high_intensity_band = EXCLUDED.high_intensity_band,
+                  pool_multiplier_low = EXCLUDED.pool_multiplier_low,
+                  pool_multiplier_high = EXCLUDED.pool_multiplier_high,
+                  allow_theme_relax_high = EXCLUDED.allow_theme_relax_high,
+                  updated_at = EXCLUDED.updated_at
+                """,
+                (
+                    tuning.low_intensity_band,
+                    tuning.high_intensity_band,
+                    tuning.pool_multiplier_low,
+                    tuning.pool_multiplier_high,
+                    tuning.allow_theme_relax_high,
+                    now,
+                ),
+            )
+
+    def get_global_matching_health(self, window_days: int = 7) -> MatchingHealth:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM inbox_items i
+                JOIN messages m ON i.message_id = m.id
+                WHERE i.received_at >= %s
+                  AND m.origin_device_id != %s
+                """,
+                (cutoff, SYSTEM_SENDER_ID),
+            )
+            delivered_count = int(cur.fetchone()[0] or 0)
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM acknowledgements a
+                JOIN messages m ON a.message_id = m.id
+                WHERE a.created_at >= %s
+                  AND a.reaction IN ('helpful', 'thanks', 'relate')
+                  AND m.origin_device_id != %s
+                """,
+                (cutoff, SYSTEM_SENDER_ID),
+            )
+            positive_ack_count = int(cur.fetchone()[0] or 0)
+        ratio = _safe_ratio(positive_ack_count, delivered_count)
+        return MatchingHealth(
+            delivered_count=delivered_count,
+            positive_ack_count=positive_ack_count,
+            ratio=ratio,
+        )
 
 
 _default_repo = InMemoryRepository()

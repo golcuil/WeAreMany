@@ -10,6 +10,7 @@ from app import matching as matching_module  # noqa: E402
 from app import moderation as moderation_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
+from app.matching import default_matching_tuning  # noqa: E402
 from app.security_event_types import SecurityEventType  # noqa: E402
 from app.repository import MatchingHealth  # noqa: E402
 
@@ -35,6 +36,19 @@ class FakeRepo:
 
     def record_security_event(self, record: repository_module.SecurityEventRecord) -> None:
         self.security_events.append(record)
+
+    def get_matching_tuning(self):
+        return default_matching_tuning()
+
+    def update_matching_tuning(self, tuning, now):
+        return None
+
+    def get_global_matching_health(self, window_days: int = 7):
+        return repository_module.MatchingHealth(
+            delivered_count=0,
+            positive_ack_count=0,
+            ratio=0.0,
+        )
 
     def save_mood(self, record: repository_module.MoodRecord) -> None:
         return None
