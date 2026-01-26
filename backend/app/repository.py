@@ -824,13 +824,18 @@ class PostgresRepository:
 
     def record_security_event(self, record: SecurityEventRecord) -> None:
         with self._conn() as conn, conn.cursor() as cur:
+            meta_payload = record.meta or {}
+            if psycopg is not None:
+                from psycopg.types.json import Json
+
+                meta_payload = Json(meta_payload)
             cur.execute(
                 """
                 INSERT INTO security_events
                 (actor_hash, event_type, meta, created_at)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (record.actor_hash, record.event_type, record.meta, record.created_at),
+                (record.actor_hash, record.event_type, meta_payload, record.created_at),
             )
 
     def prune_security_events(self, now: datetime, retention_days: Optional[int] = None) -> int:
