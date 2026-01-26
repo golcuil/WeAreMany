@@ -49,6 +49,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-044] Canonicalize security_events event_type taxonomy and update usages/tests
 
 ## Next
 

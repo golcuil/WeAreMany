@@ -4,6 +4,7 @@ import os
 import pytest
 
 from app.repository import InMemoryRepository, PostgresRepository, SecurityEventRecord, psycopg
+from app.security_event_types import SecurityEventType
 
 POSTGRES_DSN = os.getenv("POSTGRES_DSN_TEST")
 
@@ -24,8 +25,8 @@ def test_in_memory_prunes_old_events(monkeypatch):
     now = datetime(2026, 1, 30, tzinfo=timezone.utc)
     old = now - timedelta(days=31)
     recent = now - timedelta(days=5)
-    _record(repo, "a", "identity_leak_detected", old)
-    _record(repo, "b", "identity_leak_detected", recent)
+    _record(repo, "a", SecurityEventType.IDENTITY_LEAK_DETECTED.value, old)
+    _record(repo, "b", SecurityEventType.IDENTITY_LEAK_DETECTED.value, recent)
 
     deleted = repo.prune_security_events(now, retention_days=30)
     assert deleted == 1
@@ -40,8 +41,8 @@ def test_in_memory_prune_respects_config(monkeypatch):
     now = datetime(2026, 2, 1, tzinfo=timezone.utc)
     old = now - timedelta(days=2)
     recent = now - timedelta(hours=12)
-    _record(repo, "a", "identity_leak_detected", old)
-    _record(repo, "b", "identity_leak_detected", recent)
+    _record(repo, "a", SecurityEventType.IDENTITY_LEAK_DETECTED.value, old)
+    _record(repo, "b", SecurityEventType.IDENTITY_LEAK_DETECTED.value, recent)
 
     monkeypatch.setattr(config_module, "SECURITY_EVENTS_RETENTION_DAYS", 1)
     deleted = repo.prune_security_events(now)
@@ -56,8 +57,8 @@ def test_postgres_prune_security_events():
     now = datetime.now(timezone.utc)
     old = now - timedelta(days=40)
     recent = now - timedelta(days=5)
-    _record(repo, "pg-old", "identity_leak_detected", old)
-    _record(repo, "pg-recent", "identity_leak_detected", recent)
+    _record(repo, "pg-old", SecurityEventType.IDENTITY_LEAK_DETECTED.value, old)
+    _record(repo, "pg-recent", SecurityEventType.IDENTITY_LEAK_DETECTED.value, recent)
 
     deleted = repo.prune_security_events(now, retention_days=30)
     assert deleted >= 1

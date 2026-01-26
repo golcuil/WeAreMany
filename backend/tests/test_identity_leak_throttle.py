@@ -12,6 +12,7 @@ from app import rate_limit as rate_limit_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
 from app.repository import MatchingHealth  # noqa: E402
 from app.hold_reasons import HoldReason  # noqa: E402
+from app.security_event_types import SecurityEventType  # noqa: E402
 
 
 class InMemoryRateLimiter:
@@ -127,7 +128,10 @@ def test_shadow_throttle_holds_on_threshold():
     assert third.json()["hold_reason"] == HoldReason.IDENTITY_LEAK.value
     assert "test@example.com" not in third.json()["sanitized_text"]
     assert repo.saved_messages == count_after_second
-    assert any(event.event_type == "identity_leak_throttle_held" for event in repo.security_events)
+    assert any(
+        event.event_type == SecurityEventType.IDENTITY_LEAK_THROTTLE_HELD.value
+        for event in repo.security_events
+    )
 
     app.dependency_overrides.clear()
 

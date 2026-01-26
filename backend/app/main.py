@@ -18,6 +18,7 @@ from .bridge import SYSTEM_SENDER_ID, build_reflective_message
 from .logging import configure_logging, redact_headers
 from .events import EventName, get_event_emitter, new_request_id, safe_emit
 from .hold_reasons import HoldReason
+from .security_event_types import SecurityEventType
 from .matching import Candidate, get_dedupe_store, match_decision, progressive_params
 from .moderation import get_leak_throttle, get_shadow_throttle, moderate_text
 from .rate_limit import rate_limit
@@ -190,7 +191,7 @@ def submit_mood(
         safe_record_security_event(
             repo,
             principal.principal_id,
-            "identity_leak_detected",
+        SecurityEventType.IDENTITY_LEAK_DETECTED.value,
             {
                 "endpoint": "/mood",
                 "pii_kinds": list(result.leak_types),
@@ -343,7 +344,7 @@ def submit_message(
         safe_record_security_event(
             repo,
             principal.principal_id,
-            "identity_leak_detected",
+        SecurityEventType.IDENTITY_LEAK_DETECTED.value,
             {
                 "endpoint": "/messages",
                 "pii_kinds": list(result.leak_types),
@@ -362,7 +363,7 @@ def submit_message(
             safe_record_security_event(
                 repo,
                 principal.principal_id,
-                "identity_leak_throttle_held",
+                SecurityEventType.IDENTITY_LEAK_THROTTLE_HELD.value,
                 {
                     "endpoint": "/messages",
                     "throttle_count": identity_leak_count,

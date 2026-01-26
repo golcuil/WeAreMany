@@ -10,6 +10,7 @@ from app import matching as matching_module  # noqa: E402
 from app import moderation as moderation_module  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
 from app import repository as repository_module  # noqa: E402
+from app.security_event_types import SecurityEventType  # noqa: E402
 from app.repository import MatchingHealth  # noqa: E402
 
 
@@ -103,7 +104,10 @@ def test_mood_flags_identity_leak_and_redacts():
     assert body["identity_leak"] is True
     assert "test@example.com" not in body["sanitized_text"]
     assert "www.example.com" not in body["sanitized_text"]
-    assert any(event.event_type == "identity_leak_detected" for event in repo.security_events)
+    assert any(
+        event.event_type == SecurityEventType.IDENTITY_LEAK_DETECTED.value
+        for event in repo.security_events
+    )
     assert all(
         "test@example.com" not in str(event.meta) and "www.example.com" not in str(event.meta)
         for event in repo.security_events
@@ -128,7 +132,10 @@ def test_messages_flags_identity_leak_and_redacts():
     assert body["identity_leak"] is True
     assert "+1" not in body["sanitized_text"]
     assert "123-4567" not in body["sanitized_text"]
-    assert any(event.event_type == "identity_leak_detected" for event in repo.security_events)
+    assert any(
+        event.event_type == SecurityEventType.IDENTITY_LEAK_DETECTED.value
+        for event in repo.security_events
+    )
 
     app.dependency_overrides.clear()
 
