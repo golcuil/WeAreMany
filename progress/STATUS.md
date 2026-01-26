@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-062] Second-touch prompt (Frequent Positive Encounters) v1 in Inbox — fixed offer materialization; CI green.
 - [T-060] Scheduled ops_daily GitHub Actions workflow (privacy-safe)
 - [T-061] Fix ops_daily workflow deps (install PyYAML + backend requirements)
 - [T-059] Unified ops runner (metrics + watchdog + tuning)
@@ -67,7 +68,6 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-062] Second-touch prompt (Frequent Positive Encounters) v1 in Inbox
 
 ## Next
 
