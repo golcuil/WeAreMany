@@ -43,11 +43,11 @@ def _override_deps() -> None:
 def test_deliver_path_writes_inbox_and_ack():
     previous_min_pool = main_module.COLD_START_MIN_POOL
     main_module.COLD_START_MIN_POOL = 1
+    previous_match_min_pool = matching_module.MATCH_MIN_POOL_K
+    matching_module.MATCH_MIN_POOL_K = 1
     repo = repository_module.InMemoryRepository()
     repo.candidate_pool = [
         Candidate(candidate_id="recipient", intensity="low", themes=[]),
-        Candidate(candidate_id="recipient2", intensity="low", themes=[]),
-        Candidate(candidate_id="recipient3", intensity="low", themes=[]),
     ]
     app.dependency_overrides[repository_module.get_repository] = lambda: repo
     _override_deps()
@@ -92,17 +92,18 @@ def test_deliver_path_writes_inbox_and_ack():
     assert inbox_after.json()["items"][0]["ack_status"] == "helpful"
 
     main_module.COLD_START_MIN_POOL = previous_min_pool
+    matching_module.MATCH_MIN_POOL_K = previous_match_min_pool
     app.dependency_overrides.clear()
 
 
 def test_authz_blocks_cross_user_inbox_and_ack():
     previous_min_pool = main_module.COLD_START_MIN_POOL
     main_module.COLD_START_MIN_POOL = 1
+    previous_match_min_pool = matching_module.MATCH_MIN_POOL_K
+    matching_module.MATCH_MIN_POOL_K = 1
     repo = repository_module.InMemoryRepository()
     repo.candidate_pool = [
         Candidate(candidate_id="recipient", intensity="low", themes=[]),
-        Candidate(candidate_id="recipient2", intensity="low", themes=[]),
-        Candidate(candidate_id="recipient3", intensity="low", themes=[]),
     ]
     app.dependency_overrides[repository_module.get_repository] = lambda: repo
     _override_deps()
@@ -128,6 +129,7 @@ def test_authz_blocks_cross_user_inbox_and_ack():
     assert forbidden.status_code == 403
 
     main_module.COLD_START_MIN_POOL = previous_min_pool
+    matching_module.MATCH_MIN_POOL_K = previous_match_min_pool
     app.dependency_overrides.clear()
 
 

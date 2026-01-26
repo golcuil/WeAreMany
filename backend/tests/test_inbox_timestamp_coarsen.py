@@ -42,11 +42,11 @@ def _normalize_iso(value: str) -> datetime:
 def test_inbox_created_at_is_day_coarsened():
     previous_min_pool = main_module.COLD_START_MIN_POOL
     main_module.COLD_START_MIN_POOL = 1
+    previous_match_min_pool = matching_module.MATCH_MIN_POOL_K
+    matching_module.MATCH_MIN_POOL_K = 1
     repo = repository_module.InMemoryRepository()
     repo.candidate_pool = [
         Candidate(candidate_id="recipient", intensity="low", themes=[]),
-        Candidate(candidate_id="recipient2", intensity="low", themes=[]),
-        Candidate(candidate_id="recipient3", intensity="low", themes=[]),
     ]
     app.dependency_overrides[repository_module.get_repository] = lambda: repo
     app.dependency_overrides[rate_limit_module.get_rate_limiter] = lambda: InMemoryRateLimiter()
@@ -71,4 +71,5 @@ def test_inbox_created_at_is_day_coarsened():
     assert created_at.microsecond == 0
 
     main_module.COLD_START_MIN_POOL = previous_min_pool
+    matching_module.MATCH_MIN_POOL_K = previous_match_min_pool
     app.dependency_overrides.clear()

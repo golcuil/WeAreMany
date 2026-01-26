@@ -407,6 +407,8 @@ class InMemoryRepository:
         theme_tags: List[str],
         limit: int = MATCH_SAMPLE_LIMIT,
     ) -> List[Candidate]:
+        day_key = datetime.now(timezone.utc).date().isoformat()
+        seed = _candidate_seed(sender_id, day_key)
         if self.candidate_pool:
             filtered = [
                 candidate
@@ -414,7 +416,8 @@ class InMemoryRepository:
                 if candidate.candidate_id != sender_id
                 and not self.is_in_crisis_window(candidate.candidate_id, CRISIS_WINDOW_HOURS)
             ]
-            return list(filtered)[:limit]
+            ordered = sorted(filtered, key=lambda c: _candidate_sort_key(c.candidate_id, seed))
+            return list(ordered)[:limit]
 
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
         candidates: List[Candidate] = []
@@ -436,9 +439,8 @@ class InMemoryRepository:
                     themes=list(data["theme_tags"]),
                 )
             )
-            if len(candidates) >= limit:
-                break
-        return candidates
+        ordered = sorted(candidates, key=lambda c: _candidate_sort_key(c.candidate_id, seed))
+        return ordered[:limit]
 
     def get_matching_health(self, principal_id: str, window_days: int = 7) -> MatchingHealth:
         cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
@@ -905,6 +907,8 @@ class PostgresRepository:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=ELIGIBLE_RECENCY_HOURS)
         crisis_cutoff = datetime.now(timezone.utc) - timedelta(hours=CRISIS_WINDOW_HOURS)
         safe_limit = min(max(int(limit), 1), 100)
+        day_key = datetime.now(timezone.utc).date().isoformat()
+        seed = _candidate_seed(sender_id, day_key)
         with self._conn() as conn, conn.cursor() as cur:
             if theme_tags:
                 cur.execute(
@@ -921,7 +925,7 @@ class PostgresRepository:
                           AND pcs.last_action_at >= %s
                       )
                       AND theme_tags && %s
-                    ORDER BY random()
+                    ORDER BY md5(principal_id || %s)
                     LIMIT %s
                     """,
                     (
@@ -930,6 +934,7 @@ class PostgresRepository:
                         cutoff,
                         crisis_cutoff,
                         theme_tags,
+                        seed,
                         safe_limit,
                     ),
                 )
@@ -947,7 +952,7 @@ class PostgresRepository:
                         WHERE pcs.principal_id = eligible_principals.principal_id
                           AND pcs.last_action_at >= %s
                       )
-                    ORDER BY random()
+                    ORDER BY md5(principal_id || %s)
                     LIMIT %s
                     """,
                     (
@@ -955,6 +960,7 @@ class PostgresRepository:
                         intensity_bucket,
                         cutoff,
                         crisis_cutoff,
+                        seed,
                         safe_limit,
                     ),
                 )
@@ -1200,6 +1206,15 @@ def _apply_affinity_decay(
     if elapsed_days == 0:
         return score
     return score * (AFFINITY_DECAY_PER_DAY ** elapsed_days)
+
+
+def _candidate_seed(sender_id: str, day_key: str) -> str:
+    return f"{sender_id}:{day_key}"
+
+
+def _candidate_sort_key(candidate_id: str, seed: str) -> str:
+    digest = hashlib.sha256(f"{candidate_id}:{seed}".encode("utf-8")).hexdigest()
+    return digest
 
 
 _default_repo = InMemoryRepository()

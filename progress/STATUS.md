@@ -60,6 +60,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - [T-055] Affinity metrics + guardrails (aggregate-only) and invariants
 
 ## In progress
+- [T-056] Deterministic candidate sampling (seeded) with parity across stores
 - [T-022] CI format diff visibility (print formatter diff on failure)
 
 ## Next

@@ -37,8 +37,10 @@ def test_postgres_candidate_pool_sampling_respects_filters():
             )
 
     try:
-        candidates = repo.get_eligible_candidates("sender", "low", ["grief"], limit=10)
-        ids = {candidate.candidate_id for candidate in candidates}
+        first = repo.get_eligible_candidates("sender", "low", ["grief"], limit=10)
+        second = repo.get_eligible_candidates("sender", "low", ["grief"], limit=10)
+        assert [c.candidate_id for c in first] == [c.candidate_id for c in second]
+        ids = {candidate.candidate_id for candidate in first}
         assert "p1" in ids
         assert "p2" not in ids
         assert "p3" not in ids
