@@ -67,10 +67,13 @@ class InboxController extends StateNotifier<InboxState> {
         .map(
           (item) => item.inboxItemId == inboxItemId
               ? InboxItem(
+                  itemType: item.itemType,
                   inboxItemId: item.inboxItemId,
                   text: item.text,
                   receivedAt: item.receivedAt,
                   ackStatus: reaction,
+                  offerId: item.offerId,
+                  offerState: item.offerState,
                 )
               : item,
         )
@@ -98,6 +101,36 @@ class InboxController extends StateNotifier<InboxState> {
     final updatedRead = {...state.readIds, inboxItemId};
     state = state.copyWith(readIds: updatedRead);
     await InboxReadStore.markRead(inboxItemId);
+  }
+
+  Future<SecondTouchSendResponse> sendSecondTouch({
+    required String offerId,
+    required String freeText,
+  }) async {
+    final response = await apiClient.sendSecondTouch(
+      SecondTouchSendRequest(offerId: offerId, freeText: freeText),
+    );
+    if (response.status == 'queued') {
+      state = state.copyWith(
+        items: state.items
+            .map(
+              (item) => item.offerId == offerId
+                  ? InboxItem(
+                      itemType: item.itemType,
+                      inboxItemId: item.inboxItemId,
+                      text: item.text,
+                      receivedAt: item.receivedAt,
+                      ackStatus: item.ackStatus,
+                      offerId: item.offerId,
+                      offerState: 'used',
+                    )
+                  : item,
+            )
+            .toList(),
+        error: null,
+      );
+    }
+    return response;
   }
 }
 

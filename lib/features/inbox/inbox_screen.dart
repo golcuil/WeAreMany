@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/network/models.dart';
 import 'inbox_controller.dart';
 
 class InboxScreen extends ConsumerStatefulWidget {
@@ -26,6 +27,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inboxControllerProvider);
+    final controller = ref.read(inboxControllerProvider.notifier);
     final nowUtc = (widget.nowUtc ?? DateTime.now()).toUtc();
     return Scaffold(
       key: const Key('inbox_screen'),
@@ -56,6 +58,18 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final item = state.items[index];
+                if (item.itemType == 'second_touch_offer') {
+                  return _SecondTouchOfferCard(
+                    offerId: item.offerId ?? '',
+                    createdAt: item.receivedAt,
+                    offerState: item.offerState ?? 'available',
+                    nowUtc: nowUtc,
+                    onSend: (text) => controller.sendSecondTouch(
+                      offerId: item.offerId ?? '',
+                      freeText: text,
+                    ),
+                  );
+                }
                 final isResponded = item.ackStatus != null;
                 final isLocked = _isLocked(item.receivedAt, nowUtc);
                 final isRead =
@@ -70,9 +84,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     ? timestamp
                     : '$timestamp \u00b7 $status';
                 return ListTile(
-                  onTap: () => ref
-                      .read(inboxControllerProvider.notifier)
-                      .markRead(item.inboxItemId),
+                  onTap: () => controller.markRead(item.inboxItemId),
                   leading: isRead
                       ? const SizedBox(width: 8)
                       : Container(
@@ -92,32 +104,26 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       _AckButton(
                         label: 'Thanks',
                         enabled: !isResponded && !isLocked,
-                        onPressed: () => ref
-                            .read(inboxControllerProvider.notifier)
-                            .acknowledge(
-                              inboxItemId: item.inboxItemId,
-                              reaction: 'thanks',
-                            ),
+                        onPressed: () => controller.acknowledge(
+                          inboxItemId: item.inboxItemId,
+                          reaction: 'thanks',
+                        ),
                       ),
                       _AckButton(
                         label: 'I relate',
                         enabled: !isResponded && !isLocked,
-                        onPressed: () => ref
-                            .read(inboxControllerProvider.notifier)
-                            .acknowledge(
-                              inboxItemId: item.inboxItemId,
-                              reaction: 'relate',
-                            ),
+                        onPressed: () => controller.acknowledge(
+                          inboxItemId: item.inboxItemId,
+                          reaction: 'relate',
+                        ),
                       ),
                       _AckButton(
                         label: 'Helpful',
                         enabled: !isResponded && !isLocked,
-                        onPressed: () => ref
-                            .read(inboxControllerProvider.notifier)
-                            .acknowledge(
-                              inboxItemId: item.inboxItemId,
-                              reaction: 'helpful',
-                            ),
+                        onPressed: () => controller.acknowledge(
+                          inboxItemId: item.inboxItemId,
+                          reaction: 'helpful',
+                        ),
                       ),
                     ],
                   ),
@@ -159,6 +165,174 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
     final diffDays = today.difference(day).inDays;
     return diffDays >= inboxLockDays;
+  }
+}
+
+class _SecondTouchOfferCard extends StatefulWidget {
+  const _SecondTouchOfferCard({
+    required this.offerId,
+    required this.createdAt,
+    required this.offerState,
+    required this.nowUtc,
+    required this.onSend,
+  });
+
+  final String offerId;
+  final String createdAt;
+  final String offerState;
+  final DateTime nowUtc;
+  final Future<SecondTouchSendResponse> Function(String text) onSend;
+
+  @override
+  State<_SecondTouchOfferCard> createState() => _SecondTouchOfferCardState();
+}
+
+class _SecondTouchOfferCardState extends State<_SecondTouchOfferCard> {
+  bool _isSending = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAvailable = widget.offerState == 'available' && !_isSending;
+    final timestamp = _formatOfferTimestamp(widget.createdAt, widget.nowUtc);
+    return Card(
+      key: Key('second_touch_offer_${widget.offerId}'),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'One more note?',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'You\'ve often crossed paths positively. Would you like one more note?',
+            ),
+            const SizedBox(height: 6),
+            Text('One-time only \u00b7 $timestamp'),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ElevatedButton(
+                key: Key('second_touch_send_${widget.offerId}'),
+                onPressed: isAvailable ? () => _openComposer(context) : null,
+                child: const Text('Send one more note'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openComposer(BuildContext context) async {
+    final text = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => const _SecondTouchComposer(),
+    );
+    if (text == null || text.trim().isEmpty) {
+      return;
+    }
+    setState(() => _isSending = true);
+    try {
+      final response = await widget.onSend(text.trim());
+      if (!context.mounted) {
+        return;
+      }
+      if (response.status == 'queued') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('One-time note sent.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not send right now.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  String _formatOfferTimestamp(String value, DateTime nowUtc) {
+    if (value.isEmpty) {
+      return 'Recently';
+    }
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) {
+      return value;
+    }
+    final day = DateTime.utc(parsed.year, parsed.month, parsed.day);
+    final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
+    final diffDays = today.difference(day).inDays;
+    if (diffDays == 0) {
+      return 'Today';
+    }
+    if (diffDays == 1) {
+      return 'Yesterday';
+    }
+    return day.toIso8601String().split('T').first;
+  }
+}
+
+class _SecondTouchComposer extends StatefulWidget {
+  const _SecondTouchComposer();
+
+  @override
+  State<_SecondTouchComposer> createState() => _SecondTouchComposerState();
+}
+
+class _SecondTouchComposerState extends State<_SecondTouchComposer> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: bottom + 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'One-time note',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          const Text('This is a one-time note. No replies or threads.'),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('second_touch_text_field'),
+            controller: _controller,
+            maxLength: 280,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Your note',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ElevatedButton(
+              key: const Key('second_touch_send_confirm'),
+              onPressed: () => Navigator.of(context).pop(_controller.text),
+              child: const Text('Send'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -141,24 +141,33 @@ class MatchSimulateResponse {
 
 class InboxItem {
   InboxItem({
+    required this.itemType,
     required this.inboxItemId,
     required this.text,
     required this.receivedAt,
     required this.ackStatus,
+    required this.offerId,
+    required this.offerState,
   });
 
+  final String itemType;
   final String inboxItemId;
   final String text;
   final String receivedAt;
   final String? ackStatus;
+  final String? offerId;
+  final String? offerState;
 
   factory InboxItem.fromJson(Map<String, dynamic> json) {
     return InboxItem(
+      itemType: json['item_type'] as String? ?? 'message',
       inboxItemId: json['inbox_item_id'] as String? ?? '',
       text: json['text'] as String? ?? '',
       receivedAt:
           json['created_at'] as String? ?? json['received_at'] as String? ?? '',
       ackStatus: json['ack_status'] as String?,
+      offerId: json['offer_id'] as String?,
+      offerState: json['offer_state'] as String?,
     );
   }
 }
@@ -198,6 +207,37 @@ class AcknowledgementResponse {
   factory AcknowledgementResponse.fromJson(Map<String, dynamic> json) {
     return AcknowledgementResponse(
       status: json['status'] as String? ?? 'unknown',
+    );
+  }
+}
+
+class SecondTouchSendRequest {
+  SecondTouchSendRequest({required this.offerId, required this.freeText});
+
+  final String offerId;
+  final String freeText;
+
+  Map<String, dynamic> toJson() {
+    return {'offer_id': offerId, 'free_text': freeText};
+  }
+}
+
+class SecondTouchSendResponse {
+  SecondTouchSendResponse({
+    required this.status,
+    this.holdReason,
+    this.crisisAction,
+  });
+
+  final String status;
+  final String? holdReason;
+  final String? crisisAction;
+
+  factory SecondTouchSendResponse.fromJson(Map<String, dynamic> json) {
+    return SecondTouchSendResponse(
+      status: json['status'] as String? ?? 'unknown',
+      holdReason: json['hold_reason'] as String?,
+      crisisAction: json['crisis_action'] as String?,
     );
   }
 }

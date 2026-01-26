@@ -57,6 +57,17 @@ class ApiClient {
     return _parseResponse(response, AcknowledgementResponse.fromJson);
   }
 
+  Future<SecondTouchSendResponse> sendSecondTouch(
+    SecondTouchSendRequest request,
+  ) async {
+    final response = await httpClient.post(
+      Uri.parse('$baseUrl/second_touch/send'),
+      headers: _headers(),
+      body: jsonEncode(request.toJson()),
+    );
+    return _parseResponse(response, SecondTouchSendResponse.fromJson);
+  }
+
   Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
     final response = await httpClient.get(
       Uri.parse('$baseUrl/reflection/summary?window_days=$windowDays'),
