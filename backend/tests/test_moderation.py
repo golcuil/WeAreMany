@@ -129,6 +129,28 @@ def test_identity_patterns_detected_and_removed():
     app.dependency_overrides.clear()
 
 
+def test_social_domain_and_contact_phrase_redacted():
+    client = TestClient(app)
+    app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)
+    _override_rate_limit()
+    _override_matching()
+
+    payload = {
+        "valence": "neutral",
+        "intensity": "low",
+        "free_text": "Find me at instagram.com/myname and text me for details.",
+    }
+    response = client.post("/messages", json=payload, headers=_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["identity_leak"] is True
+    assert set(body["leak_types"]) >= {"url", "dm_request"}
+    assert "instagram.com" not in body["sanitized_text"]
+    assert "text me" not in body["sanitized_text"].lower()
+
+    app.dependency_overrides.clear()
+
+
 def test_raw_text_not_logged(caplog):
     client = TestClient(app)
     app.dependency_overrides[moderation_module.get_leak_throttle] = lambda: InMemoryLeakThrottle(limit=10)

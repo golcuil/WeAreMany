@@ -15,8 +15,17 @@ from .config import (
 PHONE_RE = re.compile(r"\+?\d[\d\s().-]{7,}\d")
 EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
+DOMAIN_RE = re.compile(
+    r"\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|gg|me|co)(?:/\S+)?\b",
+    re.IGNORECASE,
+)
+SOCIAL_RE = re.compile(
+    r"\b(?:instagram|insta|tiktok|snapchat|telegram|whatsapp|twitter|x|facebook|fb|discord|linkedin)"
+    r"\.(?:com|me|gg)(?:/\S+)?\b",
+    re.IGNORECASE,
+)
 HANDLE_RE = re.compile(r"@[A-Za-z0-9_]{2,}")
-DM_RE = re.compile(r"\b(dm me|message me|reach me)\b", re.IGNORECASE)
+DM_RE = re.compile(r"\b(dm me|message me|reach me|contact me|add me|text me|call me)\b", re.IGNORECASE)
 SELF_HARM_RE = re.compile(r"\b(suicide|kill myself|end it|self harm)\b", re.IGNORECASE)
 
 
@@ -68,6 +77,10 @@ def detect_identity_leaks(text: str) -> List[str]:
         leak_types.append("email")
     if URL_RE.search(text):
         leak_types.append("url")
+    if DOMAIN_RE.search(text):
+        leak_types.append("url")
+    if SOCIAL_RE.search(text):
+        leak_types.append("url")
     if HANDLE_RE.search(text):
         leak_types.append("handle")
     if DM_RE.search(text):
@@ -79,6 +92,8 @@ def strip_identity(text: str) -> str:
     text = PHONE_RE.sub("[redacted]", text)
     text = EMAIL_RE.sub("[redacted]", text)
     text = URL_RE.sub("[redacted]", text)
+    text = DOMAIN_RE.sub("[redacted]", text)
+    text = SOCIAL_RE.sub("[redacted]", text)
     text = HANDLE_RE.sub("[redacted]", text)
     text = DM_RE.sub("[redacted]", text)
     return text
