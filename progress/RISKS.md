@@ -108,6 +108,12 @@
 - Owner: CTO + DataEngineer
 - Status: OPEN
 
+## R-021 ops_daily alert fatigue
+- Risk: strict thresholds could generate frequent alerts before baseline is established.
+- Mitigation: strict-only alerting, aggregate-only outputs, revisit thresholds after baseline.
+- Owner: CTO + DataEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

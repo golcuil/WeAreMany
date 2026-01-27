@@ -99,3 +99,8 @@
 - Decision: Add a manual-only db_bootstrap workflow (no schedule) with dry_run and apply_migrations → verify sequence.
 - Context: Need a repeatable, idempotent bootstrap path before production DB exists.
 - Consequences: Operators can validate config without touching DB, then apply migrations and verify schema with non-sensitive outputs.
+
+## D-021 (2026-01-27) — ops_daily strict failure alerting
+- Decision: Use GitHub Issues as the default alert channel for strict ops_daily failures (deduped by title).
+- Context: Strict failures were only visible as red workflow runs; need actionable alerts without new infra.
+- Consequences: Optional Slack notifications behind secret presence; alerts are aggregate-only and fire only in strict mode.

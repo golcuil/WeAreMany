@@ -1934,7 +1934,7 @@
 - id: T-073
   title: Ops_daily strict failure alerting
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Add GitHub-native alerting for strict ops_daily failures with optional Slack notifications.
   scope:
     in:
@@ -1982,7 +1982,7 @@
     - risk_level==2 does not write free_text to DB
   completion_definition:
   - Strict failure alerting added (GitHub Issue + optional Slack)
-  - All tests passing and CI green
+  - All tests passing and CI green (9b29873)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

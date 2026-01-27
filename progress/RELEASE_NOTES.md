@@ -19,6 +19,7 @@
 - Ops: second_touch aggregate retention cleanup CLI + ops_daily subcommand.
 - Ops: production wiring runbook + db_verify verification command (deterministic, non-sensitive reason codes).
 - Ops: db_bootstrap tool + GitHub Actions workflow for prod DB initialization (dry_run + apply/verify).
+- Ops: strict ops_daily failures now generate GitHub Issue alerts (deduped) with optional Slack notification.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
