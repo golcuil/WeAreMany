@@ -668,19 +668,30 @@ def send_second_touch(
     leak_throttle=Depends(get_leak_throttle),
     shadow_throttle=Depends(get_shadow_throttle),
 ) -> SecondTouchSendResponse:
+    now = datetime.now(timezone.utc)
+    day_key = now.date().isoformat()
     offer = repo.get_second_touch_offer(payload.offer_id)
     if not offer or offer.offer_to_id != principal.principal_id or offer.state != "available":
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.OFFER_UNAVAILABLE.value,
         )
+    repo.increment_second_touch_counter(day_key, "sends_attempted")
     if repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
+        repo.increment_second_touch_counter(
+            day_key,
+            f"sends_held_{HoldReason.CRISIS_WINDOW.value}",
+        )
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.CRISIS_WINDOW.value,
             crisis_action="show_crisis",
         )
     if repo.is_in_crisis_window(offer.counterpart_id, CRISIS_WINDOW_HOURS):
+        repo.increment_second_touch_counter(
+            day_key,
+            f"sends_held_{HoldReason.CRISIS_WINDOW.value}",
+        )
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.CRISIS_WINDOW.value,
@@ -688,12 +699,17 @@ def send_second_touch(
     hold_reason = repo.get_second_touch_hold_reason(
         principal.principal_id,
         offer.counterpart_id,
-        datetime.now(timezone.utc),
+        now,
     )
     if hold_reason:
+        repo.increment_second_touch_counter(day_key, f"sends_held_{hold_reason}")
         return SecondTouchSendResponse(status="held", hold_reason=hold_reason)
     result = moderate_text(payload.free_text, principal.principal_id, leak_throttle)
     if result.risk_level == 2:
+        repo.increment_second_touch_counter(
+            day_key,
+            f"sends_held_{HoldReason.RISK_LEVEL_2.value}",
+        )
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.RISK_LEVEL_2.value,
@@ -708,11 +724,19 @@ def send_second_touch(
             permanent=True,
         )
         repo.mark_second_touch_offer_used(payload.offer_id)
+        repo.increment_second_touch_counter(
+            day_key,
+            f"sends_held_{HoldReason.IDENTITY_LEAK.value}",
+        )
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.IDENTITY_LEAK.value,
         )
     if shadow_throttle.is_throttled(principal.principal_id):
+        repo.increment_second_touch_counter(
+            day_key,
+            f"sends_held_{HoldReason.IDENTITY_LEAK.value}",
+        )
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.IDENTITY_LEAK.value,
@@ -733,6 +757,7 @@ def send_second_touch(
     )
     repo.create_inbox_item(message_id, offer.counterpart_id, result.sanitized_text or "")
     repo.mark_second_touch_offer_used(payload.offer_id)
+    repo.increment_second_touch_counter(day_key, "sends_queued")
     return SecondTouchSendResponse(status="queued")
 
 

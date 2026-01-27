@@ -131,6 +131,13 @@ class DailyAckAggregate:
     positive_ack_count: int
 
 
+@dataclass
+class SecondTouchDailyAggregate:
+    utc_day: str
+    counter_key: str
+    count: int
+
+
 class Repository(Protocol):
     def save_mood(self, record: MoodRecord) -> None:
         ...
@@ -270,6 +277,12 @@ class Repository(Protocol):
     ) -> List[DailyAckAggregate]:
         ...
 
+    def increment_second_touch_counter(self, day_key: str, counter_key: str, amount: int = 1) -> None:
+        ...
+
+    def get_second_touch_counters(self, window_days: int) -> Dict[str, int]:
+        ...
+
     def get_matching_tuning(self) -> MatchingTuning:
         ...
 
@@ -306,6 +319,7 @@ class InMemoryRepository:
         self.daily_ack_aggregates: Dict[tuple[str, str], DailyAckAggregate] = {}
         self.second_touch_pairs: Dict[tuple[str, str], Dict[str, object]] = {}
         self.second_touch_offers: Dict[str, SecondTouchOfferRecord] = {}
+        self.second_touch_counters: Dict[tuple[str, str], int] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -615,6 +629,25 @@ class InMemoryRepository:
         results.sort(key=lambda item: item.utc_day, reverse=True)
         return results
 
+    def increment_second_touch_counter(
+        self,
+        day_key: str,
+        counter_key: str,
+        amount: int = 1,
+    ) -> None:
+        key = (day_key, counter_key)
+        self.second_touch_counters[key] = self.second_touch_counters.get(key, 0) + amount
+
+    def get_second_touch_counters(self, window_days: int) -> Dict[str, int]:
+        day_cutoff = datetime.now(timezone.utc).date() - timedelta(days=max(window_days - 1, 0))
+        totals: Dict[str, int] = {}
+        for (day_key, counter_key), count in self.second_touch_counters.items():
+            record_day = datetime.fromisoformat(day_key).date()
+            if record_day < day_cutoff:
+                continue
+            totals[counter_key] = totals.get(counter_key, 0) + count
+        return totals
+
     def _increment_daily_ack_aggregate(
         self,
         day_key: str,
@@ -762,6 +795,11 @@ class InMemoryRepository:
         until: Optional[datetime],
         permanent: bool,
     ) -> None:
+        day_key = _utc_day_key()
+        if permanent:
+            self.increment_second_touch_counter(day_key, "disables_identity_leak")
+        elif until:
+            self.increment_second_touch_counter(day_key, "disables_negative_ack")
         a_id, b_id = _pair_key(sender_id, recipient_id)
         record = self.second_touch_pairs.get((a_id, b_id))
         if record is None:
@@ -786,14 +824,23 @@ class InMemoryRepository:
                 record["disabled_until"] = until
 
     def _maybe_create_second_touch_offer(self, recipient_id: str, now: datetime) -> None:
+        day_key = _utc_day_key(now)
         for (a_id, b_id), record in self.second_touch_pairs.items():
             if recipient_id not in (a_id, b_id):
                 continue
             counterpart_id = b_id if recipient_id == a_id else a_id
             if record.get("disabled_permanent"):
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("disabled_permanent"),
+                )
                 continue
             disabled_until = record.get("disabled_until")
             if disabled_until and disabled_until > now:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("disabled_until_active"),
+                )
                 continue
             positive_count = int(record.get("positive_count") or 0)
             if positive_count < SECOND_TOUCH_MIN_POSITIVE or positive_count < SECOND_TOUCH_MIN_AFFINITY:
@@ -805,13 +852,29 @@ class InMemoryRepository:
             if (last_positive_at - first_positive_at).days < SECOND_TOUCH_MIN_SPAN_DAYS:
                 continue
             if (now - last_positive_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("cooldown_active"),
+                )
                 continue
             last_offer_at = record.get("last_offer_at")
             if last_offer_at and (now - last_offer_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("cooldown_active"),
+                )
                 continue
             if self.is_in_crisis_window(recipient_id, CRISIS_WINDOW_HOURS, now):
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("crisis_blocked"),
+                )
                 continue
             if self.is_in_crisis_window(counterpart_id, CRISIS_WINDOW_HOURS, now):
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("crisis_blocked"),
+                )
                 continue
             hold_reason = self.get_second_touch_hold_reason(
                 recipient_id,
@@ -819,6 +882,10 @@ class InMemoryRepository:
                 now,
             )
             if hold_reason:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key(_suppression_reason_from_hold(hold_reason)),
+                )
                 continue
             offers_last_month = [
                 offer
@@ -826,12 +893,17 @@ class InMemoryRepository:
                 if (now - offer.created_at).days < 30
             ]
             if len(offers_last_month) >= SECOND_TOUCH_MONTHLY_CAP:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("rate_limited"),
+                )
                 continue
             latest_a = _latest_mood_event(self.mood_events, recipient_id)
             latest_b = _latest_mood_event(self.mood_events, counterpart_id)
             if not _is_emotionally_compatible(latest_a, latest_b, now):
                 continue
             self.create_second_touch_offer(recipient_id, counterpart_id)
+            self.increment_second_touch_counter(day_key, "offers_generated")
             record["last_offer_at"] = now
             return
 
@@ -1502,6 +1574,40 @@ class PostgresRepository:
             for row in rows
         ]
 
+    def increment_second_touch_counter(
+        self,
+        day_key: str,
+        counter_key: str,
+        amount: int = 1,
+    ) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO second_touch_daily_aggregates
+                (utc_day, counter_key, count)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (utc_day, counter_key)
+                DO UPDATE SET
+                  count = second_touch_daily_aggregates.count + EXCLUDED.count
+                """,
+                (day_key, counter_key, amount),
+            )
+
+    def get_second_touch_counters(self, window_days: int) -> Dict[str, int]:
+        cutoff = datetime.now(timezone.utc).date() - timedelta(days=max(window_days - 1, 0))
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT counter_key, SUM(count)
+                FROM second_touch_daily_aggregates
+                WHERE utc_day >= %s
+                GROUP BY counter_key
+                """,
+                (cutoff,),
+            )
+            rows = cur.fetchall()
+        return {row[0]: int(row[1] or 0) for row in rows}
+
     def _increment_daily_ack_aggregate(
         self,
         cur,
@@ -1835,6 +1941,11 @@ class PostgresRepository:
         until: Optional[datetime],
         permanent: bool,
     ) -> None:
+        day_key = _utc_day_key()
+        if permanent:
+            self.increment_second_touch_counter(day_key, "disables_identity_leak")
+        elif until:
+            self.increment_second_touch_counter(day_key, "disables_negative_ack")
         a_id, b_id = _pair_key(sender_id, recipient_id)
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
@@ -1852,6 +1963,7 @@ class PostgresRepository:
             )
 
     def _maybe_create_second_touch_offer(self, recipient_id: str, now: datetime) -> None:
+        day_key = _utc_day_key(now)
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -1873,8 +1985,16 @@ class PostgresRepository:
             disabled_until = row[6]
             disabled_permanent = bool(row[7])
             if disabled_permanent:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("disabled_permanent"),
+                )
                 continue
             if disabled_until and disabled_until > now:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("disabled_until_active"),
+                )
                 continue
             if positive_count < SECOND_TOUCH_MIN_POSITIVE or positive_count < SECOND_TOUCH_MIN_AFFINITY:
                 continue
@@ -1883,21 +2003,42 @@ class PostgresRepository:
             if (last_positive_at - first_positive_at).days < SECOND_TOUCH_MIN_SPAN_DAYS:
                 continue
             if (now - last_positive_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("cooldown_active"),
+                )
                 continue
             if last_offer_at and (now - last_offer_at).days < SECOND_TOUCH_COOLDOWN_DAYS:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("cooldown_active"),
+                )
                 continue
             if self.is_in_crisis_window(recipient_id, CRISIS_WINDOW_HOURS, now):
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("crisis_blocked"),
+                )
                 continue
             if self.is_in_crisis_window(counterpart_id, CRISIS_WINDOW_HOURS, now):
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key("crisis_blocked"),
+                )
                 continue
             hold_reason = self.get_second_touch_hold_reason(recipient_id, counterpart_id, now)
             if hold_reason:
+                self.increment_second_touch_counter(
+                    day_key,
+                    _second_touch_suppressed_key(_suppression_reason_from_hold(hold_reason)),
+                )
                 continue
             latest_a = self._latest_mood_event_db(recipient_id)
             latest_b = self._latest_mood_event_db(counterpart_id)
             if not _is_emotionally_compatible(latest_a, latest_b, now):
                 continue
             self.create_second_touch_offer(recipient_id, counterpart_id)
+            self.increment_second_touch_counter(day_key, "offers_generated")
             with self._conn() as conn, conn.cursor() as cur:
                 cur.execute(
                     """
@@ -1968,6 +2109,24 @@ def _utc_day_key(now: Optional[datetime] = None) -> str:
 
 def _normalize_theme_id(theme_id: Optional[str]) -> str:
     return theme_id or "unknown"
+
+
+def _second_touch_suppressed_key(reason: str) -> str:
+    return f"offers_suppressed_{reason}"
+
+
+def _second_touch_held_key(reason: str) -> str:
+    return f"sends_held_{reason}"
+
+
+def _suppression_reason_from_hold(hold_reason: str) -> str:
+    if hold_reason == HoldReason.RATE_LIMITED.value:
+        return "rate_limited"
+    if hold_reason == HoldReason.COOLDOWN_ACTIVE.value:
+        return "cooldown_active"
+    if hold_reason == HoldReason.IDENTITY_LEAK.value:
+        return "disabled_permanent"
+    return "unknown"
 
 
 def _pair_key(a: str, b: str) -> tuple[str, str]:

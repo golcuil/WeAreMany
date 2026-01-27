@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from app.repository import get_repository
 from tools.matching_health_watchdog import run_watchdog
 from tools.print_daily_ack_metrics import format_daily_ack_metrics
+from tools.print_second_touch_metrics import format_second_touch_metrics
 from tools.run_matching_health_tuning import main as run_tuning
 
 
@@ -21,6 +22,10 @@ def run_metrics(days: int, theme: str | None) -> OpsResult:
     print(f"generated_at={datetime.now(timezone.utc).isoformat()}")
     for line in format_daily_ack_metrics(aggregates):
         print(line)
+    for window_days in (7, 30):
+        counters = repo.get_second_touch_counters(window_days)
+        for line in format_second_touch_metrics(counters, window_days):
+            print(line)
     return OpsResult(exit_code=0)
 
 
