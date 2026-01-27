@@ -90,7 +90,7 @@ Behavior:
 ### DB bootstrap (first-time)
 1) Configure secret: `POSTGRES_DSN_PROD` (names only; do not print values).
 2) Run Actions → `db_bootstrap` → `dry_run`.
-   - Expected: `db_bootstrap status=ok mode=dry_run`.
+   - Expected: `db_bootstrap_dry_run status=ok migrations=<n>`.
 3) Run Actions → `db_bootstrap` → `all`.
    - Expected: `db_bootstrap status=ok mode=all`.
 4) Run Actions → `ops_daily` → `mode=prod` to validate strict monitoring.

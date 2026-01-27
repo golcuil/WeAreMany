@@ -47,10 +47,10 @@ jobs:
           fi
           if [ -z "$POSTGRES_DSN_PROD" ]; then
             echo "prod_verify skipped reason=prod_not_configured"
-            PYTHONPATH=backend:. python3 -m tools.db_bootstrap dry_run
+            PYTHONPATH=backend:. python3 -m tools.db_bootstrap --dry-run
             exit 0
           fi
-          PYTHONPATH=backend:. python3 -m tools.db_bootstrap dry_run
+          PYTHONPATH=backend:. python3 -m tools.db_bootstrap --dry-run
           if [ "$MODE" = "verify" ]; then
             PYTHONPATH=backend:. python3 -m tools.db_verify
             PYTHONPATH=backend:. python3 -m tools.ops_daily all

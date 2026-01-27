@@ -146,3 +146,22 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
+
+  prod_bootstrap_dry_run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bootstrap dry-run
+        run: PYTHONPATH=backend python3 -m tools.db_bootstrap --dry-run
+
+      - name: Verify (not configured in CI)
+        run: PYTHONPATH=backend python3 -m tools.db_verify

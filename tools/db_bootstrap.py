@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 from datetime import datetime, timezone
 
@@ -26,10 +27,13 @@ def _check_psycopg() -> bool:
     return True
 
 
-def _apply_migrations(dsn: str) -> bool:
+def _migration_dir() -> str:
     migration_dir = os.path.join(os.path.dirname(__file__), "..", "db", "migrations")
-    migration_dir = os.path.abspath(migration_dir)
-    migration_files = [
+    return os.path.abspath(migration_dir)
+
+
+def _migration_files() -> list[str]:
+    return [
         "0001_init.sql",
         "0002_eligible_principals.sql",
         "0003_mood_events.sql",
@@ -47,10 +51,32 @@ def _apply_migrations(dsn: str) -> bool:
         "0015_second_touch_daily_aggregates.sql",
         "0016_second_touch_events.sql",
     ]
+
+
+def _validate_migration_plan(migration_dir: str, migration_files: list[str]) -> str | None:
+    ids: list[int] = []
     for filename in migration_files:
         path = os.path.join(migration_dir, filename)
         if not os.path.exists(path):
-            return False
+            return "missing_migration"
+        match = re.match(r"^(\d+)_", filename)
+        if not match:
+            return "invalid_migration_name"
+        ids.append(int(match.group(1)))
+    if len(set(ids)) != len(ids):
+        return "duplicate_migration_id"
+    if ids != sorted(ids):
+        return "non_increasing_migration_id"
+    return None
+
+
+def _apply_migrations(dsn: str) -> bool:
+    migration_dir = _migration_dir()
+    migration_files = _migration_files()
+    if _validate_migration_plan(migration_dir, migration_files) is not None:
+        return False
+    for filename in migration_files:
+        path = os.path.join(migration_dir, filename)
         result = subprocess.run(
             ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-f", path],
             capture_output=True,
@@ -71,14 +97,14 @@ def _run_verify() -> bool:
     return result.returncode == 0
 
 
-def _run_dry(env_name: str) -> int:
-    if not _check_dsn(env_name):
-        _print_status("fail", "dry_run", "dsn_missing")
+def _run_bootstrap_dry_run() -> int:
+    migration_dir = _migration_dir()
+    migration_files = _migration_files()
+    reason = _validate_migration_plan(migration_dir, migration_files)
+    if reason:
+        print(f"db_bootstrap_dry_run status=fail reason={reason}")
         return 1
-    if not _check_psycopg():
-        _print_status("fail", "dry_run", "psycopg_missing")
-        return 1
-    _print_status("ok", "dry_run")
+    print(f"db_bootstrap_dry_run status=ok migrations={len(migration_files)}")
     return 0
 
 
@@ -117,7 +143,12 @@ def _run_all(env_name: str) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Bootstrap production database.")
     parser.add_argument("--dsn-env", type=str, default="POSTGRES_DSN_PROD")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate migration plan without DB connectivity.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=False)
 
     subparsers.add_parser("dry_run")
     subparsers.add_parser("apply_migrations")
@@ -131,8 +162,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if args.dry_run:
+        return _run_bootstrap_dry_run()
+
+    if not args.command:
+        _print_status("fail", "unknown", "invalid_command")
+        return 1
+
     if args.command == "dry_run":
-        return _run_dry(args.dsn_env)
+        return _run_bootstrap_dry_run()
     if args.command == "apply_migrations":
         return _run_apply(args.dsn_env)
     if args.command == "verify":

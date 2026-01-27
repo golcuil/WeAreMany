@@ -45,4 +45,8 @@ jobs:
           if [ -z "$MODE" ]; then
             MODE="dry_run"
           fi
-          PYTHONPATH=backend:. python3 -m tools.db_bootstrap "$MODE"
+          if [ "$MODE" = "dry_run" ]; then
+            PYTHONPATH=backend:. python3 -m tools.db_bootstrap --dry-run
+          else
+            PYTHONPATH=backend:. python3 -m tools.db_bootstrap "$MODE"
+          fi

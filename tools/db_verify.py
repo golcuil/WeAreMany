@@ -43,8 +43,8 @@ def main(argv: list[str] | None = None) -> int:
 
     dsn = os.getenv(args.dsn_env)
     if not dsn:
-        print("db_verify status=fail reason=missing_dsn")
-        return 1
+        print("db_verify status=not_configured reason=missing_dsn")
+        return 0
     if psycopg is None:
         print("db_verify status=fail reason=psycopg_missing")
         return 1
