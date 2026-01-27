@@ -4,6 +4,13 @@ import argparse
 import os
 from typing import Iterable
 
+try:
+    import psycopg as _psycopg
+except Exception:
+    _psycopg = None
+
+psycopg = _psycopg
+
 
 def _get_required_tables() -> list[str]:
     return [
@@ -38,16 +45,12 @@ def main(argv: list[str] | None = None) -> int:
     if not dsn:
         print("db_verify status=fail reason=missing_dsn")
         return 1
-    psycopg_module = globals().get("psycopg")
-    if psycopg_module is None:
-        try:
-            import psycopg as psycopg_module
-        except Exception:
-            print("db_verify status=fail reason=psycopg_missing")
-            return 1
+    if psycopg is None:
+        print("db_verify status=fail reason=psycopg_missing")
+        return 1
 
     try:
-        with psycopg_module.connect(dsn) as conn, conn.cursor() as cur:
+        with psycopg.connect(dsn) as conn, conn.cursor() as cur:
             ok = _check_tables(cur, _get_required_tables())
     except Exception:
         print("db_verify status=fail reason=db_connect_failed")
