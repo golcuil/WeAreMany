@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   ops_daily:
@@ -43,8 +44,10 @@ jobs:
         run: python3 tools/policy_check.py
 
       - name: Run ops_daily
+        continue-on-error: true
         env:
           POSTGRES_DSN: ${{ secrets.POSTGRES_DSN_PROD }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           MODE="${{ github.event.inputs.mode || '' }}"
           if [ -z "$MODE" ]; then
@@ -57,7 +60,84 @@ jobs:
               exit 0
             fi
             echo "mode=strict reason=prod_configured"
-            PYTHONPATH=backend:. python3 -m tools.ops_daily all
-            exit 0
+            set +e
+            OUTPUT="$(PYTHONPATH=backend:. python3 -m tools.ops_daily all 2>&1)"
+            EXIT_CODE=$?
+            echo "$OUTPUT" | tee ops_daily.log
+            TAIL="$(echo "$OUTPUT" | tail -n 20)"
+            MODE_LINE="$(echo "$OUTPUT" | grep -m 1 "mode=strict reason=prod_configured" || true)"
+            echo "strict_run=1" >> "$GITHUB_OUTPUT"
+            echo "ops_exit=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+            echo "ops_tail<<'EOF'" >> "$GITHUB_OUTPUT"
+            echo "$TAIL" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            echo "ops_mode_line<<'EOF'" >> "$GITHUB_OUTPUT"
+            echo "$MODE_LINE" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            exit $EXIT_CODE
           fi
           PYTHONPATH=backend:. python3 -m tools.ops_daily smoke
+        id: run_ops
+
+      - name: Create or update ops_daily issue (strict failures)
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.run_ops.outputs.ops_exit != '0' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "ops_daily strict unhealthy";
+            const bodyLines = [
+              "ops_daily strict failure detected.",
+              `timestamp=${new Date().toISOString()}`,
+              `run_url=${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+              `exit_code=${process.env.OPS_EXIT}`,
+              process.env.OPS_MODE_LINE ? `mode_line=${process.env.OPS_MODE_LINE}` : "mode_line=missing",
+              "",
+              "ops_daily_output_tail:",
+              "```",
+              process.env.OPS_TAIL || "",
+              "```",
+            ];
+            const body = bodyLines.join("\n");
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }
+        env:
+          OPS_EXIT: ${{ steps.run_ops.outputs.ops_exit }}
+          OPS_TAIL: ${{ steps.run_ops.outputs.ops_tail }}
+          OPS_MODE_LINE: ${{ steps.run_ops.outputs.ops_mode_line }}
+
+      - name: Notify Slack (strict failures, optional)
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.run_ops.outputs.ops_exit != '0' && env.SLACK_WEBHOOK_URL != '' }}
+        env:
+          OPS_EXIT: ${{ steps.run_ops.outputs.ops_exit }}
+        run: |
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          SUMMARY="ops_daily strict unhealthy (exit_code=${OPS_EXIT})"
+          payload=$(cat <<EOF
+          {"text":"${SUMMARY} ${RUN_URL}"}
+          EOF
+          )
+          curl -sS -X POST -H "Content-type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL" >/dev/null
+
+      - name: Fail workflow on strict unhealthy
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.run_ops.outputs.ops_exit != '0' }}
+        run: exit ${{ steps.run_ops.outputs.ops_exit }}
