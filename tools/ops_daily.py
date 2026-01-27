@@ -8,6 +8,7 @@ from app.repository import get_repository
 from tools.matching_health_watchdog import run_watchdog
 from tools.print_daily_ack_metrics import format_daily_ack_metrics
 from tools.print_second_touch_metrics import format_second_touch_metrics
+from tools.second_touch_health import format_second_touch_health, run_second_touch_health
 from tools.run_matching_health_tuning import main as run_tuning
 
 
@@ -41,8 +42,11 @@ def run_tune_task() -> OpsResult:
 def run_all(days: int, min_ratio: float, theme: str | None) -> OpsResult:
     run_metrics(days, theme)
     watchdog_result = run_watchdog_task(days, min_ratio)
+    second_touch_result = run_second_touch_health(7)
+    print(format_second_touch_health(second_touch_result, 7))
     run_tune_task()
-    return OpsResult(exit_code=watchdog_result.exit_code)
+    exit_code = max(watchdog_result.exit_code, second_touch_result.exit_code)
+    return OpsResult(exit_code=exit_code)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,6 +60,9 @@ def build_parser() -> argparse.ArgumentParser:
     metrics_parser = subparsers.add_parser("metrics")
     metrics_parser.add_argument("--days", type=int, default=7)
     metrics_parser.add_argument("--theme", type=str, default=None)
+
+    second_touch_parser = subparsers.add_parser("second_touch_health")
+    second_touch_parser.add_argument("--days", type=int, default=7)
 
     subparsers.add_parser("tune")
 
@@ -78,6 +85,10 @@ def main(argv: list[str] | None = None) -> int:
             return run_watchdog_task(args.days, args.min_ratio).exit_code
         if args.command == "metrics":
             return run_metrics(args.days, args.theme).exit_code
+        if args.command == "second_touch_health":
+            result = run_second_touch_health(args.days)
+            print(format_second_touch_health(result, args.days))
+            return result.exit_code
         if args.command == "tune":
             return run_tune_task().exit_code
         if args.command == "smoke":
