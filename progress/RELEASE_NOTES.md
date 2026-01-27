@@ -22,6 +22,8 @@
 - Ops: strict ops_daily failures now generate GitHub Issue alerts (deduped) with optional Slack notification.
 - Ops: added docs/ops_playbook.md and prod_verify workflow for on-demand production verification.
 - Ops: added recompute tool for second_touch aggregates (operator-driven, aggregate-only output).
+- Ops: second_touch aggregates are now fully recomputable from minimal privacy-safe events; cleanup_second_touch_events subcommand added.
+- Infra: migration 0016 added; db_bootstrap + CI migration list updated.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

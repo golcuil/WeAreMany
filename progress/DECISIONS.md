@@ -114,3 +114,8 @@
 - Decision: Add an operator-driven recompute tool for last N days (default 7, max 30) to recover from aggregate drift.
 - Context: Counters can drift or miss increments; full-table scans are undesirable.
 - Consequences: Recompute is partial when source events are not persisted (offers/suppression/held may be incomplete); tool must emit recompute_partial with a reason.
+
+## D-024 (2026-01-27) — Minimal second_touch events for full recompute
+- Decision: Persist minimal second_touch events solely to enable deterministic aggregate recompute.
+- Context: Partial recompute was insufficient for recovery after counter drift.
+- Consequences: Store only event_day_utc, event_type, reason, created_at; explicitly no user IDs, offer IDs, message IDs, raw text, or DSNs. Add event retention cleanup and make recompute full when events exist.

@@ -126,6 +126,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-024 Second-touch event volume growth
+- Risk: event table may grow if cleanup is not run regularly.
+- Mitigation: 90-day retention + cleanup tool; run periodically in prod.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
