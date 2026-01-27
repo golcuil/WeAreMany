@@ -59,3 +59,8 @@
 - Decision: Enforce second-touch caps/cooldowns/disable windows on the server, not just UI.
 - Context: Prevent abuse if clients bypass UI; keep one-shot guarantees.
 - Consequences: More “held” outcomes (rate_limited/cooldown_active); identity-leak permanently disables pairs; no raw text persisted on flagged path.
+
+## D-013 (2026-01-27) — ops_daily schedule is smoke unless prod configured
+- Decision: Scheduled ops_daily runs in smoke mode unless prod secrets are present; strict prod only when configured.
+- Context: Avoid daily red runs in non-prod while preserving real prod alerting.
+- Consequences: Scheduled runs are non-noisy; strict mode requires `POSTGRES_DSN_PROD` secret; logs print only non-sensitive mode reason.

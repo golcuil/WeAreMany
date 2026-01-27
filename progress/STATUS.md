@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-065] ops_daily schedule hardened: smoke when prod secrets missing; strict when configured.
 - [T-064] Second-touch guardrails: one-shot enforced; monthly cap (rate_limited); per-pair cooldown (cooldown_active); negative-ack disable window; identity-leak permanent disable; crisis gating unchanged.
 - [T-063] Inbox UI support for second-touch offer (render + one-shot send) — Inbox renders second_touch_offer + one-shot send flow; tests green.
 - [T-062] Second-touch prompt (Frequent Positive Encounters) v1 in Inbox — fixed offer materialization; CI green.

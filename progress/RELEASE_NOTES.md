@@ -20,6 +20,7 @@
 - Inbox timestamps coarsened to day-level UTC and humanized labels.
 - Crisis safety: sender gate + recipient shielding for peer delivery.
 - Second-touch send path now re-validates all guardrails server-side.
+- ops_daily schedule now runs smoke when prod secrets are missing; strict prod preserved when configured.
 
 ### Fixed
 - CI/workflow stability (format gates, deps install, ops_daily run modes).

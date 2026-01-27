@@ -66,6 +66,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-014 Prod secret misconfiguration
+- Risk: missing or misnamed prod secrets cause schedule to run smoke unintentionally.
+- Mitigation: require `POSTGRES_DSN_PROD` for strict mode; document secret name and verify in CI logs (mode message only).
+- Owner: CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
