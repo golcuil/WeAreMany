@@ -43,10 +43,20 @@ jobs:
         run: python3 tools/policy_check.py
 
       - name: Run ops_daily
+        env:
+          POSTGRES_DSN: ${{ secrets.POSTGRES_DSN_PROD }}
         run: |
-          MODE="${{ github.event.inputs.mode || 'prod' }}"
-          if [ "$MODE" = "ci" ]; then
-            PYTHONPATH=backend:. python3 -m tools.ops_daily smoke
-          else
-            PYTHONPATH=backend:. python3 -m tools.ops_daily all
+          MODE="${{ github.event.inputs.mode || '' }}"
+          if [ -z "$MODE" ]; then
+            MODE="prod"
           fi
+          if [ "$MODE" = "prod" ]; then
+            if [ -z "$POSTGRES_DSN" ]; then
+              echo "mode=smoke reason=prod_not_configured"
+              PYTHONPATH=backend:. python3 -m tools.ops_daily smoke
+              exit 0
+            fi
+            PYTHONPATH=backend:. python3 -m tools.ops_daily all
+            exit 0
+          fi
+          PYTHONPATH=backend:. python3 -m tools.ops_daily smoke
