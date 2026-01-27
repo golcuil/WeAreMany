@@ -27,7 +27,7 @@ class JournalEntry {
 }
 
 class JournalStore {
-  static const storageKey = 'journal_entries_v1';
+  static const storageKey = 'journal_store_v1';
   static const maxEntries = 60;
   static const maxLength = 500;
 

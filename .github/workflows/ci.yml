@@ -128,3 +128,16 @@ jobs:
 
       - name: Secrets scan
         uses: gitleaks/gitleaks-action@v2.3.4
+        with:
+          args: >
+            detect --redact --exit-code=2
+            --config=.gitleaks.toml
+            --report-format=sarif
+            --report-path=results.sarif
+
+      - name: Upload gitleaks SARIF (best-effort)
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
