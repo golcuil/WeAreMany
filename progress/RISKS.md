@@ -90,6 +90,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-018 Second-touch aggregates retention trade-off
+- Risk: retention window may be too short for long-baseline analysis or too long for storage costs.
+- Mitigation: 180d default with explicit cleanup; adjust via config after reviewing aggregate trends.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

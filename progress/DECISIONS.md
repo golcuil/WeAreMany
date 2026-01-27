@@ -84,3 +84,8 @@
 - Decision: Scheduled ops_daily runs strict only when prod secrets are present; smoke otherwise.
 - Context: Avoid false alarms when prod data is not configured while preserving real prod alerting.
 - Consequences: Non-sensitive mode logs only (no secret echo) and explicit README enablement documentation.
+
+## D-018 (2026-01-27) — Second-touch aggregates retention cleanup
+- Decision: Retain second_touch daily aggregates for 180 days and prune older rows via an explicit cleanup command.
+- Context: Prevent unbounded growth while keeping a reasonable operational history for tuning.
+- Consequences: Cleanup is operator-controlled (ops_daily subcommand) and outputs aggregate-only deleted counts.
