@@ -84,6 +84,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-017 ops_daily prod enablement drift
+- Risk: secret naming/config changes could leave schedule in smoke mode unintentionally.
+- Mitigation: document required secret in README; periodic verification that strict schedule runs in prod-configured env.
+- Owner: CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

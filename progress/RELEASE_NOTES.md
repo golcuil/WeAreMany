@@ -15,6 +15,7 @@
 - Ops tooling: daily aggregates, watchdog CLI, unified ops runner; scheduled workflow.
 - Second-touch aggregate metrics (daily counters) and ops_daily 7d/30d summary output.
 - ops_daily second_touch health thresholds (aggregate-only) with low-volume gate.
+- ops_daily strict prod schedule enablement (secret-gated) with README instructions.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

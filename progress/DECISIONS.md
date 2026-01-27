@@ -79,3 +79,8 @@
 - Decision: Add a deterministic second_touch health evaluator with low-volume gating.
 - Context: Need actionable signals without alert fatigue in low-volume environments.
 - Consequences: Insufficient_data gate returns healthy when volume is low; identity-leak disables are treated as high-signal and fail even at low volume; ops_daily prints a single aggregate-only line with status/reason.
+
+## D-017 (2026-01-27) — ops_daily strict prod enablement
+- Decision: Scheduled ops_daily runs strict only when prod secrets are present; smoke otherwise.
+- Context: Avoid false alarms when prod data is not configured while preserving real prod alerting.
+- Consequences: Non-sensitive mode logs only (no secret echo) and explicit README enablement documentation.

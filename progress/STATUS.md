@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-069] ops_daily strict prod enablement: scheduled runs strict when prod secret present; smoke otherwise; README enablement docs added.
 - [T-068] Second-touch health thresholds: hold/suppression + identity-leak high-signal checks with insufficient_data gate; ops_daily subcommand + included in all.
 - [T-067] Second-touch aggregate metrics: daily counters for offers/suppression/sends/holds/disable; ops_daily prints 7d/30d summaries; migration + CI step added.
 - [T-066] Second-touch offer gating parity: offer generation now enforces cap/cooldown/disabled/permanent/crisis guardrails; offer suppression tests added.
