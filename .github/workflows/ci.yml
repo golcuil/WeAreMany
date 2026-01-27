@@ -126,13 +126,18 @@ jobs:
             echo "no_requirements_found"
           fi
 
+      - name: Install gitleaks
+        run: |
+          version="8.16.1"
+          curl -sSLo gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+
       - name: Secrets scan
-        uses: gitleaks/gitleaks-action@v2.3.4
-        with:
-          args: >
-            detect --redact --exit-code=2
-            --config=.gitleaks.toml
-            --report-format=sarif
+        run: |
+          gitleaks detect --redact --exit-code=2 \
+            --config=.gitleaks.toml \
+            --report-format=sarif \
             --report-path=results.sarif
 
       - name: Upload gitleaks SARIF (best-effort)
