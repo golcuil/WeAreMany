@@ -283,6 +283,13 @@ class Repository(Protocol):
     def get_second_touch_counters(self, window_days: int) -> Dict[str, int]:
         ...
 
+    def cleanup_second_touch_daily_aggregates(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        ...
+
     def get_matching_tuning(self) -> MatchingTuning:
         ...
 
@@ -647,6 +654,20 @@ class InMemoryRepository:
                 continue
             totals[counter_key] = totals.get(counter_key, 0) + count
         return totals
+
+    def cleanup_second_touch_daily_aggregates(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        cutoff = now_utc.date() - timedelta(days=retention_days)
+        before = len(self.second_touch_counters)
+        self.second_touch_counters = {
+            (day_key, counter_key): count
+            for (day_key, counter_key), count in self.second_touch_counters.items()
+            if datetime.fromisoformat(day_key).date() >= cutoff
+        }
+        return before - len(self.second_touch_counters)
 
     def _increment_daily_ack_aggregate(
         self,
@@ -1607,6 +1628,23 @@ class PostgresRepository:
             )
             rows = cur.fetchall()
         return {row[0]: int(row[1] or 0) for row in rows}
+
+    def cleanup_second_touch_daily_aggregates(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        cutoff = now_utc.date() - timedelta(days=retention_days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM second_touch_daily_aggregates
+                WHERE utc_day < %s
+                """,
+                (cutoff,),
+            )
+            deleted = cur.rowcount or 0
+        return int(deleted)
 
     def _increment_daily_ack_aggregate(
         self,
