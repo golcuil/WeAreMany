@@ -87,6 +87,14 @@ Behavior:
 - Apply migrations using the same order as `.github/workflows/ci.yml`.
 - Verify required tables using `tools/db_verify.py` after migration.
 
+### DB bootstrap (first-time)
+1) Configure secret: `POSTGRES_DSN_PROD` (names only; do not print values).
+2) Run Actions → `db_bootstrap` → `dry_run`.
+   - Expected: `db_bootstrap status=ok mode=dry_run`.
+3) Run Actions → `db_bootstrap` → `all`.
+   - Expected: `db_bootstrap status=ok mode=all`.
+4) Run Actions → `ops_daily` → `mode=prod` to validate strict monitoring.
+
 ### ops_daily strict validation (prod)
 1) Trigger Actions → `ops_daily` → Run workflow with `mode=prod`.
 2) Expected log line: `mode=strict reason=prod_configured`.
