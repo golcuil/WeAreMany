@@ -17,6 +17,7 @@
 - ops_daily second_touch health thresholds (aggregate-only) with low-volume gate.
 - ops_daily strict prod schedule enablement (secret-gated) with README instructions.
 - Ops: second_touch aggregate retention cleanup CLI + ops_daily subcommand.
+- Ops: production wiring runbook + db_verify verification command (deterministic, non-sensitive reason codes).
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

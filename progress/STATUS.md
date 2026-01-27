@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-071] Prod wiring runbook + db_verify: documented secret-only config, non-sensitive verification steps, deterministic reason codes.
 - [T-070] Second-touch aggregates retention cleanup: 180d retention constant; cleanup CLI + ops_daily subcommand; tests added.
 - [T-069] ops_daily strict prod enablement: scheduled runs strict when prod secret present; smoke otherwise; README enablement docs added.
 - [T-068] Second-touch health thresholds: hold/suppression + identity-leak high-signal checks with insufficient_data gate; ops_daily subcommand + included in all.

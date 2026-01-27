@@ -89,3 +89,8 @@
 - Decision: Retain second_touch daily aggregates for 180 days and prune older rows via an explicit cleanup command.
 - Context: Prevent unbounded growth while keeping a reasonable operational history for tuning.
 - Consequences: Cleanup is operator-controlled (ops_daily subcommand) and outputs aggregate-only deleted counts.
+
+## D-019 (2026-01-27) — Production wiring runbook + db_verify
+- Decision: Document prod wiring with secret names only and a non-sensitive verification checklist.
+- Context: Provide deterministic, safe signals even when no active DB exists yet.
+- Consequences: db_verify emits stable reason codes (psycopg_missing, missing_dsn, db_connect_failed) without echoing secrets.
