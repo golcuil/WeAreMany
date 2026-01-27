@@ -48,6 +48,18 @@
 - Owner: CTO + SecurityEngineer
 - Status: OPEN
 
+## R-012 False positives in identity-leak detection
+- Risk: false positives could permanently disable healthy second-touch pairs.
+- Mitigation: monitor hold_reason rates; add review/tuning of patterns; keep logs aggregate-only.
+- Owner: SecurityEngineer
+- Status: OPEN
+
+## R-013 Guardrail tuning drift
+- Risk: cap/cooldown values may be too strict or too lenient over time.
+- Mitigation: monitor aggregate hold_reason rates; tune constants via config.
+- Owner: CTO
+- Status: OPEN
+
 ## R-009 Ops false positives in empty environments
 - Risk: watchdog runs in CI without data and fails noisily.
 - Mitigation: ops_daily supports CI-safe mode; production runs remain strict.

@@ -54,3 +54,8 @@
 - Decision: Replace nondeterministic candidate sampling with seeded ordering for parity across stores.
 - Context: Reduce test flakiness and improve debuggability.
 - Consequences: Same inputs yield same candidate ordering; limit clamping enforced.
+
+## D-012 (2026-01-27) — Second-touch guardrails enforced server-side
+- Decision: Enforce second-touch caps/cooldowns/disable windows on the server, not just UI.
+- Context: Prevent abuse if clients bypass UI; keep one-shot guarantees.
+- Consequences: More “held” outcomes (rate_limited/cooldown_active); identity-leak permanently disables pairs; no raw text persisted on flagged path.

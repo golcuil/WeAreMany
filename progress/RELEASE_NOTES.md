@@ -11,6 +11,7 @@
 - Helpful Series finite content on Home, with detail view.
 - K-anon “similar_count” insight on Home (shown only when cohort >= K).
 - Second-touch one-shot offer as a system inbox card and send flow (no chat).
+- Server-side guardrails for second-touch (caps, cooldowns, disable windows).
 - Ops tooling: daily aggregates, watchdog CLI, unified ops runner; scheduled workflow.
 
 ### Changed
@@ -18,6 +19,7 @@
 - Theme processing: canonical theme tags + normalization.
 - Inbox timestamps coarsened to day-level UTC and humanized labels.
 - Crisis safety: sender gate + recipient shielding for peer delivery.
+- Second-touch send path now re-validates all guardrails server-side.
 
 ### Fixed
 - CI/workflow stability (format gates, deps install, ops_daily run modes).
@@ -29,6 +31,7 @@
 - Identity leak detection hardened (email/phone/url/handle patterns).
 - Shadow throttling for repeated identity leaks.
 - Privacy-safe security event logging + retention pruning.
+- Second-touch identity-leak attempts now permanently disable the pair; no raw text stored.
 - Aggregate-only metrics/health signals (no identifiers).
 
 ---
