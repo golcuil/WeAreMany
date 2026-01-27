@@ -685,6 +685,13 @@ def send_second_touch(
             status="held",
             hold_reason=HoldReason.CRISIS_WINDOW.value,
         )
+    hold_reason = repo.get_second_touch_hold_reason(
+        principal.principal_id,
+        offer.counterpart_id,
+        datetime.now(timezone.utc),
+    )
+    if hold_reason:
+        return SecondTouchSendResponse(status="held", hold_reason=hold_reason)
     result = moderate_text(payload.free_text, principal.principal_id, leak_throttle)
     if result.risk_level == 2:
         return SecondTouchSendResponse(

@@ -24,6 +24,7 @@ from .config import (
     SECOND_TOUCH_MIN_SPAN_DAYS,
     SECOND_TOUCH_MONTHLY_CAP,
 )
+from .hold_reasons import HoldReason
 
 try:
     import psycopg
@@ -176,6 +177,14 @@ class Repository(Protocol):
         ...
 
     def list_second_touch_offers(self, offer_to_id: str) -> List[SecondTouchOfferRecord]:
+        ...
+
+    def get_second_touch_hold_reason(
+        self,
+        offer_to_id: str,
+        counterpart_id: str,
+        now: datetime,
+    ) -> Optional[str]:
         ...
 
     def update_second_touch_pair_positive(
@@ -689,6 +698,39 @@ class InMemoryRepository:
             for offer in self.second_touch_offers.values()
             if offer.offer_to_id == offer_to_id
         ]
+
+    def get_second_touch_hold_reason(
+        self,
+        offer_to_id: str,
+        counterpart_id: str,
+        now: datetime,
+    ) -> Optional[str]:
+        a_id, b_id = _pair_key(offer_to_id, counterpart_id)
+        record = self.second_touch_pairs.get((a_id, b_id))
+        if record:
+            if record.get("disabled_permanent") or record.get("identity_leak_blocked"):
+                return HoldReason.IDENTITY_LEAK.value
+            disabled_until = record.get("disabled_until")
+            if disabled_until and disabled_until > now:
+                return HoldReason.COOLDOWN_ACTIVE.value
+        offers_last_month = [
+            offer
+            for offer in self.list_second_touch_offers(offer_to_id)
+            if (now - offer.created_at).days < 30
+        ]
+        if len(offers_last_month) >= SECOND_TOUCH_MONTHLY_CAP:
+            return HoldReason.RATE_LIMITED.value
+        recent_pair_sends = [
+            offer
+            for offer in self.second_touch_offers.values()
+            if offer.offer_to_id == offer_to_id
+            and offer.counterpart_id == counterpart_id
+            and offer.used_at
+            and (now - offer.used_at).days < SECOND_TOUCH_COOLDOWN_DAYS
+        ]
+        if recent_pair_sends:
+            return HoldReason.COOLDOWN_ACTIVE.value
+        return None
 
     def update_second_touch_pair_positive(
         self, sender_id: str, recipient_id: str, now: datetime
@@ -1710,6 +1752,55 @@ class PostgresRepository:
             )
             for row in rows
         ]
+
+    def get_second_touch_hold_reason(
+        self,
+        offer_to_id: str,
+        counterpart_id: str,
+        now: datetime,
+    ) -> Optional[str]:
+        a_id, b_id = _pair_key(offer_to_id, counterpart_id)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT disabled_until, disabled_permanent, identity_leak_blocked
+                FROM second_touch_pairs
+                WHERE sender_id = %s AND recipient_id = %s
+                """,
+                (a_id, b_id),
+            )
+            row = cur.fetchone()
+        if row:
+            disabled_until, disabled_permanent, identity_leak_blocked = row
+            if disabled_permanent or identity_leak_blocked:
+                return HoldReason.IDENTITY_LEAK.value
+            if disabled_until and disabled_until > now:
+                return HoldReason.COOLDOWN_ACTIVE.value
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM second_touch_offers
+                WHERE offer_to_id = %s AND created_at >= %s
+                """,
+                (offer_to_id, now - timedelta(days=30)),
+            )
+            offer_count = int(cur.fetchone()[0] or 0)
+        if offer_count >= SECOND_TOUCH_MONTHLY_CAP:
+            return HoldReason.RATE_LIMITED.value
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM second_touch_offers
+                WHERE offer_to_id = %s AND counterpart_id = %s AND used_at >= %s
+                """,
+                (offer_to_id, counterpart_id, now - timedelta(days=SECOND_TOUCH_COOLDOWN_DAYS)),
+            )
+            recent_sends = int(cur.fetchone()[0] or 0)
+        if recent_sends > 0:
+            return HoldReason.COOLDOWN_ACTIVE.value
+        return None
 
     def update_second_touch_pair_positive(
         self, sender_id: str, recipient_id: str, now: datetime

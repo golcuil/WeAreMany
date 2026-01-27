@@ -12,6 +12,7 @@ from app import repository as repository_module  # noqa: E402
 from app.repository import MessageRecord, MoodEventRecord  # noqa: E402
 from app.security import _verify_token  # noqa: E402
 from app import rate_limit as rate_limit_module  # noqa: E402
+from app.hold_reasons import HoldReason  # noqa: E402
 
 
 def _headers(token: str) -> dict:
@@ -51,6 +52,13 @@ def _seed_positive_pair(repo, now: datetime, sender_id: str, recipient_id: str) 
     repo.update_second_touch_pair_positive(sender_id, recipient_id, now - timedelta(days=15))
     repo.update_second_touch_pair_positive(sender_id, recipient_id, now - timedelta(days=8))
     repo.update_second_touch_pair_positive(sender_id, recipient_id, now - timedelta(days=8))
+
+
+def _seed_offer(repo, offer_to_id: str, counterpart_id: str, created_at: datetime) -> str:
+    offer_id = repo.create_second_touch_offer(offer_to_id, counterpart_id)
+    offer = repo.second_touch_offers[offer_id]
+    offer.created_at = created_at
+    return offer_id
 
 
 def test_second_touch_offer_and_send_flow():
@@ -151,5 +159,120 @@ def test_second_touch_offer_blocked_after_identity_leak():
     inbox = client.get("/inbox", headers=_headers(recipient_token))
     assert inbox.status_code == 200
     assert not any(item["item_type"] == "second_touch_offer" for item in inbox.json()["items"])
+
+    app.dependency_overrides.clear()
+
+
+def test_second_touch_send_blocked_by_monthly_cap():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    _seed_offer(repo, recipient_id, sender_id, now - timedelta(days=2))
+    _seed_offer(repo, recipient_id, sender_id, now - timedelta(days=1))
+    offer_id = repo.create_second_touch_offer(recipient_id, sender_id)
+    _override_deps(repo)
+    client = TestClient(app)
+
+    response = client.post(
+        "/second_touch/send",
+        headers=_headers(recipient_token),
+        json={"offer_id": offer_id, "free_text": "hello"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "held"
+    assert response.json()["hold_reason"] == HoldReason.RATE_LIMITED.value
+
+    app.dependency_overrides.clear()
+
+
+def test_second_touch_send_blocked_by_cooldown():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    offer_id = _seed_offer(repo, recipient_id, sender_id, now - timedelta(days=40))
+    repo.second_touch_offers[offer_id].used_at = now - timedelta(days=1)
+    new_offer_id = repo.create_second_touch_offer(recipient_id, sender_id)
+    _override_deps(repo)
+    client = TestClient(app)
+
+    response = client.post(
+        "/second_touch/send",
+        headers=_headers(recipient_token),
+        json={"offer_id": new_offer_id, "free_text": "hello"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "held"
+    assert response.json()["hold_reason"] == HoldReason.COOLDOWN_ACTIVE.value
+
+    app.dependency_overrides.clear()
+
+
+def test_second_touch_send_blocked_by_negative_ack_disable():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    repo.block_second_touch_pair(
+        sender_id,
+        recipient_id,
+        now + timedelta(days=30),
+        permanent=False,
+    )
+    offer_id = repo.create_second_touch_offer(recipient_id, sender_id)
+    _override_deps(repo)
+    client = TestClient(app)
+
+    response = client.post(
+        "/second_touch/send",
+        headers=_headers(recipient_token),
+        json={"offer_id": offer_id, "free_text": "hello"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "held"
+    assert response.json()["hold_reason"] == HoldReason.COOLDOWN_ACTIVE.value
+
+    app.dependency_overrides.clear()
+
+
+def test_second_touch_send_blocked_by_identity_leak_disable():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    repo.block_second_touch_pair(sender_id, recipient_id, None, permanent=True)
+    offer_id = repo.create_second_touch_offer(recipient_id, sender_id)
+    _override_deps(repo)
+    client = TestClient(app)
+
+    response = client.post(
+        "/second_touch/send",
+        headers=_headers(recipient_token),
+        json={"offer_id": offer_id, "free_text": "hello"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "held"
+    assert response.json()["hold_reason"] == HoldReason.IDENTITY_LEAK.value
 
     app.dependency_overrides.clear()
