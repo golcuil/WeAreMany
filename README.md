@@ -65,6 +65,40 @@ Behavior:
 - **Without** `POSTGRES_DSN_PROD`: scheduled runs execute `tools.ops_daily smoke`
   and stay green.
 
+## Production wiring runbook (ops + DB)
+
+### Required secrets (names only)
+- `POSTGRES_DSN_PROD`
+
+### Required env vars
+- `APP_ENV=prod` (if used by your deployment)
+
+### Config verification checklist (non-sensitive)
+1) Verify DSN secret is set (do not print it):
+   - GitHub Actions → Secrets → `POSTGRES_DSN_PROD` is present.
+2) Verify DB connectivity + required tables (aggregate-only output):
+   ```bash
+   POSTGRES_DSN_PROD=... PYTHONPATH=backend:. python3 tools/db_verify.py
+   ```
+   Expected: `db_verify status=ok`
+
+### Migrations (canonical path)
+- Migrations live in `db/migrations/` and are applied in order.
+- Apply migrations using the same order as `.github/workflows/ci.yml`.
+- Verify required tables using `tools/db_verify.py` after migration.
+
+### ops_daily strict validation (prod)
+1) Trigger Actions → `ops_daily` → Run workflow with `mode=prod`.
+2) Expected log line: `mode=strict reason=prod_configured`.
+3) Expected output: aggregate-only metrics + health lines; non-zero exit indicates unhealthy.
+
+### Cleanup cadence (optional guidance)
+- To prune second_touch aggregates explicitly:
+  ```bash
+  PYTHONPATH=backend:. python3 -m tools.ops_daily cleanup_second_touch_aggregates
+  ```
+- Suggested cadence: monthly (only if desired).
+
 Flutter (debug/profile only, uses a dev bearer token if provided):
 
 ```bash
