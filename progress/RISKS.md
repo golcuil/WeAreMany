@@ -120,6 +120,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-023 Second-touch recompute gaps
+- Risk: recompute is partial due to missing source-of-truth events (missing_source_events).
+- Mitigation: operator-facing partial flag + reason; consider minimal event logging if full recompute is required.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

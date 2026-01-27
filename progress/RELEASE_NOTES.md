@@ -21,6 +21,7 @@
 - Ops: db_bootstrap tool + GitHub Actions workflow for prod DB initialization (dry_run + apply/verify).
 - Ops: strict ops_daily failures now generate GitHub Issue alerts (deduped) with optional Slack notification.
 - Ops: added docs/ops_playbook.md and prod_verify workflow for on-demand production verification.
+- Ops: added recompute tool for second_touch aggregates (operator-driven, aggregate-only output).
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

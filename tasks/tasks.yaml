@@ -2056,7 +2056,7 @@
 - id: T-075
   title: Recompute second_touch aggregates (last N days)
   owner: data
-  state: IN_PROGRESS
+  state: DONE
   goal: Add an operator-driven recompute tool for second_touch daily aggregates.
   scope:
     in:
@@ -2104,7 +2104,7 @@
     - risk_level==2 does not write free_text to DB
   completion_definition:
   - Recompute tool + ops_daily subcommand added
-  - All tests passing and CI green
+  - All tests passing and CI green (00b24db)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

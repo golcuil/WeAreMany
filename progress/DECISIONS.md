@@ -109,3 +109,8 @@
 - Decision: Add an operator-grade playbook to standardize deploy, rollback, and incident triage.
 - Context: Production readiness needs repeatable procedures without leaking secrets.
 - Consequences: prod_verify is manual-only to avoid accidental prod touches; outputs remain aggregate-only and non-sensitive.
+
+## D-023 (2026-01-27) — Second-touch aggregates recompute tool
+- Decision: Add an operator-driven recompute tool for last N days (default 7, max 30) to recover from aggregate drift.
+- Context: Counters can drift or miss increments; full-table scans are undesirable.
+- Consequences: Recompute is partial when source events are not persisted (offers/suppression/held may be incomplete); tool must emit recompute_partial with a reason.
