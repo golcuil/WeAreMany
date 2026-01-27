@@ -132,6 +132,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-025 Security scanning maintenance
+- Risk: scanner false positives or tool/version drift could break CI or hide issues; SARIF upload may fail during external outages.
+- Mitigation: pin pip-audit and gitleaks versions; keep scans strict; make SARIF upload best-effort; review and adjust allowlists sparingly.
+- Owner: SecurityEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

@@ -2179,7 +2179,7 @@
 - id: T-077
   title: Security scanning + threat model doc
   owner: security
-  state: IN_PROGRESS
+  state: DONE
   goal: Add dependency + secrets scanning in CI and document minimal threat model.
   scope:
     in:
@@ -2226,7 +2226,7 @@
     - risk_level==2 does not write free_text to DB
   completion_definition:
   - Scanners added and threat model documented
-  - All tests passing and CI green
+  - All tests passing and CI green (1cf5618)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

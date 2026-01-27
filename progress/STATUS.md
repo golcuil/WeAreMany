@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-077] Security scanning + threat model: pip-audit dependency scan + gitleaks secrets scan (CLI); threat model in docs/threat_model.md; dependency remediation for Starlette advisories.
 - [T-076] Second-touch recompute full: minimal event logging (day/type/reason/created_at only), full recompute from events, and cleanup tooling.
 - [T-075] Recompute second_touch aggregates: operator-driven tool for last N days (max 30); partial recompute flagged when source events are missing.
 - [T-074] Ops playbook + prod_verify: deploy/rollback/incident triage checklist; manual prod_verify workflow with non-sensitive output and skip when prod not configured.
@@ -82,8 +83,6 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-077] Security scanning (pip-audit + gitleaks) and minimal threat model doc.
-- [T-076] Second-touch recompute fully reconstructable via minimal events + retention cleanup.
 
 ## Next
 

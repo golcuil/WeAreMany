@@ -119,3 +119,8 @@
 - Decision: Persist minimal second_touch events solely to enable deterministic aggregate recompute.
 - Context: Partial recompute was insufficient for recovery after counter drift.
 - Consequences: Store only event_day_utc, event_type, reason, created_at; explicitly no user IDs, offer IDs, message IDs, raw text, or DSNs. Add event retention cleanup and make recompute full when events exist.
+
+## D-025 (2026-01-27) — Security scanning + dependency remediation
+- Decision: Add pip-audit and gitleaks scanning in CI with pinned versions.
+- Context: Need automated hygiene for dependencies and secrets as we approach prod.
+- Consequences: Gitleaks runs via CLI with best-effort SARIF upload to avoid CI flakiness; dependency pins updated (fastapi==0.128.0, starlette==0.49.1). Scanning uses requirements.txt (no lockfile).

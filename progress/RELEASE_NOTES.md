@@ -24,6 +24,8 @@
 - Ops: added recompute tool for second_touch aggregates (operator-driven, aggregate-only output).
 - Ops: second_touch aggregates are now fully recomputable from minimal privacy-safe events; cleanup_second_touch_events subcommand added.
 - Infra: migration 0016 added; db_bootstrap + CI migration list updated.
+- Security/Ops: added pip-audit dependency scanning + gitleaks secrets scanning; threat model doc added.
+- Security: backend dependency pins updated to remediate Starlette advisories (fastapi/starlette).
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
