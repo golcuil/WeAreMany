@@ -144,6 +144,12 @@
 - Owner: CTO + DataEngineer
 - Status: OPEN
 
+## R-027 ops_daily insufficient_data persistence
+- Risk: sustained `status=insufficient_data` after expected traffic could mask a delivery regression.
+- Mitigation: token-gated normalization only for scheduled runs; operator playbook calls out this case explicitly.
+- Owner: CTO + DataEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

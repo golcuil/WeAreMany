@@ -27,6 +27,7 @@
 - Security/Ops: added pip-audit dependency scanning + gitleaks secrets scanning; threat model doc added.
 - Security: backend dependency pins updated to remediate Starlette advisories (fastapi/starlette).
 - Ops: added `db_bootstrap --dry-run` migration plan validation, CI `prod_bootstrap_dry_run` job, and `docs/production_bootstrap.md` checklist.
+- Ops: scheduled ops_daily de-noises early-stage “no traffic” via token-gated normalization (exit 2 + insufficient_data token → green); helper script enforces gating.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

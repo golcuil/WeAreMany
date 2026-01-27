@@ -129,3 +129,8 @@
 - Decision: Add `db_bootstrap --dry-run` to validate migration plan without DB connectivity or secrets.
 - Context: Operators need a CI-safe bootstrap check even before the prod DB exists.
 - Consequences: Dry-run validates migration existence, duplicates, and ordering with a stable single-line summary; `db_verify` returns `status=not_configured` (exit 0) when DSN is missing to keep CI green. CI now includes a `prod_bootstrap_dry_run` job that does not require prod secrets.
+
+## D-027 (2026-01-27) — ops_daily insufficient_data token gating
+- Decision: Scheduled ops_daily normalizes only when (exit_code == 2 AND stdout contains `status=insufficient_data`).
+- Context: Zero-traffic environments can legitimately return exit 2; we must avoid masking real unhealthy exit 2 signals.
+- Consequences: Added stdlib-only helper `tools/ops_ci_normalize.py` to enforce token gating; watchdog outputs `status=insufficient_data reason=delivered_total_0` as an explicit contract.

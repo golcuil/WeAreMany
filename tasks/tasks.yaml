@@ -2303,7 +2303,7 @@
 - id: T-079
   title: ops_daily insufficient_data normalization (scheduled runs)
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: De-noise scheduled ops_daily runs using explicit insufficient_data token + exit gating.
   scope:
     in:
@@ -2352,7 +2352,7 @@
     - risk_level==2 does not write free_text to DB
   completion_definition:
   - Tokenized insufficient_data output + normalization helper added
-  - All tests passing and CI green
+  - All tests passing and CI green (2c46591)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations
