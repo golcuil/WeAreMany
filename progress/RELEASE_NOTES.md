@@ -21,6 +21,7 @@
 - Crisis safety: sender gate + recipient shielding for peer delivery.
 - Second-touch send path now re-validates all guardrails server-side.
 - ops_daily schedule now runs smoke when prod secrets are missing; strict prod preserved when configured.
+- Second-touch offers now appear only when actionable (generation gated by send-time guardrails).
 
 ### Fixed
 - CI/workflow stability (format gates, deps install, ops_daily run modes).

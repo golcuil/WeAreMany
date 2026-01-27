@@ -44,7 +44,7 @@
 
 ## R-008 Second-touch abuse or overuse
 - Risk: repeated “second-touch” offers could be spammy or coercive.
-- Mitigation: strict eligibility, cooldowns, monthly caps, negative-ack disable, identity-leak permanent block.
+- Mitigation: strict eligibility, cooldowns, monthly caps, negative-ack disable, identity-leak permanent block; offer generation gated by the same guardrails to avoid dead offers.
 - Owner: CTO + SecurityEngineer
 - Status: OPEN
 

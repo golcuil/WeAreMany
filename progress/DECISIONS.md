@@ -64,3 +64,8 @@
 - Decision: Scheduled ops_daily runs in smoke mode unless prod secrets are present; strict prod only when configured.
 - Context: Avoid daily red runs in non-prod while preserving real prod alerting.
 - Consequences: Scheduled runs are non-noisy; strict mode requires `POSTGRES_DSN_PROD` secret; logs print only non-sensitive mode reason.
+
+## D-014 (2026-01-27) — Second-touch offer generation parity
+- Decision: Apply the same guardrails at offer generation as send-time enforcement (shared predicate).
+- Context: Prevent “dead offers” that would immediately be held at send; keep UX truthful and privacy-safe.
+- Consequences: Offers appear only when actionable (cap/cooldown/disable/crisis cleared); send path remains authoritative.
