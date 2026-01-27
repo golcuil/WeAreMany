@@ -102,6 +102,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-020 Prod bootstrap operator error
+- Risk: manual DB bootstrap may be misrun (wrong secret/env, partial migrations).
+- Mitigation: db_bootstrap dry_run first; apply_migrations → verify sequence; non-sensitive reason codes; document steps in README.
+- Owner: CTO + DataEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

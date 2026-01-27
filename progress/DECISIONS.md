@@ -94,3 +94,8 @@
 - Decision: Document prod wiring with secret names only and a non-sensitive verification checklist.
 - Context: Provide deterministic, safe signals even when no active DB exists yet.
 - Consequences: db_verify emits stable reason codes (psycopg_missing, missing_dsn, db_connect_failed) without echoing secrets.
+
+## D-020 (2026-01-27) — Manual DB bootstrap workflow + dry_run first
+- Decision: Add a manual-only db_bootstrap workflow (no schedule) with dry_run and apply_migrations → verify sequence.
+- Context: Need a repeatable, idempotent bootstrap path before production DB exists.
+- Consequences: Operators can validate config without touching DB, then apply migrations and verify schema with non-sensitive outputs.
