@@ -138,6 +138,12 @@
 - Owner: SecurityEngineer + CTO
 - Status: OPEN
 
+## R-026 Bootstrap verification drift
+- Risk: incorrect env/credentials or missing migrations could reach prod without a reliable preflight check.
+- Mitigation: db_bootstrap dry-run validates migration plan; db_verify emits non-sensitive, stable reason codes; operator checklist documents the order of operations.
+- Owner: CTO + DataEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

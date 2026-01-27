@@ -124,3 +124,8 @@
 - Decision: Add pip-audit and gitleaks scanning in CI with pinned versions.
 - Context: Need automated hygiene for dependencies and secrets as we approach prod.
 - Consequences: Gitleaks runs via CLI with best-effort SARIF upload to avoid CI flakiness; dependency pins updated (fastapi==0.128.0, starlette==0.49.1). Scanning uses requirements.txt (no lockfile).
+
+## D-026 (2026-01-27) — Production bootstrap dry-run validation
+- Decision: Add `db_bootstrap --dry-run` to validate migration plan without DB connectivity or secrets.
+- Context: Operators need a CI-safe bootstrap check even before the prod DB exists.
+- Consequences: Dry-run validates migration existence, duplicates, and ordering with a stable single-line summary; `db_verify` returns `status=not_configured` (exit 0) when DSN is missing to keep CI green. CI now includes a `prod_bootstrap_dry_run` job that does not require prod secrets.

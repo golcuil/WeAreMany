@@ -2239,7 +2239,7 @@
 - id: T-078
   title: Production bootstrap dry-run + operator checklist
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Add a DB bootstrap dry-run and operator checklist for safe first-time setup.
   scope:
     in:
@@ -2290,7 +2290,7 @@
     - risk_level==2 does not write free_text to DB
   completion_definition:
   - Dry-run + docs added
-  - All tests passing and CI green
+  - All tests passing and CI green (e8fe580)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

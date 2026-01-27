@@ -26,6 +26,7 @@
 - Infra: migration 0016 added; db_bootstrap + CI migration list updated.
 - Security/Ops: added pip-audit dependency scanning + gitleaks secrets scanning; threat model doc added.
 - Security: backend dependency pins updated to remediate Starlette advisories (fastapi/starlette).
+- Ops: added `db_bootstrap --dry-run` migration plan validation, CI `prod_bootstrap_dry_run` job, and `docs/production_bootstrap.md` checklist.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

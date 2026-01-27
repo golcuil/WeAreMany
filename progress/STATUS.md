@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-078] Production bootstrap dry-run + operator checklist (db_bootstrap --dry-run migration plan validation; db_verify not_configured; CI dry-run job).
 - [T-077] Security scanning + threat model: pip-audit dependency scan + gitleaks secrets scan (CLI); threat model in docs/threat_model.md; dependency remediation for Starlette advisories.
 - [T-076] Second-touch recompute full: minimal event logging (day/type/reason/created_at only), full recompute from events, and cleanup tooling.
 - [T-075] Recompute second_touch aggregates: operator-driven tool for last N days (max 30); partial recompute flagged when source events are missing.
@@ -83,7 +84,6 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-078] Production bootstrap dry-run + operator checklist (db_bootstrap --dry-run, db_verify not_configured, CI dry-run job).
 
 ## Next
 
