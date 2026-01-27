@@ -69,3 +69,8 @@
 - Decision: Apply the same guardrails at offer generation as send-time enforcement (shared predicate).
 - Context: Prevent “dead offers” that would immediately be held at send; keep UX truthful and privacy-safe.
 - Consequences: Offers appear only when actionable (cap/cooldown/disable/crisis cleared); send path remains authoritative.
+
+## D-015 (2026-01-27) — Second-touch aggregate metrics are daily and privacy-safe
+- Decision: Store second_touch observability as daily aggregate counters (no identifiers, no raw text).
+- Context: Need tuning/health signals without privacy risk or scanning large tables.
+- Consequences: New aggregates table + CI migration parity; ops_daily reports 7d/30d windows with reason breakdowns.

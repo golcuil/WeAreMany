@@ -13,6 +13,7 @@
 - Second-touch one-shot offer as a system inbox card and send flow (no chat).
 - Server-side guardrails for second-touch (caps, cooldowns, disable windows).
 - Ops tooling: daily aggregates, watchdog CLI, unified ops runner; scheduled workflow.
+- Second-touch aggregate metrics (daily counters) and ops_daily 7d/30d summary output.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

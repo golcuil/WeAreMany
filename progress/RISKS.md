@@ -72,6 +72,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-015 Second-touch metrics interpretation
+- Risk: low volume can distort rates; taxonomy drift in suppression/hold keys can mislead ops.
+- Mitigation: aggregate-only counters with 7d/30d windows; document keys; monitor for drift.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
