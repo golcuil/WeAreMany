@@ -49,6 +49,22 @@ python3 -m pip install -r backend/requirements.txt
 PYTHONPATH=backend python3 -m pytest -q
 ```
 
+## Ops: ops_daily workflow (prod strict vs smoke)
+
+The scheduled `ops_daily` GitHub Actions workflow runs in **strict** mode only
+when production is configured. Otherwise it runs in **smoke** mode to avoid
+noisy failures in environments without data.
+
+Enable strict prod monitoring by setting the required secret:
+
+- `POSTGRES_DSN_PROD`
+
+Behavior:
+- **With** `POSTGRES_DSN_PROD`: scheduled runs execute `tools.ops_daily all`
+  and fail the workflow on unhealthy signals.
+- **Without** `POSTGRES_DSN_PROD`: scheduled runs execute `tools.ops_daily smoke`
+  and stay green.
+
 Flutter (debug/profile only, uses a dev bearer token if provided):
 
 ```bash
