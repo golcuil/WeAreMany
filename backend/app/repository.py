@@ -813,6 +813,13 @@ class InMemoryRepository:
                 continue
             if self.is_in_crisis_window(counterpart_id, CRISIS_WINDOW_HOURS, now):
                 continue
+            hold_reason = self.get_second_touch_hold_reason(
+                recipient_id,
+                counterpart_id,
+                now,
+            )
+            if hold_reason:
+                continue
             offers_last_month = [
                 offer
                 for offer in self.list_second_touch_offers(recipient_id)
@@ -1883,17 +1890,8 @@ class PostgresRepository:
                 continue
             if self.is_in_crisis_window(counterpart_id, CRISIS_WINDOW_HOURS, now):
                 continue
-            with self._conn() as conn, conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT COUNT(*)
-                    FROM second_touch_offers
-                    WHERE offer_to_id = %s AND created_at >= %s
-                    """,
-                    (recipient_id, now - timedelta(days=30)),
-                )
-                offer_count = int(cur.fetchone()[0] or 0)
-            if offer_count >= SECOND_TOUCH_MONTHLY_CAP:
+            hold_reason = self.get_second_touch_hold_reason(recipient_id, counterpart_id, now)
+            if hold_reason:
                 continue
             latest_a = self._latest_mood_event_db(recipient_id)
             latest_b = self._latest_mood_event_db(counterpart_id)

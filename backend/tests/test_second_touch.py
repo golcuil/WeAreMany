@@ -129,6 +129,102 @@ def test_second_touch_offer_blocked_on_crisis():
     app.dependency_overrides.clear()
 
 
+def test_second_touch_offer_blocked_by_monthly_cap():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    offer_a = _seed_offer(repo, recipient_id, sender_id, now - timedelta(days=2))
+    offer_b = _seed_offer(repo, recipient_id, sender_id, now - timedelta(days=1))
+    repo.second_touch_offers[offer_a].used_at = now - timedelta(days=1)
+    repo.second_touch_offers[offer_b].used_at = now - timedelta(days=1)
+    repo.second_touch_offers[offer_a].state = "used"
+    repo.second_touch_offers[offer_b].state = "used"
+    _override_deps(repo)
+    client = TestClient(app)
+
+    inbox = client.get("/inbox", headers=_headers(recipient_token))
+    assert inbox.status_code == 200
+    assert not any(item["item_type"] == "second_touch_offer" for item in inbox.json()["items"])
+
+    app.dependency_overrides.clear()
+
+
+def test_second_touch_offer_blocked_by_cooldown():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    offer_id = _seed_offer(repo, recipient_id, sender_id, now - timedelta(days=40))
+    repo.second_touch_offers[offer_id].used_at = now - timedelta(days=1)
+    repo.second_touch_offers[offer_id].state = "used"
+    _override_deps(repo)
+    client = TestClient(app)
+
+    inbox = client.get("/inbox", headers=_headers(recipient_token))
+    assert inbox.status_code == 200
+    assert not any(item["item_type"] == "second_touch_offer" for item in inbox.json()["items"])
+
+    app.dependency_overrides.clear()
+
+
+def test_second_touch_offer_blocked_by_negative_ack_disable():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    repo.block_second_touch_pair(
+        sender_id,
+        recipient_id,
+        now + timedelta(days=30),
+        permanent=False,
+    )
+    _override_deps(repo)
+    client = TestClient(app)
+
+    inbox = client.get("/inbox", headers=_headers(recipient_token))
+    assert inbox.status_code == 200
+    assert not any(item["item_type"] == "second_touch_offer" for item in inbox.json()["items"])
+
+    app.dependency_overrides.clear()
+
+
+def test_second_touch_offer_blocked_by_identity_leak_disable():
+    repo = repository_module.InMemoryRepository()
+    now = datetime.now(timezone.utc)
+    sender_token = "dev_sender"
+    recipient_token = "dev_recipient"
+    sender_id = _principal_id(sender_token)
+    recipient_id = _principal_id(recipient_token)
+    _seed_moods(repo, now, sender_id, "positive")
+    _seed_moods(repo, now, recipient_id, "positive")
+    _seed_positive_pair(repo, now, sender_id, recipient_id)
+    repo.block_second_touch_pair(sender_id, recipient_id, None, permanent=True)
+    _override_deps(repo)
+    client = TestClient(app)
+
+    inbox = client.get("/inbox", headers=_headers(recipient_token))
+    assert inbox.status_code == 200
+    assert not any(item["item_type"] == "second_touch_offer" for item in inbox.json()["items"])
+
+    app.dependency_overrides.clear()
+
+
 def test_second_touch_offer_blocked_after_identity_leak():
     repo = repository_module.InMemoryRepository()
     now = datetime.now(timezone.utc)
