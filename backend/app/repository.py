@@ -290,6 +290,13 @@ class Repository(Protocol):
     ) -> int:
         ...
 
+    def recompute_second_touch_daily_aggregates(
+        self,
+        start_day_utc: datetime.date,
+        end_day_utc: datetime.date,
+    ) -> Dict[str, object]:
+        ...
+
     def get_matching_tuning(self) -> MatchingTuning:
         ...
 
@@ -668,6 +675,44 @@ class InMemoryRepository:
             if datetime.fromisoformat(day_key).date() >= cutoff
         }
         return before - len(self.second_touch_counters)
+
+    def recompute_second_touch_daily_aggregates(
+        self,
+        start_day_utc: datetime.date,
+        end_day_utc: datetime.date,
+    ) -> Dict[str, object]:
+        recompute_keys = {"offers_generated", "sends_queued"}
+        kept: Dict[tuple[str, str], int] = {}
+        for (day_key, counter_key), count in self.second_touch_counters.items():
+            record_day = datetime.fromisoformat(day_key).date()
+            if counter_key in recompute_keys and start_day_utc <= record_day <= end_day_utc:
+                continue
+            kept[(day_key, counter_key)] = count
+        self.second_touch_counters = kept
+
+        counts: Dict[tuple[str, str], int] = {}
+        days_written = set()
+        for offer in self.second_touch_offers.values():
+            created_day = offer.created_at.date()
+            if start_day_utc <= created_day <= end_day_utc:
+                key = (created_day.isoformat(), "offers_generated")
+                counts[key] = counts.get(key, 0) + 1
+                days_written.add(created_day)
+            if offer.used_at:
+                used_day = offer.used_at.date()
+                if start_day_utc <= used_day <= end_day_utc:
+                    key = (used_day.isoformat(), "sends_queued")
+                    counts[key] = counts.get(key, 0) + 1
+                    days_written.add(used_day)
+
+        for key, count in counts.items():
+            self.second_touch_counters[key] = count
+
+        return {
+            "days_written": len(days_written),
+            "recompute_partial": True,
+            "reason": "missing_source_events",
+        }
 
     def _increment_daily_ack_aggregate(
         self,
@@ -1645,6 +1690,71 @@ class PostgresRepository:
             )
             deleted = cur.rowcount or 0
         return int(deleted)
+
+    def recompute_second_touch_daily_aggregates(
+        self,
+        start_day_utc: datetime.date,
+        end_day_utc: datetime.date,
+    ) -> Dict[str, object]:
+        recompute_keys = ["offers_generated", "sends_queued"]
+        offer_counts: Dict[datetime.date, int] = {}
+        send_counts: Dict[datetime.date, int] = {}
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM second_touch_daily_aggregates
+                WHERE utc_day BETWEEN %s AND %s
+                  AND counter_key = ANY(%s)
+                """,
+                (start_day_utc, end_day_utc, recompute_keys),
+            )
+            cur.execute(
+                """
+                SELECT created_at::date, COUNT(*)
+                FROM second_touch_offers
+                WHERE created_at::date BETWEEN %s AND %s
+                GROUP BY created_at::date
+                """,
+                (start_day_utc, end_day_utc),
+            )
+            for day, count in cur.fetchall():
+                offer_counts[day] = int(count or 0)
+            cur.execute(
+                """
+                SELECT used_at::date, COUNT(*)
+                FROM second_touch_offers
+                WHERE used_at IS NOT NULL
+                  AND used_at::date BETWEEN %s AND %s
+                GROUP BY used_at::date
+                """,
+                (start_day_utc, end_day_utc),
+            )
+            for day, count in cur.fetchall():
+                send_counts[day] = int(count or 0)
+
+            inserts = []
+            for day, count in offer_counts.items():
+                inserts.append((day, "offers_generated", count))
+            for day, count in send_counts.items():
+                inserts.append((day, "sends_queued", count))
+            if inserts:
+                cur.executemany(
+                    """
+                    INSERT INTO second_touch_daily_aggregates
+                      (utc_day, counter_key, count)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (utc_day, counter_key)
+                    DO UPDATE SET count = EXCLUDED.count
+                    """,
+                    inserts,
+                )
+
+        days_written = {day for day in offer_counts} | {day for day in send_counts}
+        return {
+            "days_written": len(days_written),
+            "recompute_partial": True,
+            "reason": "missing_source_events",
+        }
 
     def _increment_daily_ack_aggregate(
         self,
