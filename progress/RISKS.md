@@ -78,6 +78,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-016 Second-touch health threshold tuning
+- Risk: thresholds may be too strict or too lenient, causing false positives/negatives.
+- Mitigation: insufficient_data gate; re-evaluate thresholds using 30d aggregates; adjust only with aggregate evidence.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

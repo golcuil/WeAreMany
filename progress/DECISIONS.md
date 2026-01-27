@@ -74,3 +74,8 @@
 - Decision: Store second_touch observability as daily aggregate counters (no identifiers, no raw text).
 - Context: Need tuning/health signals without privacy risk or scanning large tables.
 - Consequences: New aggregates table + CI migration parity; ops_daily reports 7d/30d windows with reason breakdowns.
+
+## D-016 (2026-01-27) — Second-touch health thresholds in ops_daily
+- Decision: Add a deterministic second_touch health evaluator with low-volume gating.
+- Context: Need actionable signals without alert fatigue in low-volume environments.
+- Consequences: Insufficient_data gate returns healthy when volume is low; identity-leak disables are treated as high-signal and fail even at low volume; ops_daily prints a single aggregate-only line with status/reason.
