@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-074] Ops playbook + prod_verify: deploy/rollback/incident triage checklist; manual prod_verify workflow with non-sensitive output and skip when prod not configured.
 - [T-073] ops_daily strict failure alerting: GitHub Issue dedupe + optional Slack on strict failures; aggregate-only outputs.
 - [T-072] DB bootstrap workflow + tool: manual workflow_dispatch with dry_run; apply_migrations + db_verify sequence; README bootstrap steps documented.
 - [T-071] Prod wiring runbook + db_verify: documented secret-only config, non-sensitive verification steps, deterministic reason codes.

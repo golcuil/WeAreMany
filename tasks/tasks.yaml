@@ -1996,7 +1996,7 @@
 - id: T-074
   title: Ops playbook + prod verification workflow
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Add an operator playbook and a manual prod verification workflow.
   scope:
     in:
@@ -2043,7 +2043,7 @@
     - risk_level==2 does not write free_text to DB
   completion_definition:
   - Playbook and prod_verify workflow added
-  - All tests passing and CI green
+  - All tests passing and CI green (5384029)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

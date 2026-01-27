@@ -104,3 +104,8 @@
 - Decision: Use GitHub Issues as the default alert channel for strict ops_daily failures (deduped by title).
 - Context: Strict failures were only visible as red workflow runs; need actionable alerts without new infra.
 - Consequences: Optional Slack notifications behind secret presence; alerts are aggregate-only and fire only in strict mode.
+
+## D-022 (2026-01-27) — Ops playbook + manual prod verification
+- Decision: Add an operator-grade playbook to standardize deploy, rollback, and incident triage.
+- Context: Production readiness needs repeatable procedures without leaking secrets.
+- Consequences: prod_verify is manual-only to avoid accidental prod touches; outputs remain aggregate-only and non-sensitive.
