@@ -45,6 +45,7 @@ def _apply_migrations(dsn: str) -> bool:
         "0013_daily_ack_aggregates.sql",
         "0014_second_touch.sql",
         "0015_second_touch_daily_aggregates.sql",
+        "0016_second_touch_events.sql",
     ]
     for filename in migration_files:
         path = os.path.join(migration_dir, filename)

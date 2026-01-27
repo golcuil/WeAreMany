@@ -138,6 +138,14 @@ class SecondTouchDailyAggregate:
     count: int
 
 
+@dataclass(frozen=True)
+class SecondTouchEventRecord:
+    event_day_utc: str
+    event_type: str
+    reason: Optional[str]
+    created_at: datetime
+
+
 class Repository(Protocol):
     def save_mood(self, record: MoodRecord) -> None:
         ...
@@ -290,6 +298,13 @@ class Repository(Protocol):
     ) -> int:
         ...
 
+    def cleanup_second_touch_events(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        ...
+
     def recompute_second_touch_daily_aggregates(
         self,
         start_day_utc: datetime.date,
@@ -334,6 +349,7 @@ class InMemoryRepository:
         self.second_touch_pairs: Dict[tuple[str, str], Dict[str, object]] = {}
         self.second_touch_offers: Dict[str, SecondTouchOfferRecord] = {}
         self.second_touch_counters: Dict[tuple[str, str], int] = {}
+        self.second_touch_events: List[SecondTouchEventRecord] = []
 
     def save_mood(self, record: MoodRecord) -> None:
         return None
@@ -651,6 +667,17 @@ class InMemoryRepository:
     ) -> None:
         key = (day_key, counter_key)
         self.second_touch_counters[key] = self.second_touch_counters.get(key, 0) + amount
+        event = _event_from_counter_key(counter_key)
+        if event:
+            event_type, reason = event
+            self.second_touch_events.append(
+                SecondTouchEventRecord(
+                    event_day_utc=day_key,
+                    event_type=event_type,
+                    reason=reason,
+                    created_at=datetime.now(timezone.utc),
+                )
+            )
 
     def get_second_touch_counters(self, window_days: int) -> Dict[str, int]:
         day_cutoff = datetime.now(timezone.utc).date() - timedelta(days=max(window_days - 1, 0))
@@ -676,42 +703,51 @@ class InMemoryRepository:
         }
         return before - len(self.second_touch_counters)
 
+    def cleanup_second_touch_events(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        cutoff = now_utc - timedelta(days=retention_days)
+        before = len(self.second_touch_events)
+        self.second_touch_events = [
+            event for event in self.second_touch_events if event.created_at >= cutoff
+        ]
+        return before - len(self.second_touch_events)
+
     def recompute_second_touch_daily_aggregates(
         self,
         start_day_utc: datetime.date,
         end_day_utc: datetime.date,
     ) -> Dict[str, object]:
-        recompute_keys = {"offers_generated", "sends_queued"}
         kept: Dict[tuple[str, str], int] = {}
         for (day_key, counter_key), count in self.second_touch_counters.items():
             record_day = datetime.fromisoformat(day_key).date()
-            if counter_key in recompute_keys and start_day_utc <= record_day <= end_day_utc:
+            if start_day_utc <= record_day <= end_day_utc:
                 continue
             kept[(day_key, counter_key)] = count
         self.second_touch_counters = kept
 
         counts: Dict[tuple[str, str], int] = {}
         days_written = set()
-        for offer in self.second_touch_offers.values():
-            created_day = offer.created_at.date()
-            if start_day_utc <= created_day <= end_day_utc:
-                key = (created_day.isoformat(), "offers_generated")
-                counts[key] = counts.get(key, 0) + 1
-                days_written.add(created_day)
-            if offer.used_at:
-                used_day = offer.used_at.date()
-                if start_day_utc <= used_day <= end_day_utc:
-                    key = (used_day.isoformat(), "sends_queued")
-                    counts[key] = counts.get(key, 0) + 1
-                    days_written.add(used_day)
+        for event in self.second_touch_events:
+            event_day = datetime.fromisoformat(event.event_day_utc).date()
+            if not (start_day_utc <= event_day <= end_day_utc):
+                continue
+            counter_key = _counter_key_from_event(event.event_type, event.reason)
+            if counter_key is None:
+                continue
+            key = (event.event_day_utc, counter_key)
+            counts[key] = counts.get(key, 0) + 1
+            days_written.add(event_day)
 
         for key, count in counts.items():
             self.second_touch_counters[key] = count
 
         return {
             "days_written": len(days_written),
-            "recompute_partial": True,
-            "reason": "missing_source_events",
+            "recompute_partial": False,
+            "reason": None,
         }
 
     def _increment_daily_ack_aggregate(
@@ -1602,6 +1638,23 @@ class PostgresRepository:
             deleted = cur.rowcount or 0
         return int(deleted)
 
+    def cleanup_second_touch_events(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        cutoff = now_utc - timedelta(days=retention_days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM second_touch_events
+                WHERE created_at < %s
+                """,
+                (cutoff,),
+            )
+            deleted = cur.rowcount or 0
+        return int(deleted)
+
     def list_daily_ack_aggregates(
         self,
         days: int,
@@ -1658,6 +1711,20 @@ class PostgresRepository:
                 """,
                 (day_key, counter_key, amount),
             )
+            event = _event_from_counter_key(counter_key)
+            if event:
+                event_type, reason = event
+                try:
+                    cur.execute(
+                        """
+                        INSERT INTO second_touch_events
+                          (event_day_utc, event_type, reason, created_at)
+                        VALUES (%s, %s, %s, now())
+                        """,
+                        (day_key, event_type, reason),
+                    )
+                except Exception:
+                    pass
 
     def get_second_touch_counters(self, window_days: int) -> Dict[str, int]:
         cutoff = datetime.now(timezone.utc).date() - timedelta(days=max(window_days - 1, 0))
@@ -1696,65 +1763,62 @@ class PostgresRepository:
         start_day_utc: datetime.date,
         end_day_utc: datetime.date,
     ) -> Dict[str, object]:
-        recompute_keys = ["offers_generated", "sends_queued"]
-        offer_counts: Dict[datetime.date, int] = {}
-        send_counts: Dict[datetime.date, int] = {}
-        with self._conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                DELETE FROM second_touch_daily_aggregates
-                WHERE utc_day BETWEEN %s AND %s
-                  AND counter_key = ANY(%s)
-                """,
-                (start_day_utc, end_day_utc, recompute_keys),
-            )
-            cur.execute(
-                """
-                SELECT created_at::date, COUNT(*)
-                FROM second_touch_offers
-                WHERE created_at::date BETWEEN %s AND %s
-                GROUP BY created_at::date
-                """,
-                (start_day_utc, end_day_utc),
-            )
-            for day, count in cur.fetchall():
-                offer_counts[day] = int(count or 0)
-            cur.execute(
-                """
-                SELECT used_at::date, COUNT(*)
-                FROM second_touch_offers
-                WHERE used_at IS NOT NULL
-                  AND used_at::date BETWEEN %s AND %s
-                GROUP BY used_at::date
-                """,
-                (start_day_utc, end_day_utc),
-            )
-            for day, count in cur.fetchall():
-                send_counts[day] = int(count or 0)
-
-            inserts = []
-            for day, count in offer_counts.items():
-                inserts.append((day, "offers_generated", count))
-            for day, count in send_counts.items():
-                inserts.append((day, "sends_queued", count))
-            if inserts:
-                cur.executemany(
+        try:
+            with self._conn() as conn, conn.cursor() as cur:
+                cur.execute(
                     """
-                    INSERT INTO second_touch_daily_aggregates
-                      (utc_day, counter_key, count)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (utc_day, counter_key)
-                    DO UPDATE SET count = EXCLUDED.count
+                    DELETE FROM second_touch_daily_aggregates
+                    WHERE utc_day BETWEEN %s AND %s
                     """,
-                    inserts,
+                    (start_day_utc, end_day_utc),
                 )
+                cur.execute(
+                    """
+                    SELECT event_day_utc, event_type, reason, COUNT(*)
+                    FROM second_touch_events
+                    WHERE event_day_utc BETWEEN %s AND %s
+                    GROUP BY event_day_utc, event_type, reason
+                    """,
+                    (start_day_utc, end_day_utc),
+                )
+                rows = cur.fetchall()
 
-        days_written = {day for day in offer_counts} | {day for day in send_counts}
-        return {
-            "days_written": len(days_written),
-            "recompute_partial": True,
-            "reason": "missing_source_events",
-        }
+                counts: Dict[tuple[datetime.date, str], int] = {}
+                days_written = set()
+                for event_day, event_type, reason, count in rows:
+                    counter_key = _counter_key_from_event(str(event_type), reason)
+                    if counter_key is None:
+                        continue
+                    counts[(event_day, counter_key)] = (
+                        counts.get((event_day, counter_key), 0) + int(count or 0)
+                    )
+                    days_written.add(event_day)
+
+                inserts = [(day, key, count) for (day, key), count in counts.items()]
+                if inserts:
+                    cur.executemany(
+                        """
+                        INSERT INTO second_touch_daily_aggregates
+                          (utc_day, counter_key, count)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (utc_day, counter_key)
+                        DO UPDATE SET count = EXCLUDED.count
+                        """,
+                        inserts,
+                    )
+
+            days_written = {day for day in days_written}
+            return {
+                "days_written": len(days_written),
+                "recompute_partial": False,
+                "reason": None,
+            }
+        except Exception:
+            return {
+                "days_written": 0,
+                "recompute_partial": True,
+                "reason": "events_missing",
+            }
 
     def _increment_daily_ack_aggregate(
         self,
@@ -2279,6 +2343,42 @@ def _suppression_reason_from_hold(hold_reason: str) -> str:
 
 def _pair_key(a: str, b: str) -> tuple[str, str]:
     return (a, b) if a <= b else (b, a)
+
+
+def _event_from_counter_key(counter_key: str) -> Optional[tuple[str, Optional[str]]]:
+    if counter_key == "offers_generated":
+        return ("offer_generated", None)
+    if counter_key == "sends_attempted":
+        return ("send_attempted", None)
+    if counter_key == "sends_queued":
+        return ("send_queued", None)
+    if counter_key == "disables_negative_ack":
+        return ("disable_negative_ack", None)
+    if counter_key == "disables_identity_leak":
+        return ("disable_identity_leak", None)
+    if counter_key.startswith("offers_suppressed_"):
+        return ("offer_suppressed", counter_key.split("offers_suppressed_", 1)[1])
+    if counter_key.startswith("sends_held_"):
+        return ("send_held", counter_key.split("sends_held_", 1)[1])
+    return None
+
+
+def _counter_key_from_event(event_type: str, reason: Optional[str]) -> Optional[str]:
+    if event_type == "offer_generated":
+        return "offers_generated"
+    if event_type == "offer_suppressed":
+        return _second_touch_suppressed_key(reason or "unknown")
+    if event_type == "send_attempted":
+        return "sends_attempted"
+    if event_type == "send_queued":
+        return "sends_queued"
+    if event_type == "send_held":
+        return _second_touch_held_key(reason or "unknown")
+    if event_type == "disable_negative_ack":
+        return "disables_negative_ack"
+    if event_type == "disable_identity_leak":
+        return "disables_identity_leak"
+    return None
 
 
 _default_repo = InMemoryRepository()

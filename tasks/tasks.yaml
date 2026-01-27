@@ -2113,6 +2113,69 @@
     - Aggregate drift without recovery path
     mitigations:
     - Operator-driven recompute for last N days
+- id: T-076
+  title: Second-touch recompute fully reconstructable events
+  owner: data
+  state: IN_PROGRESS
+  goal: Persist minimal second_touch events to allow full recompute of aggregates.
+  scope:
+    in:
+    - second_touch_events table (event_day_utc, event_type, reason, created_at)
+    - Event logging for offer/suppression/send/disable outcomes
+    - Recompute uses events and becomes non-partial
+    - Retention cleanup for events + ops_daily subcommand
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies: []
+  touches:
+    endpoints: []
+    data:
+    - second_touch_events
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Minimal event records persist for reconstructable metrics
+    - Recompute becomes full when events available
+    - Events cleanup tool removes old rows
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - Aggregate-only output; no identifiers or raw text
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+  tests:
+    unit:
+    - Event logging + recompute matches aggregates
+    - Cleanup removes old events
+    integration:
+    - Recompute output is aggregate-only
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - Events persisted and recompute fully reconstructable
+  - All tests passing and CI green
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Aggregate drift without source events
+    mitigations:
+    - Minimal event logging + retention cleanup
 - id: T-072
   title: DB bootstrap workflow + tool
   owner: cto
