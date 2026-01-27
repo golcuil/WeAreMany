@@ -45,5 +45,8 @@ This playbook is intentionally non-sensitive. Do not paste secrets, DSNs, or use
 - Exit codes:
   - `0` healthy
   - `1` error
-  - `2` unhealthy
+  - `2` unhealthy (or insufficient data)
+- Insufficient data token:
+  - `status=insufficient_data reason=delivered_total_0` means no traffic yet.
+  - Scheduled runs normalize to green only when this token is present.
 - Safe logs to paste: aggregate-only lines from ops_daily (no identifiers, no secrets).

@@ -36,3 +36,20 @@ def test_watchdog_output_is_aggregate_only(monkeypatch, capsys):
     assert re.search(r"h=0\.50", output)
     assert "principal" not in output
     assert "dev:" not in output
+
+
+def test_watchdog_outputs_insufficient_data(monkeypatch, capsys):
+    class FakeRepo:
+        def list_daily_ack_aggregates(self, days, theme_id=None):
+            class Record:
+                delivered_count = 0
+                positive_ack_count = 0
+
+            return [Record()]
+
+    monkeypatch.setattr(watchdog, "get_repository", lambda: FakeRepo())
+    code = watchdog.run_watchdog(7, 0.2)
+    assert code == 2
+    output = capsys.readouterr().out.strip()
+    assert "status=insufficient_data" in output
+    assert "reason=delivered_total_0" in output

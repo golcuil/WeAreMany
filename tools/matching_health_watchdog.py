@@ -37,15 +37,20 @@ def run_watchdog(days: int, min_ratio: float) -> int:
     delivered_total = sum(item.delivered_count for item in aggregates)
     positive_total = sum(item.positive_ack_count for item in aggregates)
     snapshot = compute_health(delivered_total, positive_total)
-    status = "healthy" if evaluate_health(snapshot, min_ratio) == 0 else "unhealthy"
+    status_code = evaluate_health(snapshot, min_ratio)
+    status = "healthy" if status_code == 0 else "unhealthy"
+    reason = ""
+    if snapshot.delivered_total == 0:
+        status = "insufficient_data"
+        reason = " reason=delivered_total_0"
     print(
         "generated_at="
         f"{datetime.now(timezone.utc).isoformat()} "
         f"window_days={days} delivered_total={snapshot.delivered_total} "
         f"positive_total={snapshot.positive_total} h={snapshot.ratio:.2f} "
-        f"status={status}"
+        f"status={status}{reason}"
     )
-    return evaluate_health(snapshot, min_ratio)
+    return status_code
 
 
 def main() -> int:

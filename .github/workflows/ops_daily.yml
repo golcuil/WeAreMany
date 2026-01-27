@@ -74,13 +74,40 @@ jobs:
             echo "ops_mode_line<<'EOF'" >> "$GITHUB_OUTPUT"
             echo "$MODE_LINE" >> "$GITHUB_OUTPUT"
             echo "EOF" >> "$GITHUB_OUTPUT"
-            exit $EXIT_CODE
+            exit 0
           fi
           PYTHONPATH=backend:. python3 -m tools.ops_daily smoke
         id: run_ops
 
+      - name: Normalize strict exit code
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' }}
+        run: |
+          OPS_EXIT="${{ steps.run_ops.outputs.ops_exit }}"
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            LINE="ops_ci_normalize status=skip reason=not_schedule"
+            echo "$LINE"
+            echo "normalized_exit=$OPS_EXIT" >> "$GITHUB_OUTPUT"
+            echo "normalized_line=$LINE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          set +e
+          OUTPUT="$(PYTHONPATH=backend:. python3 -m tools.ops_ci_normalize --exit-code "$OPS_EXIT" --log-file ops_daily.log 2>&1)"
+          NORMAL_EXIT=$?
+          echo "$OUTPUT"
+          echo "normalized_exit=$NORMAL_EXIT" >> "$GITHUB_OUTPUT"
+          echo "normalized_line=$OUTPUT" >> "$GITHUB_OUTPUT"
+          if [ "$NORMAL_EXIT" = "0" ] && echo "$OUTPUT" | grep -q "status=normalized"; then
+            echo "Normalized insufficient_data in scheduled run." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$NORMAL_EXIT" = "0" ]; then
+            echo "ops_daily strict completed successfully." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ops_daily strict failed (exit_code=$NORMAL_EXIT)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+        id: normalize_ops
+
       - name: Create or update ops_daily issue (strict failures)
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.run_ops.outputs.ops_exit != '0' }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit != '0' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -91,6 +118,7 @@ jobs:
               `run_url=${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
               `exit_code=${process.env.OPS_EXIT}`,
               process.env.OPS_MODE_LINE ? `mode_line=${process.env.OPS_MODE_LINE}` : "mode_line=missing",
+              process.env.OPS_NORMALIZED_LINE ? `normalize_line=${process.env.OPS_NORMALIZED_LINE}` : "normalize_line=missing",
               "",
               "ops_daily_output_tail:",
               "```",
@@ -124,9 +152,10 @@ jobs:
           OPS_EXIT: ${{ steps.run_ops.outputs.ops_exit }}
           OPS_TAIL: ${{ steps.run_ops.outputs.ops_tail }}
           OPS_MODE_LINE: ${{ steps.run_ops.outputs.ops_mode_line }}
+          OPS_NORMALIZED_LINE: ${{ steps.normalize_ops.outputs.normalized_line }}
 
       - name: Notify Slack (strict failures, optional)
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.run_ops.outputs.ops_exit != '0' && env.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit != '0' && env.SLACK_WEBHOOK_URL != '' }}
         env:
           OPS_EXIT: ${{ steps.run_ops.outputs.ops_exit }}
         run: |
@@ -139,5 +168,5 @@ jobs:
           curl -sS -X POST -H "Content-type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL" >/dev/null
 
       - name: Fail workflow on strict unhealthy
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.run_ops.outputs.ops_exit != '0' }}
-        run: exit ${{ steps.run_ops.outputs.ops_exit }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit != '0' }}
+        run: exit ${{ steps.normalize_ops.outputs.normalized_exit }}

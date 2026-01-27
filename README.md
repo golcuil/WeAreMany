@@ -64,6 +64,9 @@ Behavior:
   and fail the workflow on unhealthy signals.
 - **Without** `POSTGRES_DSN_PROD`: scheduled runs execute `tools.ops_daily smoke`
   and stay green.
+- Scheduled runs normalize **only** when the output includes:
+  - `status=insufficient_data reason=delivered_total_0`
+  - All other exit-2 cases remain failures.
 
 ## Production wiring runbook (ops + DB)
 
