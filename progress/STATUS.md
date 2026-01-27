@@ -82,6 +82,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-077] Security scanning (pip-audit + gitleaks) and minimal threat model doc.
 - [T-076] Second-touch recompute fully reconstructable via minimal events + retention cleanup.
 
 ## Next
