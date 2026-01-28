@@ -3,6 +3,9 @@
 This runbook is the single source of truth for production operations. It is non-sensitive:
 do not paste secrets, DSNs, identifiers, or raw user content into tickets or chat.
 
+Rotation checklist:
+- `docs/secret_rotation.md`
+
 ## Overview
 - Daily: rely on scheduled ops_daily (strict when prod configured).
 - Weekly: run manual verification (db_verify + ops_daily strict) and review health trends.

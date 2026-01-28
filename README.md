@@ -58,6 +58,8 @@ noisy failures in environments without data.
 Canonical operator runbook:
 - `docs/operator_runbook.md`
 Ops metrics snapshot + regression check are described there (aggregate-only).
+Secret rotation checklist:
+- `docs/secret_rotation.md`
 
 Enable strict prod monitoring by setting the required secret:
 

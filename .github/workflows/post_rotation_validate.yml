@@ -1,0 +1,43 @@
+name: post_rotation_validate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  post_rotation_validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f backend/requirements.txt ]; then
+            python -m pip install -r backend/requirements.txt
+          elif [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+          python -m pip install pyyaml
+
+      - name: Run post-rotation validation
+        env:
+          POSTGRES_DSN_PROD: ${{ secrets.POSTGRES_DSN_PROD }}
+        run: |
+          OUTPUT="$(PYTHONPATH=backend:. python3 -m tools.post_rotation_validate_ci 2>&1)"
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "post_rotation_validate status=ok" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $EXIT_CODE
