@@ -93,6 +93,9 @@ jobs:
       - name: Policy gate
         run: python3 tools/policy_check.py
 
+      - name: Docs consistency check
+        run: python3 -m tools.docs_consistency_check
+
   security_scans:
     runs-on: ubuntu-latest
     permissions:

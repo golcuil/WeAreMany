@@ -1,7 +1,8 @@
 # Production Bootstrap Checklist
 
 This guide is a non-sensitive, operator-grade checklist for first-time production setup.
-It does not include any secret values.
+It does not include any secret values. The canonical runbook is:
+- `docs/operator_runbook.md`
 
 ## Required secrets (names only)
 - POSTGRES_DSN_PROD

@@ -1,5 +1,8 @@
 # Ops Playbook
 
+Canonical runbook:
+- `docs/operator_runbook.md`
+
 This playbook is intentionally non-sensitive. Do not paste secrets, DSNs, or user data into logs or tickets.
 
 ## First-time production setup

@@ -55,6 +55,9 @@ The scheduled `ops_daily` GitHub Actions workflow runs in **strict** mode only
 when production is configured. Otherwise it runs in **smoke** mode to avoid
 noisy failures in environments without data.
 
+Canonical operator runbook:
+- `docs/operator_runbook.md`
+
 Enable strict prod monitoring by setting the required secret:
 
 - `POSTGRES_DSN_PROD`
