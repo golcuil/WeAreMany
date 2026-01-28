@@ -36,6 +36,7 @@
 - Ops/CI: added restore_dry_run validation job and DR playbook (sanitized fixture).
 - Ops/CI: added prod_rehearsal job and rehearsal summary artifact.
 - Security/Ops: added secret echo guard (CI log scan) and logging policy doc.
+- Ops: added pre_release_gate workflow and versioned release checklist.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

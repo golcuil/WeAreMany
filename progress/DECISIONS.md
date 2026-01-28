@@ -174,3 +174,8 @@
 - Decision: Add a stdlib-only secret echo guard to scan captured CI logs and fail on unmasked secrets/DSNs without printing matches.
 - Decision: Formalize a logging policy that mandates single-line status tokens and prohibits logging DSNs, credentials, raw payloads, or identifiers.
 - Consequences: CI now enforces log hygiene; SARIF upload remains best-effort, but the guard keeps scans strict.
+
+## D-036 (2026-01-28) — Release discipline v1
+- Decision: Add a manual `pre_release_gate` workflow to validate prod readiness without requiring PR CI secrets.
+- Decision: Publish a versioned release/rollback checklist as the canonical operator flow (names-only).
+- Consequences: Releases are gated by a manual operator check and a documented rollback path, reducing ad-hoc deploys.
