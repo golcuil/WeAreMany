@@ -156,6 +156,12 @@
 - Owner: CTO + SecurityEngineer
 - Status: OPEN
 
+## R-029 Migration runtime failures
+- Risk: SQL/runtime migration failures could slip past dry-run validation.
+- Mitigation: db_migrations_integration CI gate applies migrations against ephemeral Postgres and verifies idempotency.
+- Owner: CTO + DataEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

@@ -139,3 +139,8 @@
 - Decision: Introduce stdlib-only `prod_config_contract` as the single source of truth for required prod env **names**.
 - Context: Scheduled ops could silently degrade into smoke mode if secrets are missing/misnamed.
 - Consequences: Cron runs fail-fast on `prod_config status=fail reason=missing_env`; PR/CI runs remain secretless and CI-safe.
+
+## D-029 (2026-01-27) — DB migrations integration gate
+- Decision: Add an ephemeral-Postgres CI job to apply migrations, verify required tables, and re-apply for idempotency.
+- Context: Dry-run validates ordering but cannot catch SQL/runtime migration failures.
+- Consequences: Introduce `db_migrations_smoke` helper with stable single-line output; `schema_migrations` ledger enforces idempotent applies and checksum mismatch detection.

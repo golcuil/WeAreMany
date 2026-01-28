@@ -2425,7 +2425,7 @@
 - id: T-081
   title: DB migrations integration CI gate
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Validate migrations apply + verify against ephemeral Postgres in CI with idempotency.
   scope:
     in:
@@ -2475,7 +2475,7 @@
   completion_definition:
   - db_migrations_integration job added
   - Smoke helper added with stable output
-  - All tests passing and CI green
+  - All tests passing and CI green (03b5d0d)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations
