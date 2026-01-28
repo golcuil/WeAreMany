@@ -62,6 +62,8 @@ Secret rotation checklist:
 - `docs/secret_rotation.md`
 Release checklist:
 - `docs/release_checklist.md`
+Disaster recovery playbook:
+- `docs/disaster_recovery.md`
 
 Enable strict prod monitoring by setting the required secret:
 
@@ -110,6 +112,10 @@ Behavior:
 ### CI migration integration gate
 - CI runs `db_migrations_integration` to apply migrations + verify against ephemeral Postgres and re-apply for idempotency.
 - Summary: `db_migrations_smoke status=ok` (single-line, non-sensitive).
+
+### CI restore dry-run gate
+- CI runs `restore_dry_run` to validate restore + verify + idempotent apply against ephemeral Postgres.
+- Summary: `restore_dry_run status=ok` (single-line, non-sensitive).
 
 ### ops_daily strict validation (prod)
 1) Trigger Actions → `ops_daily` → Run workflow with `mode=prod`.

@@ -1,0 +1,74 @@
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+
+
+def _run(cmd: list[str], env: dict[str, str]) -> int:
+    result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    return result.returncode
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Restore dry-run against ephemeral Postgres.")
+    parser.add_argument("--dsn-env", type=str, default="POSTGRES_DSN_TEST")
+    parser.add_argument(
+        "--fixture",
+        type=str,
+        default="fixtures/sanitized_restore_fixture.sql",
+    )
+    args = parser.parse_args(argv)
+
+    dsn = os.getenv(args.dsn_env)
+    if not dsn:
+        print("restore_dry_run status=fail reason=missing_dsn_env")
+        return 1
+    if not os.path.exists(args.fixture):
+        print("restore_dry_run status=fail reason=missing_fixture")
+        return 1
+
+    env = dict(os.environ)
+    env["POSTGRES_DSN"] = dsn
+
+    restore_code = _run(
+        ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-f", args.fixture],
+        env,
+    )
+    if restore_code != 0:
+        print("restore_dry_run status=fail reason=restore_failed")
+        return 1
+
+    apply_code = _run([sys.executable, "-m", "tools.db_bootstrap", "apply_migrations"], env)
+    if apply_code != 0:
+        print("restore_dry_run status=fail reason=migrations_failed")
+        return 1
+
+    verify_code = _run(
+        [
+            sys.executable,
+            "-m",
+            "tools.db_verify",
+            "--dsn-env",
+            "POSTGRES_DSN",
+        ],
+        env,
+    )
+    if verify_code != 0:
+        print("restore_dry_run status=fail reason=db_verify_failed")
+        return 1
+
+    idempotent_code = _run(
+        [sys.executable, "-m", "tools.db_bootstrap", "apply_migrations"], env
+    )
+    if idempotent_code != 0:
+        print("restore_dry_run status=fail reason=idempotency_failed")
+        return 1
+
+    print("restore_dry_run status=ok")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

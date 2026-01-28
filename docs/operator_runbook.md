@@ -7,6 +7,8 @@ Rotation checklist:
 - `docs/secret_rotation.md`
 Release checklist:
 - `docs/release_checklist.md`
+Disaster recovery:
+- `docs/disaster_recovery.md`
 
 ## Overview
 - Daily: rely on scheduled ops_daily (strict when prod configured).
