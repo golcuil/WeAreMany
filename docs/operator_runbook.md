@@ -21,6 +21,8 @@ Canary drill rehearsal:
 - `docs/canary_drill.md`
 Disaster recovery:
 - `docs/disaster_recovery.md`
+Logging policy:
+- `docs/logging_policy.md`
 
 ## Overview
 - Daily: rely on scheduled ops_daily (strict when prod configured).

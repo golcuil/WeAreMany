@@ -32,6 +32,7 @@ V1_COMPLETE_PATH = os.path.join("docs", "V1_COMPLETE.md")
 STAGED_ROLLOUT_PATH = os.path.join("docs", "staged_rollout.md")
 REGRESSION_BASELINE_PATH = os.path.join("docs", "regression_baseline.md")
 CANARY_DRILL_PATH = os.path.join("docs", "canary_drill.md")
+LOGGING_POLICY_PATH = os.path.join("docs", "logging_policy.md")
 
 SUSPICIOUS_DSN = re.compile(r"postgres://[^\s:]+:[^\s@]+@")
 
@@ -104,6 +105,10 @@ def main(argv: list[str] | None = None) -> int:
     if canary_drill is None:
         _print("fail", "canary_drill_missing")
         return 1
+    logging_policy = _load_text(LOGGING_POLICY_PATH)
+    if logging_policy is None:
+        _print("fail", "logging_policy_missing")
+        return 1
 
     workflow = _load_ci_workflow()
     if workflow is None:
@@ -121,6 +126,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if "docs/canary_drill.md" not in runbook:
         _print("fail", "missing_canary_drill_link")
+        return 1
+    if "docs/logging_policy.md" not in runbook:
+        _print("fail", "missing_logging_policy_link")
         return 1
 
     if "retention-days:" not in workflow:
@@ -148,6 +156,9 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "suspicious_dsn")
         return 1
     if SUSPICIOUS_DSN.search(canary_drill):
+        _print("fail", "suspicious_dsn")
+        return 1
+    if SUSPICIOUS_DSN.search(logging_policy):
         _print("fail", "suspicious_dsn")
         return 1
     if SUSPICIOUS_DSN.search(workflow):

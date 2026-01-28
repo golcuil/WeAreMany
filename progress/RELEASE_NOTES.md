@@ -42,6 +42,7 @@
 - Ops: staged rollout canary workflow + playbook with safe summary artifact.
 - Ops: regression baseline lifecycle (deterministic id + latest pointer + schema enforcement).
 - Ops: baseline validation + latest-pointer determinism with explicit artifact retention.
+- Ops: added canary drill workflow + HOLD-first checklist with summary artifact.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

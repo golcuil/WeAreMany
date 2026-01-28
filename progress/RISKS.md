@@ -234,6 +234,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-042 Canary rehearsal interpretation
+- Risk: READY could be misread as “no incident risk.”
+- Mitigation: HOLD-first guidance; READY defined narrowly as pointer valid + canary ok.
+- Owner: CTO + PM
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
