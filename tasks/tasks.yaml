@@ -2664,6 +2664,65 @@
     - Breakage after secret rotations
     mitigations:
     - Manual validation workflow + checklist
+- id: T-085
+  title: Release checklist + pre-release gate workflow
+  owner: cto
+  state: IN_PROGRESS
+  goal: Add versioned release checklist and manual pre-release gate.
+  scope:
+    in:
+    - docs/release_checklist.md
+    - pre_release_gate workflow
+    - pre_release_gate CI helper
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies: []
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Release checklist added and referenced
+    - Manual pre_release_gate runs with stable outputs
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - Aggregate-only outputs; no identifiers or raw text
+    - 'If risk_level==2: do not persist free text; crisis UX path works'
+    security:
+    - AuthN enforced on all touched endpoints
+    - 'AuthZ: user-scoped access only; no cross-user reads/writes'
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body + text size limits enforced
+    - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
+    - Logs/analytics contain no raw message text
+  tests:
+    unit:
+    - pre_release_gate_ci output stability
+    integration:
+    - Manual workflow runs
+    security:
+    - Cannot access another user's resources (AuthZ tests)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - Release checklist + workflow added
+  - All tests passing and CI green
+  - Safety checklist passed
+  - Security checklist passed
+  - No red-line violations
+  threat_model:
+    primary_threats:
+    - Releases without readiness checks
+    mitigations:
+    - Manual pre-release gate + checklist
 - id: T-072
   title: DB bootstrap workflow + tool
   owner: cto

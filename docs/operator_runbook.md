@@ -5,6 +5,8 @@ do not paste secrets, DSNs, identifiers, or raw user content into tickets or cha
 
 Rotation checklist:
 - `docs/secret_rotation.md`
+Release checklist:
+- `docs/release_checklist.md`
 
 ## Overview
 - Daily: rely on scheduled ops_daily (strict when prod configured).
