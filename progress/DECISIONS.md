@@ -169,3 +169,8 @@
 - Decision: Add a prod_rehearsal CI job that runs bootstrap → verify → restore → verify → ops smoke on ephemeral Postgres.
 - Decision: Emit a privacy-safe `rehearsal_summary.json` artifact (no identifiers/DSN) for quick operator review.
 - Guardrail: rehearsal fails on any suspected secret echo patterns.
+
+## D-035 (2026-01-28) — Secret echo guard + logging policy
+- Decision: Add a stdlib-only secret echo guard to scan captured CI logs and fail on unmasked secrets/DSNs without printing matches.
+- Decision: Formalize a logging policy that mandates single-line status tokens and prohibits logging DSNs, credentials, raw payloads, or identifiers.
+- Consequences: CI now enforces log hygiene; SARIF upload remains best-effort, but the guard keeps scans strict.

@@ -192,6 +192,12 @@
 - Owner: CTO + DataEngineer
 - Status: OPEN
 
+## R-035 Secret echo guard tuning
+- Risk: guard heuristics may trigger false positives or allowlists may be too permissive.
+- Mitigation: keep rules narrow, pin tool versions, and adjust allowlists only with review; no matched secrets echoed.
+- Owner: SecurityEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

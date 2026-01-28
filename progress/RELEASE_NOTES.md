@@ -35,6 +35,7 @@
 - Ops: retention cleanup + retention_report added (aggregate-only TTL enforcement).
 - Ops/CI: added restore_dry_run validation job and DR playbook (sanitized fixture).
 - Ops/CI: added prod_rehearsal job and rehearsal summary artifact.
+- Security/Ops: added secret echo guard (CI log scan) and logging policy doc.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
