@@ -1371,7 +1371,7 @@
 - id: T-022
   title: CI format diff visibility (print formatter diff on failure)
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Show formatter diffs in CI logs when format gate fails, without changing
     product behavior.
   scope:
@@ -2744,7 +2744,7 @@
 - id: T-084
   title: Secret rotation checklist + post-rotation validation
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Add a names-only rotation checklist and a manual validation workflow.
   scope:
     in:
@@ -2803,7 +2803,7 @@
 - id: T-085
   title: Release checklist + pre-release gate workflow
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Add versioned release checklist and manual pre-release gate.
   scope:
     in:
@@ -2989,7 +2989,7 @@
 - id: T-025
   title: Private dashboard tab with Settings entry and About & Safety placement
   owner: frontend
-  state: IN_PROGRESS
+  state: DONE
   goal: Add a private dashboard with a local display name and a Settings entry
     while keeping About & Safety last in Settings.
   scope:
@@ -3310,6 +3310,69 @@
     - Decision records not captured
     mitigations:
     - Launch checklist + go/no-go decision template + docs consistency gate
+
+- id: T-092
+  title: V1 completion sweep + sign-off bundle
+  owner: cto
+  state: DONE
+  goal: Final docs alignment and v1 completion sign-off bundle.
+  scope:
+    in:
+    - docs/V1_COMPLETE.md sign-off bundle
+    - Docs link hygiene and consistency checks
+    - Status/tasks alignment to v1 complete
+    out:
+    - No feed
+    - No threads/chat
+    - No profiles/identity
+    - No streaks/leaderboards
+    - No social graph
+    - No UI changes
+    - No endpoint/schema changes visible to clients
+  dependencies:
+  - T-082
+  - T-091
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - V1_COMPLETE bundle links canonical ops docs and workflows
+    - Docs consistency check passes
+    privacy:
+    - No secret values in docs or outputs
+    - Aggregate-only outputs (no identifiers)
+    - If risk_level==2: do not persist free text; crisis UX path works
+    security:
+    - AuthN enforced on touched endpoints
+    - AuthZ: user-scoped access only; no cross-user reads/writes
+    - Rate limiting enabled (per-user + per-IP) on touched endpoints
+    - Request validation rejects unknown fields
+    - Body/text size limit enforced
+    - No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens
+    - Logs/analytics contain no raw message text
+  tests:
+    unit:
+    - docs_consistency_check enforces V1 bundle link
+    integration:
+    - docs consistency gate runs in CI
+    security:
+    - AuthZ: cannot access another user's resources (cross-user)
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - Policy check passes
+  - Tests pass
+  - Docs updated (V1_COMPLETE bundle)
+  - Security checklist passed
+  threat_model:
+    primary_threats:
+    - Doc drift at launch time
+    - Incomplete operator handoff
+    mitigations:
+    - V1 completion bundle + docs consistency gate
 
 - id: T-089
   title: Security posture hardening (secret echo guard + logging policy)

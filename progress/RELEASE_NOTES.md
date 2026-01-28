@@ -38,6 +38,7 @@
 - Security/Ops: added secret echo guard (CI log scan) and logging policy doc.
 - Ops: added pre_release_gate workflow and versioned release checklist.
 - Ops: added launch checklist + go/no-go template and records folder.
+- Ops: added V1 completion bundle (docs/V1_COMPLETE.md) as the canonical sign-off package.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

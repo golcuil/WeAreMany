@@ -1,11 +1,12 @@
 # Status
 
-MVP Core Complete: The core end-to-end flow is complete for mood, message delivery, inbox, and acknowledgements.
+V1 Complete: Operational readiness, tooling, and documentation are complete for launch.
 
 ## Current iteration goal
-- Bootstrap MVP workflow and define the first safe, sequential backlog.
+- V1 sign-off bundle and doc alignment complete.
 
 ## Done
+- [T-092] V1 completion sweep: docs aligned, canonical bundle added, and status/tasks finalized.
 - [T-091] Launch readiness: launch checklist + go/no-go decision record template with docs consistency gating.
 - [T-090] Release discipline v1: manual pre_release_gate workflow + versioned release/rollback checklist.
 - [T-089] Secret echo guard + logging policy: CI scans captured logs for unmasked secrets; outputs remain single-line and privacy-safe.

@@ -183,3 +183,7 @@
 ## D-037 (2026-01-28) — Launch readiness checklist + go/no-go record
 - Decision: Formalize launch readiness via `docs/launch_checklist.md` and a go/no-go decision record template.
 - Decision: Enforce launch docs presence and key tokens via docs consistency checks to prevent drift.
+
+## D-038 (2026-01-28) — V1 completion bundle
+- Decision: Publish `docs/V1_COMPLETE.md` as the canonical v1 sign-off bundle linking operator docs and required workflows.
+- Decision: Treat docs consistency checks as the guardrail against launch-time doc drift.
