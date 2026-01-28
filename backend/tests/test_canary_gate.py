@@ -39,6 +39,28 @@ def test_canary_gate_unexpected_output(tmp_path, capsys):
     assert output == "canary_gate status=fail reason=unexpected_output_format"
 
 
+def test_canary_gate_not_configured(tmp_path, capsys):
+    responses = [
+        (0, "prod_config status=ok", ""),
+        (0, "db_verify status=ok", ""),
+        (0, "generated_at=2026-01-01T00:00:00Z status=ok", ""),
+        (
+            0,
+            "generated_at=2026-01-01T00:00:00Z\n"
+            "ops_metrics_snapshot {\"delivered_total\":50}",
+            "",
+        ),
+        (0, "regression_gate status=not_configured reason=missing_baseline", ""),
+    ]
+    exit_code = canary_gate.main(
+        ["--summary-out", str(tmp_path / "summary.json")],
+        runner=_runner_factory(responses),
+    )
+    assert exit_code == 1
+    output = capsys.readouterr().out.strip()
+    assert output == "canary_gate status=fail reason=hold_not_configured"
+
+
 def test_canary_gate_insufficient_data(tmp_path, capsys):
     responses = [
         (0, "prod_config status=ok", ""),
@@ -51,8 +73,8 @@ def test_canary_gate_insufficient_data(tmp_path, capsys):
             "",
         ),
         (
-            0,
-            "metrics_regression status=insufficient_data reason=delivered_total_lt_min_n",
+            2,
+            "regression_gate status=insufficient_data reason=delivered_total_lt_min_n",
             "",
         ),
     ]
@@ -62,7 +84,7 @@ def test_canary_gate_insufficient_data(tmp_path, capsys):
     )
     assert exit_code == 1
     output = capsys.readouterr().out.strip()
-    assert output == "canary_gate status=fail reason=insufficient_data"
+    assert output == "canary_gate status=fail reason=hold_insufficient_data"
 
 
 def test_canary_gate_ok(tmp_path, capsys):
@@ -76,7 +98,7 @@ def test_canary_gate_ok(tmp_path, capsys):
             "ops_metrics_snapshot {\"delivered_total\":50}",
             "",
         ),
-        (0, "metrics_regression status=ok", ""),
+        (0, "regression_gate status=ok", ""),
     ]
     summary = tmp_path / "summary.json"
     exit_code = canary_gate.main(

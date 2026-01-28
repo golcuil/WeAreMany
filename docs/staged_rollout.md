@@ -15,9 +15,13 @@ Names-only. Do not include secrets, DSNs, identifiers, or raw user content.
 
 ## Go/No-Go criteria
 - GO only when regression gate is `status=ok`
-- NO-GO when:
+- HOLD/NO-GO when:
   - `status=fail`
+  - `status=not_configured` (missing baseline)
   - `status=insufficient_data` (hold; collect more data)
+
+Regression baseline lifecycle:
+- `docs/regression_baseline.md`
 
 ## How to run
 - Trigger the GitHub Actions workflow: `staged_rollout_canary_gate`

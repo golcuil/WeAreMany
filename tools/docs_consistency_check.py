@@ -30,6 +30,7 @@ LAUNCH_CHECKLIST_PATH = os.path.join("docs", "launch_checklist.md")
 GO_NO_GO_TEMPLATE_PATH = os.path.join("docs", "go_no_go_template.md")
 V1_COMPLETE_PATH = os.path.join("docs", "V1_COMPLETE.md")
 STAGED_ROLLOUT_PATH = os.path.join("docs", "staged_rollout.md")
+REGRESSION_BASELINE_PATH = os.path.join("docs", "regression_baseline.md")
 
 SUSPICIOUS_DSN = re.compile(r"postgres://[^\s:]+:[^\s@]+@")
 
@@ -88,11 +89,19 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "staged_rollout_missing")
         return 1
 
+    regression_baseline = _load_text(REGRESSION_BASELINE_PATH)
+    if regression_baseline is None:
+        _print("fail", "regression_baseline_missing")
+        return 1
+
     if "docs/launch_checklist.md" not in runbook or "docs/V1_COMPLETE.md" not in runbook:
         _print("fail", "missing_launch_link")
         return 1
     if "docs/staged_rollout.md" not in runbook:
         _print("fail", "missing_rollout_link")
+        return 1
+    if "docs/regression_baseline.md" not in runbook:
+        _print("fail", "missing_regression_link")
         return 1
 
     for token in LAUNCH_REQUIRED_TOKENS:
@@ -110,6 +119,9 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "suspicious_dsn")
         return 1
     if SUSPICIOUS_DSN.search(staged_rollout):
+        _print("fail", "suspicious_dsn")
+        return 1
+    if SUSPICIOUS_DSN.search(regression_baseline):
         _print("fail", "suspicious_dsn")
         return 1
 

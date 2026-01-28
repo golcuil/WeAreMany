@@ -15,6 +15,8 @@ Go/No-Go record template:
 - `docs/go_no_go_template.md`
 Staged rollout (canary):
 - `docs/staged_rollout.md`
+Regression baseline lifecycle:
+- `docs/regression_baseline.md`
 Disaster recovery:
 - `docs/disaster_recovery.md`
 

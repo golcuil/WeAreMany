@@ -1,0 +1,27 @@
+# Regression Baseline Lifecycle
+
+Names-only. Do not include secrets, DSNs, identifiers, or raw user content.
+
+## What a baseline is
+- A privacy-safe, aggregate-only snapshot used to anchor regression checks.
+- Baselines are identified by a deterministic `baseline_id`.
+
+## How to generate
+- Run the manual workflow: `generate_regression_baseline`
+- Output:
+  - `artifacts/regression_baseline_<baseline_id>.json`
+  - `artifacts/regression_baseline_latest.json`
+
+## Baseline ID & artifacts
+- `baseline_id` includes commit + timestamp.
+- `regression_baseline_latest.json` points to the most recent baseline.
+
+## Regression gate semantics
+- `status=not_configured reason=missing_baseline` → HOLD (not a pass)
+- `status=insufficient_data` → HOLD (not a pass)
+- `status=ok` → pass
+- `status=fail` → block
+
+## Schema enforcement
+- Only allowlisted keys are accepted at runtime.
+- Any extra fields cause `invalid_baseline_schema`.

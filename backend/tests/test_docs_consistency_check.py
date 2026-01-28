@@ -12,6 +12,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     go_no_go = tmp_path / "go_no_go_template.md"
     v1_complete = tmp_path / "V1_COMPLETE.md"
     staged_rollout = tmp_path / "staged_rollout.md"
+    regression_baseline = tmp_path / "regression_baseline.md"
     runbook.write_text(
         "\n".join(
             [
@@ -22,6 +23,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
                 "docs/launch_checklist.md",
                 "docs/V1_COMPLETE.md",
                 "docs/staged_rollout.md",
+                "docs/regression_baseline.md",
             ]
         )
     )
@@ -38,6 +40,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     go_no_go.write_text("Go/No-Go Template")
     v1_complete.write_text("V1 Complete")
     staged_rollout.write_text("Staged Rollout")
+    regression_baseline.write_text("Regression Baseline")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
         docs_consistency_check, "LAUNCH_CHECKLIST_PATH", str(launch)
@@ -48,6 +51,9 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(docs_consistency_check, "V1_COMPLETE_PATH", str(v1_complete))
     monkeypatch.setattr(
         docs_consistency_check, "STAGED_ROLLOUT_PATH", str(staged_rollout)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "REGRESSION_BASELINE_PATH", str(regression_baseline)
     )
     monkeypatch.setattr(
         docs_consistency_check,
@@ -66,6 +72,7 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     go_no_go = tmp_path / "go_no_go_template.md"
     v1_complete = tmp_path / "V1_COMPLETE.md"
     staged_rollout = tmp_path / "staged_rollout.md"
+    regression_baseline = tmp_path / "regression_baseline.md"
     runbook.write_text("status=insufficient_data")
     launch.write_text(
         "\n".join(
@@ -80,6 +87,7 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     go_no_go.write_text("Go/No-Go Template")
     v1_complete.write_text("V1 Complete")
     staged_rollout.write_text("Staged Rollout")
+    regression_baseline.write_text("Regression Baseline")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
         docs_consistency_check, "LAUNCH_CHECKLIST_PATH", str(launch)
@@ -90,6 +98,9 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(docs_consistency_check, "V1_COMPLETE_PATH", str(v1_complete))
     monkeypatch.setattr(
         docs_consistency_check, "STAGED_ROLLOUT_PATH", str(staged_rollout)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "REGRESSION_BASELINE_PATH", str(regression_baseline)
     )
     monkeypatch.setattr(
         docs_consistency_check,
@@ -108,6 +119,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     go_no_go = tmp_path / "go_no_go_template.md"
     v1_complete = tmp_path / "V1_COMPLETE.md"
     staged_rollout = tmp_path / "staged_rollout.md"
+    regression_baseline = tmp_path / "regression_baseline.md"
     runbook.write_text(
         "\n".join(
             [
@@ -119,6 +131,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
                 "docs/launch_checklist.md",
                 "docs/V1_COMPLETE.md",
                 "docs/staged_rollout.md",
+                "docs/regression_baseline.md",
             ]
         )
     )
@@ -135,6 +148,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     go_no_go.write_text("Go/No-Go Template")
     v1_complete.write_text("V1 Complete")
     staged_rollout.write_text("Staged Rollout")
+    regression_baseline.write_text("Regression Baseline")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
         docs_consistency_check, "LAUNCH_CHECKLIST_PATH", str(launch)
@@ -145,6 +159,9 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(docs_consistency_check, "V1_COMPLETE_PATH", str(v1_complete))
     monkeypatch.setattr(
         docs_consistency_check, "STAGED_ROLLOUT_PATH", str(staged_rollout)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "REGRESSION_BASELINE_PATH", str(regression_baseline)
     )
     monkeypatch.setattr(
         docs_consistency_check,

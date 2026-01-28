@@ -68,6 +68,8 @@ Launch checklist:
 - `docs/launch_checklist.md`
 Go/No-Go record template:
 - `docs/go_no_go_template.md`
+Regression baseline:
+- `docs/regression_baseline.md`
 Disaster recovery playbook:
 - `docs/disaster_recovery.md`
 

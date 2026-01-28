@@ -142,13 +142,13 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
     steps["metrics_snapshot"] = {"status": "ok", "reason": None}
 
     code, stdout, stderr = runner(
-        ["python3", "-m", "tools.metrics_regression_check", "--snapshot", snapshot_path]
+        ["python3", "-m", "tools.regression_gate", "--snapshot", snapshot_path]
     )
     if _has_secret(stdout) or _has_secret(stderr):
         _write_summary(args.summary_out, "fail", "secret_echo_detected", steps)
         _print("fail", "secret_echo_detected")
         return 1
-    regression = _parse_status(stdout, "metrics_regression")
+    regression = _parse_status(stdout, "regression_gate")
     if not regression:
         steps["metrics_regression"] = {
             "status": "fail",
@@ -157,13 +157,21 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
         _write_summary(args.summary_out, "fail", "unexpected_output_format", steps)
         _print("fail", "unexpected_output_format")
         return 1
-    if regression.status == "insufficient_data":
+    if regression.status == "not_configured":
         steps["metrics_regression"] = {
             "status": "fail",
-            "reason": "insufficient_data",
+            "reason": "hold_not_configured",
         }
-        _write_summary(args.summary_out, "fail", "insufficient_data", steps)
-        _print("fail", "insufficient_data")
+        _write_summary(args.summary_out, "fail", "hold_not_configured", steps)
+        _print("fail", "hold_not_configured")
+        return 1
+    if regression.status == "insufficient_data" or code == 2:
+        steps["metrics_regression"] = {
+            "status": "fail",
+            "reason": "hold_insufficient_data",
+        }
+        _write_summary(args.summary_out, "fail", "hold_insufficient_data", steps)
+        _print("fail", "hold_insufficient_data")
         return 1
     if regression.status != "ok" or code != 0:
         steps["metrics_regression"] = {
