@@ -70,6 +70,8 @@ Go/No-Go record template:
 - `docs/go_no_go_template.md`
 Regression baseline:
 - `docs/regression_baseline.md`
+Operator rehearsal (no-secrets):
+- `docs/operator_rehearsal.md`
 Disaster recovery playbook:
 - `docs/disaster_recovery.md`
 

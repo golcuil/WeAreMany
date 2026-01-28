@@ -23,6 +23,8 @@ Disaster recovery:
 - `docs/disaster_recovery.md`
 Logging policy:
 - `docs/logging_policy.md`
+Operator rehearsal (no-secrets):
+- `docs/operator_rehearsal.md`
 
 ## Overview
 - Daily: rely on scheduled ops_daily (strict when prod configured).

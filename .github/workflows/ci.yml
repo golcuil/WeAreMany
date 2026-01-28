@@ -192,6 +192,30 @@ jobs:
           POSTGRES_DSN_TEST: ${{ env.POSTGRES_DSN_TEST }}
         run: PYTHONPATH=backend:. python3 -m tools.db_migrations_smoke --dsn-env POSTGRES_DSN_TEST
 
+  operator_rehearsal_no_secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f backend/requirements.txt ]; then
+            python -m pip install -r backend/requirements.txt
+          elif [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+          python -m pip install pyyaml
+
+      - name: Run operator rehearsal (no secrets)
+        run: PYTHONPATH=backend python3 -m tools.operator_rehearsal
+
   restore_dry_run:
     runs-on: ubuntu-latest
     services:
