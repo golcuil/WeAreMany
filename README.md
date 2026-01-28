@@ -123,6 +123,14 @@ Behavior:
   ```
 - Suggested cadence: monthly (only if desired).
 
+### Retention enforcement (scheduled)
+- Cron runs execute retention cleanup + retention report (aggregate-only).
+- Manual runs:
+  ```bash
+  PYTHONPATH=backend:. python3 -m tools.ops_daily retention_cleanup
+  PYTHONPATH=backend:. python3 -m tools.ops_daily retention_report
+  ```
+
 Flutter (debug/profile only, uses a dev bearer token if provided):
 
 ```bash

@@ -53,12 +53,23 @@ Release checklist:
 - `ops_ci_normalize status=normalized reason=insufficient_data` (scheduled only)
 - `ops_metrics_snapshot <json>`
 - `metrics_regression status=ok | status=insufficient_data | status=fail`
+- `retention_cleanup table=<name> status=ok deleted=<n> cutoff_days=<d>`
+- `retention_report <json>`
 
 ## Metrics snapshot & regression checks
 - ops_daily emits a single-line JSON snapshot:
   - `ops_metrics_snapshot <json>`
 - Regression checks apply only when `delivered_total >= MIN_N`.
 - `metrics_regression status=insufficient_data` means low traffic; no alert.
+
+## Retention enforcement
+- Scheduled runs execute retention cleanup followed by a retention report.
+- `retention_report status=fail reason=ttl_drift` means rows older than cutoff remain.
+- Defaults (names only):
+  - `SECURITY_EVENTS_RETENTION_DAYS=30`
+  - `SECOND_TOUCH_EVENTS_RETENTION_DAYS=90`
+  - `SECOND_TOUCH_AGG_RETENTION_DAYS=180`
+  - `DAILY_ACK_RETENTION_DAYS=180`
 
 ## Incident playbooks (most common)
 ### Cron fails: prod_config missing_env

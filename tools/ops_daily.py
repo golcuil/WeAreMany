@@ -14,6 +14,8 @@ from tools.run_matching_health_tuning import main as run_tuning
 from tools.cleanup_second_touch_aggregates import main as run_cleanup_second_touch
 from tools.cleanup_second_touch_events import main as run_cleanup_second_touch_events
 from tools.recompute_second_touch_aggregates import main as run_recompute_second_touch
+from tools.retention_cleanup import main as run_retention_cleanup
+from tools.retention_report import main as run_retention_report
 
 
 @dataclass(frozen=True)
@@ -96,6 +98,9 @@ def build_parser() -> argparse.ArgumentParser:
     cleanup_events_parser = subparsers.add_parser("cleanup_second_touch_events")
     cleanup_events_parser.add_argument("--retention-days", type=int, default=None)
 
+    subparsers.add_parser("retention_cleanup")
+    subparsers.add_parser("retention_report")
+
     subparsers.add_parser("tune")
 
     subparsers.add_parser("smoke")
@@ -134,6 +139,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.retention_days is not None:
                 argv = ["--retention-days", str(args.retention_days)]
             return run_cleanup_second_touch_events(argv)
+        if args.command == "retention_cleanup":
+            return run_retention_cleanup()
+        if args.command == "retention_report":
+            return run_retention_report()
         if args.command == "tune":
             return run_tune_task().exit_code
         if args.command == "smoke":

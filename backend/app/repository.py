@@ -305,6 +305,20 @@ class Repository(Protocol):
     ) -> int:
         ...
 
+    def cleanup_daily_ack_aggregates(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        ...
+
+    def get_retention_report(
+        self,
+        now_utc: datetime,
+        retention_days: Dict[str, int],
+    ) -> Dict[str, Dict[str, int]]:
+        ...
+
     def recompute_second_touch_daily_aggregates(
         self,
         start_day_utc: datetime.date,
@@ -714,6 +728,78 @@ class InMemoryRepository:
             event for event in self.second_touch_events if event.created_at >= cutoff
         ]
         return before - len(self.second_touch_events)
+
+    def cleanup_daily_ack_aggregates(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        cutoff = now_utc.date() - timedelta(days=retention_days)
+        before = len(self.daily_ack_aggregates)
+        self.daily_ack_aggregates = {
+            key: record
+            for key, record in self.daily_ack_aggregates.items()
+            if datetime.fromisoformat(record.utc_day).date() >= cutoff
+        }
+        return before - len(self.daily_ack_aggregates)
+
+    def get_retention_report(
+        self,
+        now_utc: datetime,
+        retention_days: Dict[str, int],
+    ) -> Dict[str, Dict[str, int]]:
+        report: Dict[str, Dict[str, int]] = {}
+
+        security_cutoff = now_utc - timedelta(days=retention_days["security_events"])
+        security_total = len(self.security_events)
+        security_expired = sum(
+            1 for record in self.security_events if record.created_at < security_cutoff
+        )
+        report["security_events"] = {
+            "total_rows": security_total,
+            "expired_rows": security_expired,
+            "cutoff_days": retention_days["security_events"],
+        }
+
+        events_cutoff = now_utc - timedelta(days=retention_days["second_touch_events"])
+        events_total = len(self.second_touch_events)
+        events_expired = sum(
+            1 for record in self.second_touch_events if record.created_at < events_cutoff
+        )
+        report["second_touch_events"] = {
+            "total_rows": events_total,
+            "expired_rows": events_expired,
+            "cutoff_days": retention_days["second_touch_events"],
+        }
+
+        agg_cutoff = now_utc.date() - timedelta(
+            days=retention_days["second_touch_daily_aggregates"]
+        )
+        agg_total = len(self.second_touch_counters)
+        agg_expired = sum(
+            1
+            for (day_key, _counter_key) in self.second_touch_counters
+            if datetime.fromisoformat(day_key).date() < agg_cutoff
+        )
+        report["second_touch_daily_aggregates"] = {
+            "total_rows": agg_total,
+            "expired_rows": agg_expired,
+            "cutoff_days": retention_days["second_touch_daily_aggregates"],
+        }
+
+        ack_cutoff = now_utc.date() - timedelta(days=retention_days["daily_ack_aggregates"])
+        ack_total = len(self.daily_ack_aggregates)
+        ack_expired = sum(
+            1
+            for record in self.daily_ack_aggregates.values()
+            if datetime.fromisoformat(record.utc_day).date() < ack_cutoff
+        )
+        report["daily_ack_aggregates"] = {
+            "total_rows": ack_total,
+            "expired_rows": ack_expired,
+            "cutoff_days": retention_days["daily_ack_aggregates"],
+        }
+        return report
 
     def recompute_second_touch_daily_aggregates(
         self,
@@ -1654,6 +1740,89 @@ class PostgresRepository:
             )
             deleted = cur.rowcount or 0
         return int(deleted)
+
+    def cleanup_daily_ack_aggregates(
+        self,
+        retention_days: int,
+        now_utc: datetime,
+    ) -> int:
+        cutoff = now_utc.date() - timedelta(days=retention_days)
+        with self._conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM daily_ack_aggregates
+                WHERE utc_day < %s
+                """,
+                (cutoff,),
+            )
+            deleted = cur.rowcount or 0
+        return int(deleted)
+
+    def get_retention_report(
+        self,
+        now_utc: datetime,
+        retention_days: Dict[str, int],
+    ) -> Dict[str, Dict[str, int]]:
+        report: Dict[str, Dict[str, int]] = {}
+        with self._conn() as conn, conn.cursor() as cur:
+            security_cutoff = now_utc - timedelta(days=retention_days["security_events"])
+            cur.execute("SELECT COUNT(*) FROM security_events")
+            security_total = int(cur.fetchone()[0] or 0)
+            cur.execute(
+                "SELECT COUNT(*) FROM security_events WHERE created_at < %s",
+                (security_cutoff,),
+            )
+            security_expired = int(cur.fetchone()[0] or 0)
+            report["security_events"] = {
+                "total_rows": security_total,
+                "expired_rows": security_expired,
+                "cutoff_days": retention_days["security_events"],
+            }
+
+            events_cutoff = now_utc - timedelta(days=retention_days["second_touch_events"])
+            cur.execute("SELECT COUNT(*) FROM second_touch_events")
+            events_total = int(cur.fetchone()[0] or 0)
+            cur.execute(
+                "SELECT COUNT(*) FROM second_touch_events WHERE created_at < %s",
+                (events_cutoff,),
+            )
+            events_expired = int(cur.fetchone()[0] or 0)
+            report["second_touch_events"] = {
+                "total_rows": events_total,
+                "expired_rows": events_expired,
+                "cutoff_days": retention_days["second_touch_events"],
+            }
+
+            agg_cutoff = now_utc.date() - timedelta(
+                days=retention_days["second_touch_daily_aggregates"]
+            )
+            cur.execute("SELECT COUNT(*) FROM second_touch_daily_aggregates")
+            agg_total = int(cur.fetchone()[0] or 0)
+            cur.execute(
+                "SELECT COUNT(*) FROM second_touch_daily_aggregates WHERE utc_day < %s",
+                (agg_cutoff,),
+            )
+            agg_expired = int(cur.fetchone()[0] or 0)
+            report["second_touch_daily_aggregates"] = {
+                "total_rows": agg_total,
+                "expired_rows": agg_expired,
+                "cutoff_days": retention_days["second_touch_daily_aggregates"],
+            }
+
+            ack_cutoff = now_utc.date() - timedelta(days=retention_days["daily_ack_aggregates"])
+            cur.execute("SELECT COUNT(*) FROM daily_ack_aggregates")
+            ack_total = int(cur.fetchone()[0] or 0)
+            cur.execute(
+                "SELECT COUNT(*) FROM daily_ack_aggregates WHERE utc_day < %s",
+                (ack_cutoff,),
+            )
+            ack_expired = int(cur.fetchone()[0] or 0)
+            report["daily_ack_aggregates"] = {
+                "total_rows": ack_total,
+                "expired_rows": ack_expired,
+                "cutoff_days": retention_days["daily_ack_aggregates"],
+            }
+        return report
 
     def list_daily_ack_aggregates(
         self,

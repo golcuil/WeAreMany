@@ -148,8 +148,47 @@ jobs:
           exit 0
         id: regression_check
 
+      - name: Retention cleanup (scheduled)
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit == '0' && github.event_name == 'schedule' }}
+        run: |
+          set +e
+          OUTPUT="$(PYTHONPATH=backend:. python3 -m tools.retention_cleanup 2>&1)"
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          echo "cleanup_exit=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          TAIL="$(echo "$OUTPUT" | tail -n 5)"
+          echo "cleanup_tail<<'EOF'" >> "$GITHUB_OUTPUT"
+          echo "$TAIL" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Retention cleanup failed." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Retention cleanup completed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+        id: retention_cleanup
+
+      - name: Retention report (scheduled)
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit == '0' && github.event_name == 'schedule' }}
+        run: |
+          set +e
+          OUTPUT="$(PYTHONPATH=backend:. python3 -m tools.retention_report 2>&1)"
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          echo "retention_exit=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          echo "retention_line=$OUTPUT" >> "$GITHUB_OUTPUT"
+          if [ "$EXIT_CODE" = "0" ] && echo "$OUTPUT" | grep -q "status=not_configured"; then
+            echo "Retention report skipped (not configured)." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$EXIT_CODE" = "0" ]; then
+            echo "Retention report passed." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Retention report failed (ttl_drift)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+        id: retention_report
+
       - name: Create or update ops_daily issue (strict failures)
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1') }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1' || steps.retention_report.outputs.retention_exit == '1' || steps.retention_cleanup.outputs.cleanup_exit == '1') }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -162,10 +201,15 @@ jobs:
               process.env.OPS_MODE_LINE ? `mode_line=${process.env.OPS_MODE_LINE}` : "mode_line=missing",
               process.env.OPS_NORMALIZED_LINE ? `normalize_line=${process.env.OPS_NORMALIZED_LINE}` : "normalize_line=missing",
               process.env.OPS_REGRESSION_LINE ? `regression_line=${process.env.OPS_REGRESSION_LINE}` : "regression_line=missing",
+              process.env.OPS_RETENTION_LINE ? `retention_line=${process.env.OPS_RETENTION_LINE}` : "retention_line=missing",
               "",
               "ops_daily_output_tail:",
               "```",
               process.env.OPS_TAIL || "",
+              "```",
+              "retention_cleanup_tail:",
+              "```",
+              process.env.OPS_RETENTION_CLEANUP_TAIL || "",
               "```",
             ];
             const body = bodyLines.join("\n");
@@ -197,9 +241,11 @@ jobs:
           OPS_MODE_LINE: ${{ steps.run_ops.outputs.ops_mode_line }}
           OPS_NORMALIZED_LINE: ${{ steps.normalize_ops.outputs.normalized_line }}
           OPS_REGRESSION_LINE: ${{ steps.regression_check.outputs.regression_line }}
+          OPS_RETENTION_LINE: ${{ steps.retention_report.outputs.retention_line }}
+          OPS_RETENTION_CLEANUP_TAIL: ${{ steps.retention_cleanup.outputs.cleanup_tail }}
 
       - name: Notify Slack (strict failures, optional)
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1') && env.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1' || steps.retention_report.outputs.retention_exit == '1' || steps.retention_cleanup.outputs.cleanup_exit == '1') && env.SLACK_WEBHOOK_URL != '' }}
         env:
           OPS_EXIT: ${{ steps.run_ops.outputs.ops_exit }}
         run: |
@@ -212,9 +258,15 @@ jobs:
           curl -sS -X POST -H "Content-type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL" >/dev/null
 
       - name: Fail workflow on strict unhealthy
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1') }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1' || steps.retention_report.outputs.retention_exit == '1' || steps.retention_cleanup.outputs.cleanup_exit == '1') }}
         run: |
           if [ "${{ steps.normalize_ops.outputs.normalized_exit }}" != "0" ]; then
             exit ${{ steps.normalize_ops.outputs.normalized_exit }}
+          fi
+          if [ "${{ steps.retention_report.outputs.retention_exit }}" = "1" ]; then
+            exit 1
+          fi
+          if [ "${{ steps.retention_cleanup.outputs.cleanup_exit }}" = "1" ]; then
+            exit 1
           fi
           exit ${{ steps.regression_check.outputs.regression_exit }}
