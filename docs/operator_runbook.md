@@ -3,6 +3,8 @@
 This runbook is the single source of truth for production operations. It is non-sensitive:
 do not paste secrets, DSNs, identifiers, or raw user content into tickets or chat.
 
+Operator golden path (start here):
+- `docs/OPERATOR_GOLDEN_PATH.md`
 V1 completion bundle:
 - `docs/V1_COMPLETE.md`
 Rotation checklist:
@@ -87,11 +89,11 @@ Operator rehearsal (no-secrets):
 ## Retention enforcement
 - Scheduled runs execute retention cleanup followed by a retention report.
 - `retention_report status=fail reason=ttl_drift` means rows older than cutoff remain.
-- Defaults (names only):
-  - `SECURITY_EVENTS_RETENTION_DAYS=30`
-  - `SECOND_TOUCH_EVENTS_RETENTION_DAYS=90`
-  - `SECOND_TOUCH_AGG_RETENTION_DAYS=180`
-  - `DAILY_ACK_RETENTION_DAYS=180`
+- Retention env var names (values set in workflow/config; names only):
+  - `SECURITY_EVENTS_RETENTION_DAYS`
+  - `SECOND_TOUCH_EVENTS_RETENTION_DAYS`
+  - `SECOND_TOUCH_AGG_RETENTION_DAYS`
+  - `DAILY_ACK_RETENTION_DAYS`
 
 ## Incident playbooks (most common)
 ### Cron fails: prod_config missing_env

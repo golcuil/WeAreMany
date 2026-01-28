@@ -33,8 +33,15 @@ STAGED_ROLLOUT_PATH = os.path.join("docs", "staged_rollout.md")
 REGRESSION_BASELINE_PATH = os.path.join("docs", "regression_baseline.md")
 CANARY_DRILL_PATH = os.path.join("docs", "canary_drill.md")
 LOGGING_POLICY_PATH = os.path.join("docs", "logging_policy.md")
+GOLDEN_PATH = os.path.join("docs", "OPERATOR_GOLDEN_PATH.md")
 
 SUSPICIOUS_DSN = re.compile(r"postgres://[^\s:]+:[^\s@]+@")
+RETENTION_NUMERIC = re.compile(
+    r"(retention|retain|keep)[^\n]{0,40}\b\d+\s*day", re.IGNORECASE
+)
+RETENTION_NUMERIC_ALT = re.compile(
+    r"retention[-_\s]?days?\s*[:=]\s*\d+", re.IGNORECASE
+)
 
 
 def _print(status: str, reason: str | None = None) -> None:
@@ -109,6 +116,10 @@ def main(argv: list[str] | None = None) -> int:
     if logging_policy is None:
         _print("fail", "logging_policy_missing")
         return 1
+    golden_path = _load_text(GOLDEN_PATH)
+    if golden_path is None:
+        _print("fail", "golden_path_missing")
+        return 1
 
     workflow = _load_ci_workflow()
     if workflow is None:
@@ -130,6 +141,23 @@ def main(argv: list[str] | None = None) -> int:
     if "docs/logging_policy.md" not in runbook:
         _print("fail", "missing_logging_policy_link")
         return 1
+    if "docs/OPERATOR_GOLDEN_PATH.md" not in runbook:
+        _print("fail", "missing_golden_path_link")
+        return 1
+
+    required_golden_links = [
+        "docs/operator_runbook.md",
+        "docs/operator_rehearsal.md",
+        "docs/staged_rollout.md",
+        "docs/regression_baseline.md",
+        "docs/logging_policy.md",
+        "docs/disaster_recovery.md",
+        "docs/launch_checklist.md",
+    ]
+    for link in required_golden_links:
+        if link not in golden_path:
+            _print("fail", "missing_golden_path_link")
+            return 1
 
     if "retention-days:" not in workflow:
         _print("fail", "missing_retention_days")
@@ -160,6 +188,24 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if SUSPICIOUS_DSN.search(logging_policy):
         _print("fail", "suspicious_dsn")
+        return 1
+    if SUSPICIOUS_DSN.search(golden_path):
+        _print("fail", "suspicious_dsn")
+        return 1
+
+    retention_sources = "\n".join(
+        [
+            runbook,
+            golden_path,
+            staged_rollout,
+            regression_baseline,
+            logging_policy,
+        ]
+    )
+    if RETENTION_NUMERIC.search(retention_sources) or RETENTION_NUMERIC_ALT.search(
+        retention_sources
+    ):
+        _print("fail", "retention_numeric")
         return 1
     if SUSPICIOUS_DSN.search(workflow):
         _print("fail", "suspicious_dsn")

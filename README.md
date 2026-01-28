@@ -57,23 +57,8 @@ noisy failures in environments without data.
 
 Canonical operator runbook:
 - `docs/operator_runbook.md`
-V1 completion bundle:
-- `docs/V1_COMPLETE.md`
-Ops metrics snapshot + regression check are described there (aggregate-only).
-Secret rotation checklist:
-- `docs/secret_rotation.md`
-Release checklist:
-- `docs/release_checklist.md`
-Launch checklist:
-- `docs/launch_checklist.md`
-Go/No-Go record template:
-- `docs/go_no_go_template.md`
-Regression baseline:
-- `docs/regression_baseline.md`
-Operator rehearsal (no-secrets):
-- `docs/operator_rehearsal.md`
-Disaster recovery playbook:
-- `docs/disaster_recovery.md`
+Operator onboarding index:
+- `docs/OPERATOR_GOLDEN_PATH.md`
 
 Enable strict prod monitoring by setting the required secret:
 

@@ -15,6 +15,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     regression_baseline = tmp_path / "regression_baseline.md"
     canary_drill = tmp_path / "canary_drill.md"
     logging_policy = tmp_path / "logging_policy.md"
+    golden_path = tmp_path / "OPERATOR_GOLDEN_PATH.md"
     workflow = tmp_path / "generate_regression_baseline.yml"
     runbook.write_text(
         "\n".join(
@@ -29,6 +30,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
                 "docs/regression_baseline.md",
                 "docs/canary_drill.md",
                 "docs/logging_policy.md",
+                "docs/OPERATOR_GOLDEN_PATH.md",
             ]
         )
     )
@@ -48,6 +50,19 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     regression_baseline.write_text("Regression Baseline")
     canary_drill.write_text("Canary Drill")
     logging_policy.write_text("Logging Policy")
+    golden_path.write_text(
+        "\n".join(
+            [
+                "docs/operator_runbook.md",
+                "docs/operator_rehearsal.md",
+                "docs/staged_rollout.md",
+                "docs/regression_baseline.md",
+                "docs/logging_policy.md",
+                "docs/disaster_recovery.md",
+                "docs/launch_checklist.md",
+            ]
+        )
+    )
     workflow.write_text("retention-days: 30")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
@@ -68,6 +83,9 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     )
     monkeypatch.setattr(
         docs_consistency_check, "LOGGING_POLICY_PATH", str(logging_policy)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "GOLDEN_PATH", str(golden_path)
     )
     monkeypatch.setattr(
         docs_consistency_check, "_load_ci_workflow", lambda: workflow.read_text()
@@ -92,6 +110,7 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     regression_baseline = tmp_path / "regression_baseline.md"
     canary_drill = tmp_path / "canary_drill.md"
     logging_policy = tmp_path / "logging_policy.md"
+    golden_path = tmp_path / "OPERATOR_GOLDEN_PATH.md"
     workflow = tmp_path / "generate_regression_baseline.yml"
     runbook.write_text("status=insufficient_data")
     launch.write_text(
@@ -110,6 +129,7 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     regression_baseline.write_text("Regression Baseline")
     canary_drill.write_text("Canary Drill")
     logging_policy.write_text("Logging Policy")
+    golden_path.write_text("docs/operator_runbook.md")
     workflow.write_text("retention-days: 30")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
@@ -130,6 +150,9 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     )
     monkeypatch.setattr(
         docs_consistency_check, "LOGGING_POLICY_PATH", str(logging_policy)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "GOLDEN_PATH", str(golden_path)
     )
     monkeypatch.setattr(
         docs_consistency_check, "_load_ci_workflow", lambda: workflow.read_text()
@@ -154,6 +177,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     regression_baseline = tmp_path / "regression_baseline.md"
     canary_drill = tmp_path / "canary_drill.md"
     logging_policy = tmp_path / "logging_policy.md"
+    golden_path = tmp_path / "OPERATOR_GOLDEN_PATH.md"
     workflow = tmp_path / "generate_regression_baseline.yml"
     runbook.write_text(
         "\n".join(
@@ -169,6 +193,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
                 "docs/regression_baseline.md",
                 "docs/canary_drill.md",
                 "docs/logging_policy.md",
+                "docs/OPERATOR_GOLDEN_PATH.md",
             ]
         )
     )
@@ -188,6 +213,19 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     regression_baseline.write_text("Regression Baseline")
     canary_drill.write_text("Canary Drill")
     logging_policy.write_text("Logging Policy")
+    golden_path.write_text(
+        "\n".join(
+            [
+                "docs/operator_runbook.md",
+                "docs/operator_rehearsal.md",
+                "docs/staged_rollout.md",
+                "docs/regression_baseline.md",
+                "docs/logging_policy.md",
+                "docs/disaster_recovery.md",
+                "docs/launch_checklist.md",
+            ]
+        )
+    )
     workflow.write_text("retention-days: 30")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
@@ -208,6 +246,9 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     )
     monkeypatch.setattr(
         docs_consistency_check, "LOGGING_POLICY_PATH", str(logging_policy)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "GOLDEN_PATH", str(golden_path)
     )
     monkeypatch.setattr(
         docs_consistency_check, "_load_ci_workflow", lambda: workflow.read_text()
