@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-082] Operator runbook v1 + docs consistency gate (canonical ops guide + CI check).
 - [T-081] DB migrations integration CI gate: apply + verify against ephemeral Postgres with idempotency check.
 - [T-080] Prod config contract: cron ops fail-fast on missing env names (names-only), PR runs remain CI-safe.
 - [T-079] ops_daily de-noise: insufficient_data token + scheduled-run normalization helper (exit-2 normalized only with token).
@@ -87,7 +88,6 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-082] Operator runbook v1 + docs consistency gate (canonical ops guide + CI check).
 
 ## Next
 

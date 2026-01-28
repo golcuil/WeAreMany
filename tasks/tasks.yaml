@@ -2487,7 +2487,7 @@
 - id: T-082
   title: Operator runbook v1 + docs consistency gate
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Create a canonical operator runbook and add a CI docs consistency check.
   scope:
     in:
@@ -2535,7 +2535,7 @@
   completion_definition:
   - Canonical runbook added
   - Docs consistency check added to CI
-  - All tests passing and CI green
+  - All tests passing and CI green (59b7bb7)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

@@ -144,3 +144,8 @@
 - Decision: Add an ephemeral-Postgres CI job to apply migrations, verify required tables, and re-apply for idempotency.
 - Context: Dry-run validates ordering but cannot catch SQL/runtime migration failures.
 - Consequences: Introduce `db_migrations_smoke` helper with stable single-line output; `schema_migrations` ledger enforces idempotent applies and checksum mismatch detection.
+
+## D-030 (2026-01-27) — Operator runbook + docs consistency gate
+- Decision: Add `docs/operator_runbook.md` as the canonical ops source of truth.
+- Context: Ops guidance was spread across multiple files and at risk of drift.
+- Consequences: Add `tools/docs_consistency_check.py` (stdlib) to enforce required tokens and prevent credential-like strings in docs.

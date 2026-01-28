@@ -162,6 +162,12 @@
 - Owner: CTO + DataEngineer
 - Status: OPEN
 
+## R-030 Ops docs drift
+- Risk: scattered operational guidance can drift and cause operator error.
+- Mitigation: canonical operator runbook + CI docs consistency check with token/heuristic validation.
+- Owner: CTO + SecurityEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
