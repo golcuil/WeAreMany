@@ -164,3 +164,8 @@
 - Decision: Add a disaster recovery playbook and CI-safe restore_dry_run using a sanitized, schema-only ledger fixture.
 - Decision: restore_dry_run requires explicit `--dsn-env` (no fallback) to prevent wrong-DB restores and improve determinism.
 - Decision: Failure outputs are single-line, tokenized, and privacy-safe (migration filename + SQLSTATE only).
+
+## D-034 (2026-01-28) — Golden-path prod rehearsal CI gate
+- Decision: Add a prod_rehearsal CI job that runs bootstrap → verify → restore → verify → ops smoke on ephemeral Postgres.
+- Decision: Emit a privacy-safe `rehearsal_summary.json` artifact (no identifiers/DSN) for quick operator review.
+- Guardrail: rehearsal fails on any suspected secret echo patterns.

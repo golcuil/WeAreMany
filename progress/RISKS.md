@@ -186,6 +186,12 @@
 - Owner: CTO + DataEngineer
 - Status: OPEN
 
+## R-034 Rehearsal coverage limits
+- Risk: prod_rehearsal cannot validate external integrations or real backup systems.
+- Mitigation: keep rehearsal as a fast CI gate; schedule periodic operator drills for external dependencies.
+- Owner: CTO + DataEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

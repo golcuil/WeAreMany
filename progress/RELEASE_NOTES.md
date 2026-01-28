@@ -34,6 +34,7 @@
 - Ops: ops_daily now emits a metrics snapshot line and runs a regression gate with MIN_N guardrail.
 - Ops: retention cleanup + retention_report added (aggregate-only TTL enforcement).
 - Ops/CI: added restore_dry_run validation job and DR playbook (sanitized fixture).
+- Ops/CI: added prod_rehearsal job and rehearsal summary artifact.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
