@@ -1,11 +1,9 @@
--- Sanitized restore fixture (no identifiers, no message text).
--- This file is used only for CI restore dry-run validation.
+-- Sanitized restore fixture (schema-only ledger, no app tables, no data).
+-- Used only for CI restore dry-run validation.
 
-CREATE TABLE IF NOT EXISTS restore_fixture_check (
-  id text PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  id TEXT PRIMARY KEY,
+  filename TEXT NOT NULL,
+  checksum TEXT NOT NULL,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-INSERT INTO restore_fixture_check (id)
-VALUES ('fixture_ok')
-ON CONFLICT DO NOTHING;

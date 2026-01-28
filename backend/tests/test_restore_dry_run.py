@@ -26,7 +26,7 @@ def test_restore_dry_run_single_line_output(capsys, monkeypatch, tmp_path):
     fixture.write_text("-- empty")
     monkeypatch.setenv("POSTGRES_DSN_TEST", "postgres://user:pass@host/db")
 
-    monkeypatch.setattr(restore_dry_run, "_run", lambda *_args, **_kwargs: 0)
+    monkeypatch.setattr(restore_dry_run, "_run", lambda *_args, **_kwargs: (0, ""))
     exit_code = restore_dry_run.main(["--fixture", str(fixture)])
     output = capsys.readouterr().out.strip()
     assert exit_code == 0
