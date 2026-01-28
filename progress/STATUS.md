@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-087] DR playbook + restore_dry_run CI gate (sanitized fixture, strict dsn-env, privacy-safe outputs).
 - [T-086] Retention enforcement: TTL cleanup + aggregate-only retention_report with ttl_drift detection.
 - [T-083] Ops metrics snapshot + regression gate (ops_metrics_snapshot + metrics_regression_check with MIN_N guardrail).
 - [T-082] Operator runbook v1 + docs consistency gate (canonical ops guide + CI check).

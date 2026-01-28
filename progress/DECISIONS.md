@@ -159,3 +159,8 @@
 - Decision: Enforce TTL cleanup for ops data (security_events, second_touch events/aggregates, daily ack aggregates) with aggregate-only reporting.
 - Context: Retention drift undermines privacy posture and increases operational cost.
 - Consequences: Add `retention_cleanup` + `retention_report` tools with stable single-line outputs; cron runs flag `ttl_drift` when expired rows remain.
+
+## D-033 (2026-01-28) — DR playbook + restore dry-run gate
+- Decision: Add a disaster recovery playbook and CI-safe restore_dry_run using a sanitized, schema-only ledger fixture.
+- Decision: restore_dry_run requires explicit `--dsn-env` (no fallback) to prevent wrong-DB restores and improve determinism.
+- Decision: Failure outputs are single-line, tokenized, and privacy-safe (migration filename + SQLSTATE only).

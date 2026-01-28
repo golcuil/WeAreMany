@@ -180,6 +180,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-033 DR restore dependencies
+- Risk: real-world restores depend on external backup storage and access controls.
+- Mitigation: DR playbook + restore_dry_run gate; schedule periodic operator drills.
+- Owner: CTO + DataEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

@@ -33,6 +33,7 @@
 - Ops: added canonical operator runbook and CI docs consistency check.
 - Ops: ops_daily now emits a metrics snapshot line and runs a regression gate with MIN_N guardrail.
 - Ops: retention cleanup + retention_report added (aggregate-only TTL enforcement).
+- Ops/CI: added restore_dry_run validation job and DR playbook (sanitized fixture).
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
