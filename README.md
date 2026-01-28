@@ -117,6 +117,10 @@ Behavior:
 - CI runs `restore_dry_run` to validate restore + verify + idempotent apply against ephemeral Postgres.
 - Summary: `restore_dry_run status=ok` (single-line, non-sensitive).
 
+### CI prod rehearsal gate
+- CI runs `prod_rehearsal` to exercise the full golden-path (bootstrap → verify → restore → ops smoke).
+- Artifact: `rehearsal_summary.json` (aggregate-only).
+
 ### ops_daily strict validation (prod)
 1) Trigger Actions → `ops_daily` → Run workflow with `mode=prod`.
 2) Expected log line: `mode=strict reason=prod_configured`.

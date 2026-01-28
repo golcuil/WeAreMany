@@ -236,6 +236,61 @@ jobs:
         env:
           POSTGRES_DSN_TEST: ${{ env.POSTGRES_DSN_TEST }}
         run: PYTHONPATH=backend:. python3 -m tools.restore_dry_run --dsn-env POSTGRES_DSN_TEST --fixture fixtures/sanitized_restore_fixture.sql
+
+  prod_rehearsal:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wearemany_rehearsal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d wearemany_rehearsal"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_DSN_TEST: postgresql://postgres:postgres@localhost:5432/wearemany_rehearsal
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f backend/requirements.txt ]; then
+            python -m pip install -r backend/requirements.txt
+          elif [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+          python -m pip install pyyaml
+
+      - name: Run prod rehearsal
+        env:
+          POSTGRES_DSN_TEST: ${{ env.POSTGRES_DSN_TEST }}
+        run: |
+          PYTHONPATH=backend:. python3 -m tools.prod_rehearsal_ci \
+            --dsn-env POSTGRES_DSN_TEST \
+            --restore-fixture fixtures/sanitized_restore_fixture.sql \
+            --out rehearsal_summary.json
+
+      - name: Upload rehearsal summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: rehearsal_summary
+          path: rehearsal_summary.json
   prod_bootstrap_dry_run:
     runs-on: ubuntu-latest
     permissions:

@@ -45,6 +45,10 @@ Disaster recovery:
 - Run `prod_verify` → **verify**.
 - Confirm ops_daily strict status is healthy or insufficient_data.
 
+## Golden-path prod rehearsal (CI)
+- CI job `prod_rehearsal` runs the full operator path end-to-end on ephemeral Postgres.
+- If it fails, check the step name in `prod_rehearsal status=fail ...`.
+
 ## Tokens & exit codes (authoritative)
 - `db_bootstrap_dry_run status=ok | status=fail reason=<token>`
 - `db_bootstrap status=ok mode=apply_migrations applied=<n> skipped=<n>`
