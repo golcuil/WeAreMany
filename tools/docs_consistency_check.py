@@ -28,6 +28,7 @@ MODULE_REFERENCES = [
 RUNBOOK_PATH = os.path.join("docs", "operator_runbook.md")
 LAUNCH_CHECKLIST_PATH = os.path.join("docs", "launch_checklist.md")
 GO_NO_GO_TEMPLATE_PATH = os.path.join("docs", "go_no_go_template.md")
+V1_COMPLETE_PATH = os.path.join("docs", "V1_COMPLETE.md")
 
 SUSPICIOUS_DSN = re.compile(r"postgres://[^\s:]+:[^\s@]+@")
 
@@ -76,7 +77,12 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "go_no_go_template_missing")
         return 1
 
-    if "docs/launch_checklist.md" not in runbook:
+    v1_complete = _load_text(V1_COMPLETE_PATH)
+    if v1_complete is None:
+        _print("fail", "v1_complete_missing")
+        return 1
+
+    if "docs/launch_checklist.md" not in runbook or "docs/V1_COMPLETE.md" not in runbook:
         _print("fail", "missing_launch_link")
         return 1
 
@@ -89,6 +95,9 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "suspicious_dsn")
         return 1
     if SUSPICIOUS_DSN.search(launch_checklist) or SUSPICIOUS_DSN.search(go_no_go):
+        _print("fail", "suspicious_dsn")
+        return 1
+    if SUSPICIOUS_DSN.search(v1_complete):
         _print("fail", "suspicious_dsn")
         return 1
 

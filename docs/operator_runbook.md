@@ -3,6 +3,8 @@
 This runbook is the single source of truth for production operations. It is non-sensitive:
 do not paste secrets, DSNs, identifiers, or raw user content into tickets or chat.
 
+V1 completion bundle:
+- `docs/V1_COMPLETE.md`
 Rotation checklist:
 - `docs/secret_rotation.md`
 Release checklist:
