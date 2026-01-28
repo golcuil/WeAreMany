@@ -25,6 +25,12 @@ It does not include any secret values.
 - Verify required names via:
   - `PYTHONPATH=backend:. python3 -m tools.prod_config_contract --mode=prod_required`
 
+## CI migration integration gate
+- CI runs `db_migrations_integration` against an ephemeral Postgres instance.
+- It applies migrations, verifies required tables, and re-applies migrations for idempotency.
+- Output is a single-line summary:
+  - `db_migrations_smoke status=ok`
+
 ## Rollback guidance (generic)
 1) Stop new deploys.
 2) Roll back to the previous known-good app release.

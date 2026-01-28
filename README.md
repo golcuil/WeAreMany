@@ -99,6 +99,10 @@ Behavior:
    - Expected: `db_bootstrap status=ok mode=all`.
 4) Run Actions → `ops_daily` → `mode=prod` to validate strict monitoring.
 
+### CI migration integration gate
+- CI runs `db_migrations_integration` to apply migrations + verify against ephemeral Postgres and re-apply for idempotency.
+- Summary: `db_migrations_smoke status=ok` (single-line, non-sensitive).
+
 ### ops_daily strict validation (prod)
 1) Trigger Actions → `ops_daily` → Run workflow with `mode=prod`.
 2) Expected log line: `mode=strict reason=prod_configured`.
