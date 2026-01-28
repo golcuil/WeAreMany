@@ -13,6 +13,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     v1_complete = tmp_path / "V1_COMPLETE.md"
     staged_rollout = tmp_path / "staged_rollout.md"
     regression_baseline = tmp_path / "regression_baseline.md"
+    canary_drill = tmp_path / "canary_drill.md"
     workflow = tmp_path / "generate_regression_baseline.yml"
     runbook.write_text(
         "\n".join(
@@ -25,6 +26,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
                 "docs/V1_COMPLETE.md",
                 "docs/staged_rollout.md",
                 "docs/regression_baseline.md",
+                "docs/canary_drill.md",
             ]
         )
     )
@@ -42,6 +44,7 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     v1_complete.write_text("V1 Complete")
     staged_rollout.write_text("Staged Rollout")
     regression_baseline.write_text("Regression Baseline")
+    canary_drill.write_text("Canary Drill")
     workflow.write_text("retention-days: 30")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
@@ -56,6 +59,9 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
     )
     monkeypatch.setattr(
         docs_consistency_check, "REGRESSION_BASELINE_PATH", str(regression_baseline)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "CANARY_DRILL_PATH", str(canary_drill)
     )
     monkeypatch.setattr(
         docs_consistency_check, "_load_ci_workflow", lambda: workflow.read_text()
@@ -78,6 +84,7 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     v1_complete = tmp_path / "V1_COMPLETE.md"
     staged_rollout = tmp_path / "staged_rollout.md"
     regression_baseline = tmp_path / "regression_baseline.md"
+    canary_drill = tmp_path / "canary_drill.md"
     workflow = tmp_path / "generate_regression_baseline.yml"
     runbook.write_text("status=insufficient_data")
     launch.write_text(
@@ -94,6 +101,7 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     v1_complete.write_text("V1 Complete")
     staged_rollout.write_text("Staged Rollout")
     regression_baseline.write_text("Regression Baseline")
+    canary_drill.write_text("Canary Drill")
     workflow.write_text("retention-days: 30")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
@@ -108,6 +116,9 @@ def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
     )
     monkeypatch.setattr(
         docs_consistency_check, "REGRESSION_BASELINE_PATH", str(regression_baseline)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "CANARY_DRILL_PATH", str(canary_drill)
     )
     monkeypatch.setattr(
         docs_consistency_check, "_load_ci_workflow", lambda: workflow.read_text()
@@ -130,6 +141,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     v1_complete = tmp_path / "V1_COMPLETE.md"
     staged_rollout = tmp_path / "staged_rollout.md"
     regression_baseline = tmp_path / "regression_baseline.md"
+    canary_drill = tmp_path / "canary_drill.md"
     workflow = tmp_path / "generate_regression_baseline.yml"
     runbook.write_text(
         "\n".join(
@@ -143,6 +155,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
                 "docs/V1_COMPLETE.md",
                 "docs/staged_rollout.md",
                 "docs/regression_baseline.md",
+                "docs/canary_drill.md",
             ]
         )
     )
@@ -160,6 +173,7 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     v1_complete.write_text("V1 Complete")
     staged_rollout.write_text("Staged Rollout")
     regression_baseline.write_text("Regression Baseline")
+    canary_drill.write_text("Canary Drill")
     workflow.write_text("retention-days: 30")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))
     monkeypatch.setattr(
@@ -174,6 +188,9 @@ def test_docs_check_suspicious_dsn(monkeypatch, capsys, tmp_path):
     )
     monkeypatch.setattr(
         docs_consistency_check, "REGRESSION_BASELINE_PATH", str(regression_baseline)
+    )
+    monkeypatch.setattr(
+        docs_consistency_check, "CANARY_DRILL_PATH", str(canary_drill)
     )
     monkeypatch.setattr(
         docs_consistency_check, "_load_ci_workflow", lambda: workflow.read_text()

@@ -17,6 +17,7 @@ or raw user content in any records or tickets.
 - Logging policy: `docs/logging_policy.md`
 - Staged rollout: `docs/staged_rollout.md`
 - Regression baseline: `docs/regression_baseline.md`
+- Canary drill: `docs/canary_drill.md`
 
 ## Required workflows (names only)
 - pre_release_gate

@@ -31,6 +31,7 @@ GO_NO_GO_TEMPLATE_PATH = os.path.join("docs", "go_no_go_template.md")
 V1_COMPLETE_PATH = os.path.join("docs", "V1_COMPLETE.md")
 STAGED_ROLLOUT_PATH = os.path.join("docs", "staged_rollout.md")
 REGRESSION_BASELINE_PATH = os.path.join("docs", "regression_baseline.md")
+CANARY_DRILL_PATH = os.path.join("docs", "canary_drill.md")
 
 SUSPICIOUS_DSN = re.compile(r"postgres://[^\s:]+:[^\s@]+@")
 
@@ -99,6 +100,11 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "regression_baseline_missing")
         return 1
 
+    canary_drill = _load_text(CANARY_DRILL_PATH)
+    if canary_drill is None:
+        _print("fail", "canary_drill_missing")
+        return 1
+
     workflow = _load_ci_workflow()
     if workflow is None:
         _print("fail", "baseline_workflow_missing")
@@ -112,6 +118,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if "docs/regression_baseline.md" not in runbook:
         _print("fail", "missing_regression_link")
+        return 1
+    if "docs/canary_drill.md" not in runbook:
+        _print("fail", "missing_canary_drill_link")
         return 1
 
     if "retention-days:" not in workflow:
@@ -136,6 +145,9 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "suspicious_dsn")
         return 1
     if SUSPICIOUS_DSN.search(regression_baseline):
+        _print("fail", "suspicious_dsn")
+        return 1
+    if SUSPICIOUS_DSN.search(canary_drill):
         _print("fail", "suspicious_dsn")
         return 1
     if SUSPICIOUS_DSN.search(workflow):

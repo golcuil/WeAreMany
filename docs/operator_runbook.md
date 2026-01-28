@@ -17,6 +17,8 @@ Staged rollout (canary):
 - `docs/staged_rollout.md`
 Regression baseline lifecycle:
 - `docs/regression_baseline.md`
+Canary drill rehearsal:
+- `docs/canary_drill.md`
 Disaster recovery:
 - `docs/disaster_recovery.md`
 

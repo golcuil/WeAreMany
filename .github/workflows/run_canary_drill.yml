@@ -1,0 +1,60 @@
+name: run_canary_drill
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canary_drill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f backend/requirements.txt ]; then
+            python -m pip install -r backend/requirements.txt
+          elif [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+          python -m pip install pyyaml
+
+      - name: Prepare logs
+        run: |
+          mkdir -p logs artifacts
+
+      - name: Policy check
+        run: |
+          python3 tools/policy_check.py | tee logs/policy_check.log
+
+      - name: Docs consistency check
+        run: |
+          python3 -m tools.docs_consistency_check | tee logs/docs_check.log
+
+      - name: Run canary drill
+        run: |
+          PYTHONPATH=backend:. python3 -m tools.canary_drill | tee logs/canary_drill.log
+
+      - name: Pytest
+        run: |
+          PYTHONPATH=backend python3 -m pytest -q | tee logs/pytest.log
+
+      - name: Secret echo guard
+        run: |
+          python3 -m tools.secret_echo_guard --log-dir logs
+
+      - name: Upload canary drill summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary_drill_summary
+          retention-days: 30
+          path: artifacts/canary_drill_summary.json

@@ -25,6 +25,7 @@ Regression baseline lifecycle:
 
 ## How to run
 - Trigger the GitHub Actions workflow: `staged_rollout_canary_gate`
+- Optionally run rehearsal: `run_canary_drill`
 - Review the artifact: `artifacts/canary_summary.json`
 - Record decision in `docs/go_no_go_records/`
 
