@@ -187,3 +187,8 @@
 ## D-038 (2026-01-28) — V1 completion bundle
 - Decision: Publish `docs/V1_COMPLETE.md` as the canonical v1 sign-off bundle linking operator docs and required workflows.
 - Decision: Treat docs consistency checks as the guardrail against launch-time doc drift.
+
+## D-039 (2026-01-28) — Staged rollout canary discipline
+- Decision: Implement canary_gate as a thin wrapper over existing contracts (prod_config, db_verify, ops_daily smoke, metrics regression).
+- Decision: Regression check is the primary canary signal; `insufficient_data` is not a green light.
+- Decision: canary_gate emits tokenized outputs only and never passthroughs subprocess output.

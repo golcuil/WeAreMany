@@ -216,6 +216,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-039 Canary signal tuning
+- Risk: canary signal may be too strict/lenient, causing false positives or false confidence.
+- Mitigation: regression gate primary; insufficient_data treated as fail; document decision criteria.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
