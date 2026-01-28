@@ -41,6 +41,7 @@
 - Ops: added V1 completion bundle (docs/V1_COMPLETE.md) as the canonical sign-off package.
 - Ops: staged rollout canary workflow + playbook with safe summary artifact.
 - Ops: regression baseline lifecycle (deterministic id + latest pointer + schema enforcement).
+- Ops: baseline validation + latest-pointer determinism with explicit artifact retention.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

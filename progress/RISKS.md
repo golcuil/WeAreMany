@@ -228,6 +228,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-041 Baseline retention ambiguity
+- Risk: long-term archival beyond workflow retention-days is operator-managed and could be inconsistent.
+- Mitigation: explicit retention-days in workflow; document that workflow is the source of truth.
+- Owner: CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

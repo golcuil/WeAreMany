@@ -197,3 +197,8 @@
 - Decision: Deterministic baseline_id + latest pointer file to eliminate baseline ambiguity.
 - Decision: not_configured/insufficient_data are HOLD states and must block canary (no false confidence).
 - Decision: enforce runtime JSON allowlist for baselines; invalid schema fails fast.
+
+## D-041 (2026-01-28) — Baseline ops discipline
+- Decision: latest pointer is the single source of truth for baseline resolution (no heuristics).
+- Decision: baseline validation enforces allowlisted schema at runtime; invalid schema fails fast.
+- Decision: artifact retention-days is set in the workflow; docs reference workflow as source of truth.
