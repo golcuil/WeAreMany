@@ -6,6 +6,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 - Bootstrap MVP workflow and define the first safe, sequential backlog.
 
 ## Done
+- [T-080] Prod config contract: cron ops fail-fast on missing env names (names-only), PR runs remain CI-safe.
 - [T-079] ops_daily de-noise: insufficient_data token + scheduled-run normalization helper (exit-2 normalized only with token).
 - [T-078] Production bootstrap dry-run + operator checklist (db_bootstrap --dry-run migration plan validation; db_verify not_configured; CI dry-run job).
 - [T-077] Security scanning + threat model: pip-audit dependency scan + gitleaks secrets scan (CLI); threat model in docs/threat_model.md; dependency remediation for Starlette advisories.
@@ -85,7 +86,6 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
-- [T-080] Prod config contract enforcement for scheduled ops (fail-fast on missing env names).
 
 ## Next
 

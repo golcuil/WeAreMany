@@ -134,3 +134,8 @@
 - Decision: Scheduled ops_daily normalizes only when (exit_code == 2 AND stdout contains `status=insufficient_data`).
 - Context: Zero-traffic environments can legitimately return exit 2; we must avoid masking real unhealthy exit 2 signals.
 - Consequences: Added stdlib-only helper `tools/ops_ci_normalize.py` to enforce token gating; watchdog outputs `status=insufficient_data reason=delivered_total_0` as an explicit contract.
+
+## D-028 (2026-01-27) — Production config contract enforcement
+- Decision: Introduce stdlib-only `prod_config_contract` as the single source of truth for required prod env **names**.
+- Context: Scheduled ops could silently degrade into smoke mode if secrets are missing/misnamed.
+- Consequences: Cron runs fail-fast on `prod_config status=fail reason=missing_env`; PR/CI runs remain secretless and CI-safe.

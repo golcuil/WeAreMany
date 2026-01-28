@@ -2364,7 +2364,7 @@
 - id: T-080
   title: Prod config contract enforcement for scheduled ops
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Enforce a canonical prod config contract for scheduled ops runs.
   scope:
     in:
@@ -2413,7 +2413,7 @@
   completion_definition:
   - Prod config contract helper added
   - Scheduled ops fail-fast when missing required env
-  - All tests passing and CI green
+  - All tests passing and CI green (4d66f6b)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

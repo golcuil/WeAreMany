@@ -150,6 +150,12 @@
 - Owner: CTO + DataEngineer
 - Status: OPEN
 
+## R-028 Prod config drift
+- Risk: secret rotation or misnaming could break scheduled monitoring or force fail-fast.
+- Mitigation: prod_config_contract enforces required env names; document verification steps and re-run after rotations.
+- Owner: CTO + SecurityEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
