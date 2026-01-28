@@ -11,6 +11,13 @@ REQUIRED_TOKENS = [
     "db_verify status=not_configured",
 ]
 
+LAUNCH_REQUIRED_TOKENS = [
+    "pre_release_gate",
+    "prod_rehearsal",
+    "restore_dry_run",
+    "secret_echo_guard",
+]
+
 MODULE_REFERENCES = [
     "tools.db_bootstrap",
     "tools.db_verify",
@@ -19,6 +26,8 @@ MODULE_REFERENCES = [
 ]
 
 RUNBOOK_PATH = os.path.join("docs", "operator_runbook.md")
+LAUNCH_CHECKLIST_PATH = os.path.join("docs", "launch_checklist.md")
+GO_NO_GO_TEMPLATE_PATH = os.path.join("docs", "go_no_go_template.md")
 
 SUSPICIOUS_DSN = re.compile(r"postgres://[^\s:]+:[^\s@]+@")
 
@@ -30,10 +39,10 @@ def _print(status: str, reason: str | None = None) -> None:
     print(line)
 
 
-def _load_runbook() -> str | None:
-    if not os.path.exists(RUNBOOK_PATH):
+def _load_text(path: str) -> str | None:
+    if not os.path.exists(path):
         return None
-    with open(RUNBOOK_PATH, "r", encoding="utf-8") as handle:
+    with open(path, "r", encoding="utf-8") as handle:
         return handle.read()
 
 
@@ -47,17 +56,39 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Docs consistency check.")
     parser.parse_args(argv)
 
-    content = _load_runbook()
-    if content is None:
+    runbook = _load_text(RUNBOOK_PATH)
+    if runbook is None:
         _print("fail", "runbook_missing")
         return 1
 
     for token in REQUIRED_TOKENS:
-        if token not in content:
+        if token not in runbook:
             _print("fail", "missing_token")
             return 1
 
-    if SUSPICIOUS_DSN.search(content):
+    launch_checklist = _load_text(LAUNCH_CHECKLIST_PATH)
+    if launch_checklist is None:
+        _print("fail", "launch_checklist_missing")
+        return 1
+
+    go_no_go = _load_text(GO_NO_GO_TEMPLATE_PATH)
+    if go_no_go is None:
+        _print("fail", "go_no_go_template_missing")
+        return 1
+
+    if "docs/launch_checklist.md" not in runbook:
+        _print("fail", "missing_launch_link")
+        return 1
+
+    for token in LAUNCH_REQUIRED_TOKENS:
+        if token not in launch_checklist:
+            _print("fail", "missing_launch_token")
+            return 1
+
+    if SUSPICIOUS_DSN.search(runbook):
+        _print("fail", "suspicious_dsn")
+        return 1
+    if SUSPICIOUS_DSN.search(launch_checklist) or SUSPICIOUS_DSN.search(go_no_go):
         _print("fail", "suspicious_dsn")
         return 1
 

@@ -62,6 +62,10 @@ Secret rotation checklist:
 - `docs/secret_rotation.md`
 Release checklist:
 - `docs/release_checklist.md`
+Launch checklist:
+- `docs/launch_checklist.md`
+Go/No-Go record template:
+- `docs/go_no_go_template.md`
 Disaster recovery playbook:
 - `docs/disaster_recovery.md`
 
