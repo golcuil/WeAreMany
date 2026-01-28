@@ -37,6 +37,7 @@
 - Ops/CI: added prod_rehearsal job and rehearsal summary artifact.
 - Security/Ops: added secret echo guard (CI log scan) and logging policy doc.
 - Ops: added pre_release_gate workflow and versioned release checklist.
+- Ops: added launch checklist + go/no-go template and records folder.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

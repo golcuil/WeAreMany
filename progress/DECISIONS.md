@@ -179,3 +179,7 @@
 - Decision: Add a manual `pre_release_gate` workflow to validate prod readiness without requiring PR CI secrets.
 - Decision: Publish a versioned release/rollback checklist as the canonical operator flow (names-only).
 - Consequences: Releases are gated by a manual operator check and a documented rollback path, reducing ad-hoc deploys.
+
+## D-037 (2026-01-28) — Launch readiness checklist + go/no-go record
+- Decision: Formalize launch readiness via `docs/launch_checklist.md` and a go/no-go decision record template.
+- Decision: Enforce launch docs presence and key tokens via docs consistency checks to prevent drift.

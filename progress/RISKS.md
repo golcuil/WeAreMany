@@ -204,6 +204,12 @@
 - Owner: CTO
 - Status: OPEN
 
+## R-037 Launch readiness drift
+- Risk: launching without explicit, versioned readiness criteria and sign-off.
+- Mitigation: launch checklist + go/no-go template + docs consistency gate.
+- Owner: CTO + PM
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
