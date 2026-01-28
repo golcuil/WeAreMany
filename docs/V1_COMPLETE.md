@@ -15,6 +15,7 @@ or raw user content in any records or tickets.
 - Go/No-Go template: `docs/go_no_go_template.md`
 - DR playbook: `docs/disaster_recovery.md`
 - Logging policy: `docs/logging_policy.md`
+- Staged rollout: `docs/staged_rollout.md`
 
 ## Required workflows (names only)
 - pre_release_gate
