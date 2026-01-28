@@ -26,7 +26,7 @@ def _parse_bootstrap_fail(output: str) -> dict[str, str] | None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Restore dry-run against ephemeral Postgres.")
-    parser.add_argument("--dsn-env", type=str, default="POSTGRES_DSN_TEST")
+    parser.add_argument("--dsn-env", type=str, required=True)
     parser.add_argument(
         "--fixture",
         type=str,
@@ -36,13 +36,17 @@ def main(argv: list[str] | None = None) -> int:
 
     dsn = os.getenv(args.dsn_env)
     if not dsn:
-        print("restore_dry_run status=fail reason=missing_dsn_env")
+        print(
+            "restore_dry_run status=fail reason=migrations_failed "
+            f"subreason=dsn_missing dsn_env={args.dsn_env}"
+        )
         return 1
     if not os.path.exists(args.fixture):
         print("restore_dry_run status=fail reason=missing_fixture")
         return 1
 
     env = dict(os.environ)
+    env["POSTGRES_DSN_PROD"] = dsn
     env["POSTGRES_DSN"] = dsn
 
     restore_code, _restore_output = _run(

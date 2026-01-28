@@ -6,15 +6,23 @@ from tools import restore_dry_run
 
 def test_restore_dry_run_missing_env(capsys, tmp_path, monkeypatch):
     monkeypatch.delenv("POSTGRES_DSN_TEST", raising=False)
-    exit_code = restore_dry_run.main(["--fixture", str(tmp_path / "fixture.sql")])
+    exit_code = restore_dry_run.main(
+        ["--dsn-env", "POSTGRES_DSN_TEST", "--fixture", str(tmp_path / "fixture.sql")]
+    )
     output = capsys.readouterr().out.strip()
     assert exit_code == 1
-    assert output == "restore_dry_run status=fail reason=missing_dsn_env"
+    assert (
+        output
+        == "restore_dry_run status=fail reason=migrations_failed "
+        "subreason=dsn_missing dsn_env=POSTGRES_DSN_TEST"
+    )
 
 
 def test_restore_dry_run_missing_fixture(capsys, monkeypatch):
     monkeypatch.setenv("POSTGRES_DSN_TEST", "postgres://user:pass@host/db")
-    exit_code = restore_dry_run.main(["--fixture", "fixtures/does_not_exist.sql"])
+    exit_code = restore_dry_run.main(
+        ["--dsn-env", "POSTGRES_DSN_TEST", "--fixture", "fixtures/does_not_exist.sql"]
+    )
     output = capsys.readouterr().out.strip()
     assert exit_code == 1
     assert output == "restore_dry_run status=fail reason=missing_fixture"
@@ -27,7 +35,9 @@ def test_restore_dry_run_single_line_output(capsys, monkeypatch, tmp_path):
     monkeypatch.setenv("POSTGRES_DSN_TEST", "postgres://user:pass@host/db")
 
     monkeypatch.setattr(restore_dry_run, "_run", lambda *_args, **_kwargs: (0, ""))
-    exit_code = restore_dry_run.main(["--fixture", str(fixture)])
+    exit_code = restore_dry_run.main(
+        ["--dsn-env", "POSTGRES_DSN_TEST", "--fixture", str(fixture)]
+    )
     output = capsys.readouterr().out.strip()
     assert exit_code == 0
     assert output == "restore_dry_run status=ok"
@@ -55,7 +65,9 @@ def test_restore_dry_run_propagates_migration_failure(capsys, monkeypatch, tmp_p
         return outputs.pop(0)
 
     monkeypatch.setattr(restore_dry_run, "_run", _fake_run)
-    exit_code = restore_dry_run.main(["--fixture", str(fixture)])
+    exit_code = restore_dry_run.main(
+        ["--dsn-env", "POSTGRES_DSN_TEST", "--fixture", str(fixture)]
+    )
     output = capsys.readouterr().out.strip()
     assert exit_code == 1
     assert (
@@ -63,3 +75,17 @@ def test_restore_dry_run_propagates_migration_failure(capsys, monkeypatch, tmp_p
         == "restore_dry_run status=fail reason=migrations_failed "
         "subreason=migration_apply_failed migration=0002_bad.sql sqlstate=42601"
     )
+
+
+def test_restore_dry_run_env_required(capsys, monkeypatch, tmp_path):
+    fixture = Path(tmp_path / "fixture.sql")
+    fixture.write_text("-- empty")
+    monkeypatch.setenv("POSTGRES_DSN_TEST", "postgres://user:pass@host/db")
+    monkeypatch.setattr(restore_dry_run, "_run", lambda *_args, **_kwargs: (0, ""))
+    exit_code = restore_dry_run.main(
+        ["--dsn-env", "POSTGRES_DSN_TEST", "--fixture", str(fixture)]
+    )
+    output = capsys.readouterr().out.strip()
+    assert exit_code == 0
+    assert "dsn_missing" not in output
+    assert "postgres://user:pass@host/db" not in output
