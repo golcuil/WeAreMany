@@ -240,6 +240,12 @@
 - Owner: CTO + PM
 - Status: OPEN
 
+## R-043 Secret echo guard scope limits
+- Risk: deterministic scan scope may miss secrets emitted only in CI platform logs.
+- Mitigation: enforce tokenized tool outputs + platform redaction; periodic log reviews and guard tuning.
+- Owner: SecurityEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

@@ -6,6 +6,7 @@ V1 Complete: Operational readiness, tooling, and documentation are complete for 
 - V1 sign-off bundle and doc alignment complete.
 
 ## Done
+- [T-097] Secret echo guard hardening: deterministic artifact/log scan with high-signal denylist + logging policy.
 - [T-096] Canary drill rehearsal: HOLD-first semantics with manual workflow and summary artifact.
 - [T-095] Baseline ops discipline: latest pointer is sole source of truth; validation enforces schema; retention-days explicit.
 - [T-094] Regression baseline lifecycle: deterministic baseline + latest pointer, runtime schema allowlist, HOLD semantics for not_configured/insufficient_data.

@@ -33,6 +33,10 @@
     - Rate limiting enabled (per-user + per-IP) on touched endpoints
     - Request validation rejects unknown fields
     - Body/text size limit enforced
+    - No enumeration: non-guessable IDs and safe pagination
+    - no raw text in logs
+    - No enumeration: non-guessable IDs and safe pagination
+    - No enumeration: non-guessable IDs and safe pagination
     - 'No enumeration: non-guessable IDs; no sequential IDs; safe pagination tokens'
     - Logs/analytics contain no raw message text
     - Identity leak prevention applied to outgoing text (detect->strip->rewrite->score->throttle)
@@ -50,7 +54,7 @@
   completion_definition:
   - All tests passing
   - Safety checklist passed
-  - Security checklist passed
+  - security checklist passed
   - No red-line violations
   threat_model:
     primary_threats:
@@ -3690,6 +3694,8 @@
   - Policy check passes
   - Tests pass
   - Docs updated (logging policy + runbook links)
+  - security checklist passed
+  - Security checklist passed
   - Security checklist passed
   threat_model:
     primary_threats:
@@ -3697,3 +3703,63 @@
     - Overly permissive allowlists masking real leaks
     mitigations:
     - Secret echo guard + logging policy enforcement
+  id: T-097
+  title: "Secret-echo guard hardening (deterministic artifacts only)"
+  owner: cto
+  state: DONE
+  notes: >
+    Scoped guard to deterministic artifacts/logs, added high-signal denylist and
+    logging policy, and stabilized fixtures/tests; CI green.
+  scope:
+    in:
+    - Deterministic scan scope for artifacts/logs only
+    - High-signal denylist + masked allowlist
+    - Stable single-line output and safe logging policy doc
+    - Fixtures + tests for guard behavior
+    out:
+    - No Flutter/UI changes
+    - No endpoint/schema changes
+    - No feed
+    - No threads/chat
+    - No profiles/identity
+    - No streaks/leaderboards
+  dependencies:
+  - T-089
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Guard scans deterministic repo outputs only
+    - Guard fails on unmasked secrets/DSNs
+    privacy:
+    - No secret values echoed in outputs
+    - Aggregate-only outputs (no identifiers)
+    - risk_level==2 does not persist free text
+    - do not persist free text
+    security:
+    - Denylist is high-signal and pinned
+    - Masked values are allowed
+    - AuthN enforced on touched endpoints; no unauthenticated access
+    - AuthZ user-scoped; no cross-user access
+    - Rate limiting enabled on touched endpoints
+    - Request validation rejects unknown fields
+    - Body/text size limit enforced
+    - No enumeration: non-guessable IDs and safe pagination
+    - no raw text in logs
+  tests:
+    unit:
+    - Guard passes masked fixtures
+    - Guard fails on unsafe fixtures without echoing content
+    security:
+    - No secret echo in guard outputs
+    - No raw text persisted for risk_level==2
+    - AuthZ: cannot access another user's resources
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+  completion_definition:
+  - Policy check passes
+  - Tests pass
+  - Docs updated (logging policy + runbook links)
+  - security checklist passed

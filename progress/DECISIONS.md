@@ -206,3 +206,8 @@
 ## D-042 (2026-01-28) — Canary drill HOLD-first rehearsal
 - Decision: canary drill returns HOLD as a successful rehearsal outcome (exit 0); READY is intentionally narrow.
 - Decision: canary_drill outputs single-line, tokenized summaries only; no subprocess passthrough.
+
+## D-043 (2026-01-28) — Secret echo guard hardening (deterministic scope)
+- Decision: secret_echo_guard scans deterministic repo artifacts/logs only (no CI platform log scraping).
+- Decision: denylist is high-signal and allows masked values; env var names in docs are allowed.
+- Decision: logging policy codifies single-line token outputs and prohibits secret/DSN logging.
