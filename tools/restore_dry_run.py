@@ -16,11 +16,26 @@ def _classify_migration_failure(output: str) -> str:
     lowered = output.lower()
     if "migration_checksum_mismatch" in lowered:
         return "checksum_mismatch"
-    if "already exists" in lowered or "relation" in lowered:
-        return "duplicate_object"
-    if "does not exist" in lowered or "missing table" in lowered:
-        return "missing_table"
+    if "sqlstate=" in lowered:
+        sqlstate = lowered.split("sqlstate=", 1)[1].split()[0]
+        mapping = {
+            "42p07": "duplicate_object",
+            "42710": "duplicate_object",
+            "23505": "unique_violation",
+            "23503": "fk_violation",
+            "3f000": "invalid_schema_or_db",
+            "3d000": "invalid_schema_or_db",
+            "42501": "insufficient_privilege",
+            "0a000": "feature_not_supported",
+        }
+        return mapping.get(sqlstate, "sql_error")
     return "sql_error"
+
+
+def _extract_token(output: str, key: str) -> str:
+    if f"{key}=" not in output:
+        return "unknown"
+    return output.split(f"{key}=", 1)[1].split()[0]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -52,14 +67,45 @@ def main(argv: list[str] | None = None) -> int:
         print("restore_dry_run status=fail reason=restore_failed")
         return 1
 
+    prereq_code, _prereq_output = _run(
+        [
+            "psql",
+            dsn,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            "CREATE EXTENSION IF NOT EXISTS pgcrypto;",
+        ],
+        env,
+    )
+    if prereq_code != 0:
+        print("restore_dry_run status=fail reason=prereq_failed")
+        return 1
+    prereq_code, _prereq_output = _run(
+        [
+            "psql",
+            dsn,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";',
+        ],
+        env,
+    )
+    if prereq_code != 0:
+        print("restore_dry_run status=fail reason=prereq_failed")
+        return 1
+
     apply_code, apply_output = _run(
         [sys.executable, "-m", "tools.db_bootstrap", "apply_migrations"], env
     )
     if apply_code != 0:
         subreason = _classify_migration_failure(apply_output)
+        migration = _extract_token(apply_output, "migration")
+        sqlstate = _extract_token(apply_output, "sqlstate")
         print(
             "restore_dry_run status=fail reason=migrations_failed "
-            f"subreason={subreason}"
+            f"subreason={subreason} migration={migration} sqlstate={sqlstate}"
         )
         return 1
 
@@ -82,9 +128,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     if idempotent_code != 0:
         subreason = _classify_migration_failure(idempotent_output)
+        migration = _extract_token(idempotent_output, "migration")
+        sqlstate = _extract_token(idempotent_output, "sqlstate")
         print(
             "restore_dry_run status=fail reason=idempotency_failed "
-            f"subreason={subreason}"
+            f"subreason={subreason} migration={migration} sqlstate={sqlstate}"
         )
         return 1
 

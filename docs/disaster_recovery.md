@@ -17,6 +17,7 @@ or raw user content into tickets or chat.
 1) Verify prod config contract (names only):
    - `PYTHONPATH=backend:. python3 -m tools.prod_config_contract --mode=prod_required`
 2) Provision a new DB instance (empty).
+   - Recommended Postgres version: 15 (match CI `restore_dry_run`).
 3) Restore from backup (template only; no secrets in docs):
    - `psql "$POSTGRES_DSN_PROD" -v ON_ERROR_STOP=1 -f /path/to/backup.sql`
 4) Apply migrations (idempotent):

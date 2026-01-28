@@ -21,6 +21,8 @@ def _print_status(
     reason: str | None = None,
     applied: int | None = None,
     skipped: int | None = None,
+    migration: str | None = None,
+    sqlstate: str | None = None,
 ) -> None:
     parts = [f"db_bootstrap status={status}", f"mode={mode}"]
     if reason:
@@ -29,6 +31,10 @@ def _print_status(
         parts.append(f"applied={applied}")
     if skipped is not None:
         parts.append(f"skipped={skipped}")
+    if migration:
+        parts.append(f"migration={migration}")
+    if sqlstate:
+        parts.append(f"sqlstate={sqlstate}")
     parts.append(f"generated_at={datetime.now(timezone.utc).isoformat()}")
     print(" ".join(parts))
 
@@ -106,13 +112,13 @@ def _checksum(contents: str) -> str:
     return hashlib.sha256(contents.encode("utf-8")).hexdigest()
 
 
-def _apply_migrations(dsn: str) -> tuple[bool, int, int, str | None]:
+def _apply_migrations(dsn: str) -> tuple[bool, int, int, str | None, str | None, str | None]:
     migration_dir = _migration_dir()
     migration_files = _migration_files()
     if _validate_migration_plan(migration_dir, migration_files) is not None:
-        return False, 0, 0, "migrations_invalid"
+        return False, 0, 0, "migrations_invalid", None, None
     if psycopg is None:
-        return False, 0, 0, "psycopg_missing"
+        return False, 0, 0, "psycopg_missing", None, None
 
     applied = 0
     skipped = 0
@@ -133,7 +139,7 @@ def _apply_migrations(dsn: str) -> tuple[bool, int, int, str | None]:
                 if row:
                     if row[0] != checksum:
                         conn.rollback()
-                        return False, applied, skipped, "migration_checksum_mismatch"
+                        return False, applied, skipped, "migration_checksum_mismatch", filename, "na"
                     skipped += 1
                     conn.commit()
                     continue
@@ -148,10 +154,13 @@ def _apply_migrations(dsn: str) -> tuple[bool, int, int, str | None]:
                     )
                     conn.commit()
                     applied += 1
-                except Exception:
+                except Exception as exc:
+                    sqlstate = getattr(exc, "sqlstate", None) or getattr(exc, "pgcode", None)
+                    if not sqlstate:
+                        sqlstate = "na"
                     conn.rollback()
-                    return False, applied, skipped, "migration_apply_failed"
-    return True, applied, skipped, None
+                    return False, applied, skipped, "migration_apply_failed", filename, sqlstate
+    return True, applied, skipped, None, None, None
 
 
 def _run_verify() -> bool:
@@ -183,9 +192,15 @@ def _run_apply(env_name: str) -> int:
     if not _check_psycopg():
         _print_status("fail", "apply_migrations", "psycopg_missing")
         return 1
-    ok, applied, skipped, reason = _apply_migrations(dsn)
+    ok, applied, skipped, reason, migration, sqlstate = _apply_migrations(dsn)
     if not ok:
-        _print_status("fail", "apply_migrations", reason or "migrations_failed")
+        _print_status(
+            "fail",
+            "apply_migrations",
+            reason or "migrations_failed",
+            migration=migration,
+            sqlstate=sqlstate,
+        )
         return 1
     _print_status("ok", "apply_migrations", applied=applied, skipped=skipped)
     return 0
