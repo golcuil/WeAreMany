@@ -154,3 +154,8 @@
 - Decision: Emit a single-line `ops_metrics_snapshot` JSON as the canonical daily KPI output.
 - Context: We need a stable, machine-readable snapshot to detect regressions early.
 - Consequences: Add `metrics_regression_check` with MIN_N guardrail; cron runs fail only when thresholds are breached above MIN_N.
+
+## D-032 (2026-01-28) — Retention enforcement via TTL cleanup + retention report
+- Decision: Enforce TTL cleanup for ops data (security_events, second_touch events/aggregates, daily ack aggregates) with aggregate-only reporting.
+- Context: Retention drift undermines privacy posture and increases operational cost.
+- Consequences: Add `retention_cleanup` + `retention_report` tools with stable single-line outputs; cron runs flag `ttl_drift` when expired rows remain.

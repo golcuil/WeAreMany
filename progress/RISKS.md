@@ -174,6 +174,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-032 Retention cleanup performance
+- Risk: large TTL deletes could cause table locks or slow cron runs.
+- Mitigation: retention scope limited to ops tables with bounded growth; monitor cron duration and consider batching if needed.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.
