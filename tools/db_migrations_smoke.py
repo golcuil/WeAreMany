@@ -12,7 +12,7 @@ def _print(status: str, reason: str | None = None) -> None:
     print(line)
 
 
-def _run_db_bootstrap(dsn_env: str, command: str) -> int:
+def _run_db_bootstrap(dsn_env: str, command: str) -> tuple[int, str]:
     env = {**os.environ}
     env["POSTGRES_DSN_PROD"] = env.get(dsn_env, "")
     result = subprocess.run(
@@ -21,7 +21,7 @@ def _run_db_bootstrap(dsn_env: str, command: str) -> int:
         text=True,
         env=env,
     )
-    return result.returncode
+    return result.returncode, (result.stdout or "").strip()
 
 
 def _run_db_verify(dsn_env: str) -> int:
@@ -45,16 +45,24 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "missing_dsn_env")
         return 1
 
-    if _run_db_bootstrap(args.dsn_env, "apply_migrations") != 0:
-        _print("fail", "apply_failed")
+    exit_code, output = _run_db_bootstrap(args.dsn_env, "apply_migrations")
+    if exit_code != 0:
+        subreason = "migration_apply_failed"
+        if "reason=" in output:
+            subreason = output.split("reason=", 1)[1].split()[0]
+        _print("fail", f"apply_failed subreason={subreason}")
         return 1
 
     if _run_db_verify(args.dsn_env) != 0:
         _print("fail", "verify_failed")
         return 1
 
-    if _run_db_bootstrap(args.dsn_env, "apply_migrations") != 0:
-        _print("fail", "idempotency_failed")
+    exit_code, output = _run_db_bootstrap(args.dsn_env, "apply_migrations")
+    if exit_code != 0:
+        subreason = "migration_apply_failed"
+        if "reason=" in output:
+            subreason = output.split("reason=", 1)[1].split()[0]
+        _print("fail", f"idempotency_failed subreason={subreason}")
         return 1
 
     _print("ok")

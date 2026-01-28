@@ -1,16 +1,34 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import subprocess
 from datetime import datetime, timezone
 
+try:
+    import psycopg as _psycopg
+except Exception:
+    _psycopg = None
 
-def _print_status(status: str, mode: str, reason: str | None = None) -> None:
+psycopg = _psycopg
+
+
+def _print_status(
+    status: str,
+    mode: str,
+    reason: str | None = None,
+    applied: int | None = None,
+    skipped: int | None = None,
+) -> None:
     parts = [f"db_bootstrap status={status}", f"mode={mode}"]
     if reason:
         parts.append(f"reason={reason}")
+    if applied is not None:
+        parts.append(f"applied={applied}")
+    if skipped is not None:
+        parts.append(f"skipped={skipped}")
     parts.append(f"generated_at={datetime.now(timezone.utc).isoformat()}")
     print(" ".join(parts))
 
@@ -20,11 +38,7 @@ def _check_dsn(env_name: str) -> str | None:
 
 
 def _check_psycopg() -> bool:
-    try:
-        import psycopg  # noqa: F401
-    except Exception:
-        return False
-    return True
+    return psycopg is not None
 
 
 def _migration_dir() -> str:
@@ -70,21 +84,74 @@ def _validate_migration_plan(migration_dir: str, migration_files: list[str]) -> 
     return None
 
 
-def _apply_migrations(dsn: str) -> bool:
+def _ensure_ledger(cur) -> None:
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            id TEXT PRIMARY KEY,
+            filename TEXT NOT NULL,
+            checksum TEXT NOT NULL,
+            applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+
+
+def _load_migration(path: str) -> str:
+    with open(path, "r", encoding="utf-8") as handle:
+        return handle.read()
+
+
+def _checksum(contents: str) -> str:
+    return hashlib.sha256(contents.encode("utf-8")).hexdigest()
+
+
+def _apply_migrations(dsn: str) -> tuple[bool, int, int, str | None]:
     migration_dir = _migration_dir()
     migration_files = _migration_files()
     if _validate_migration_plan(migration_dir, migration_files) is not None:
-        return False
-    for filename in migration_files:
-        path = os.path.join(migration_dir, filename)
-        result = subprocess.run(
-            ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-f", path],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            return False
-    return True
+        return False, 0, 0, "migrations_invalid"
+    if psycopg is None:
+        return False, 0, 0, "psycopg_missing"
+
+    applied = 0
+    skipped = 0
+    with psycopg.connect(dsn) as conn:
+        with conn.cursor() as cur:
+            _ensure_ledger(cur)
+        for filename in migration_files:
+            migration_id = filename.split("_", 1)[0]
+            path = os.path.join(migration_dir, filename)
+            contents = _load_migration(path)
+            checksum = _checksum(contents)
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT checksum FROM schema_migrations WHERE id = %s",
+                    (migration_id,),
+                )
+                row = cur.fetchone()
+                if row:
+                    if row[0] != checksum:
+                        conn.rollback()
+                        return False, applied, skipped, "migration_checksum_mismatch"
+                    skipped += 1
+                    conn.commit()
+                    continue
+                try:
+                    cur.execute(contents)
+                    cur.execute(
+                        """
+                        INSERT INTO schema_migrations (id, filename, checksum)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (migration_id, filename, checksum),
+                    )
+                    conn.commit()
+                    applied += 1
+                except Exception:
+                    conn.rollback()
+                    return False, applied, skipped, "migration_apply_failed"
+    return True, applied, skipped, None
 
 
 def _run_verify() -> bool:
@@ -116,10 +183,11 @@ def _run_apply(env_name: str) -> int:
     if not _check_psycopg():
         _print_status("fail", "apply_migrations", "psycopg_missing")
         return 1
-    if not _apply_migrations(dsn):
-        _print_status("fail", "apply_migrations", "migrations_failed")
+    ok, applied, skipped, reason = _apply_migrations(dsn)
+    if not ok:
+        _print_status("fail", "apply_migrations", reason or "migrations_failed")
         return 1
-    _print_status("ok", "apply_migrations")
+    _print_status("ok", "apply_migrations", applied=applied, skipped=skipped)
     return 0
 
 
