@@ -61,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
 
     pointer = _load_json(args.baseline_pointer)
     if pointer is None:
-        _print("not_configured", "missing_baseline")
+        _print("not_configured", "missing_latest_pointer")
         return 1 if args.strict else 0
     if not validate_baseline_latest(pointer):
         _print("fail", "invalid_baseline_schema")
@@ -72,7 +72,10 @@ def main(argv: list[str] | None = None) -> int:
         pointer.get("baseline_filename", ""),
     )
     baseline = _load_json(baseline_path)
-    if baseline is None or not validate_baseline(baseline):
+    if baseline is None:
+        _print("not_configured", "latest_pointer_missing_target")
+        return 1 if args.strict else 0
+    if not validate_baseline(baseline):
         _print("fail", "invalid_baseline_schema")
         return 1
 

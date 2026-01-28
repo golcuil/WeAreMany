@@ -49,6 +49,11 @@ def _load_text(path: str) -> str | None:
         return handle.read()
 
 
+def _load_ci_workflow() -> str | None:
+    workflow_path = os.path.join(".github", "workflows", "generate_regression_baseline.yml")
+    return _load_text(workflow_path)
+
+
 def _module_exists(module_path: str) -> bool:
     parts = module_path.split(".")
     rel = os.path.join(*parts) + ".py"
@@ -94,6 +99,11 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "regression_baseline_missing")
         return 1
 
+    workflow = _load_ci_workflow()
+    if workflow is None:
+        _print("fail", "baseline_workflow_missing")
+        return 1
+
     if "docs/launch_checklist.md" not in runbook or "docs/V1_COMPLETE.md" not in runbook:
         _print("fail", "missing_launch_link")
         return 1
@@ -102,6 +112,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if "docs/regression_baseline.md" not in runbook:
         _print("fail", "missing_regression_link")
+        return 1
+
+    if "retention-days:" not in workflow:
+        _print("fail", "missing_retention_days")
         return 1
 
     for token in LAUNCH_REQUIRED_TOKENS:
@@ -122,6 +136,9 @@ def main(argv: list[str] | None = None) -> int:
         _print("fail", "suspicious_dsn")
         return 1
     if SUSPICIOUS_DSN.search(regression_baseline):
+        _print("fail", "suspicious_dsn")
+        return 1
+    if SUSPICIOUS_DSN.search(workflow):
         _print("fail", "suspicious_dsn")
         return 1
 

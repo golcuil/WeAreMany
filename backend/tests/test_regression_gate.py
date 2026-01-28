@@ -20,7 +20,7 @@ def test_regression_gate_missing_baseline(tmp_path, capsys):
     )
     assert exit_code == 0
     output = capsys.readouterr().out.strip()
-    assert output == "regression_gate status=not_configured reason=missing_baseline"
+    assert output == "regression_gate status=not_configured reason=missing_latest_pointer"
 
 
 def test_regression_gate_insufficient_data(tmp_path, capsys, monkeypatch):
@@ -70,3 +70,30 @@ def test_regression_gate_insufficient_data(tmp_path, capsys, monkeypatch):
     assert exit_code == 2
     output = capsys.readouterr().out.strip()
     assert output == "regression_gate status=insufficient_data reason=delivered_total_lt_min_n"
+
+
+def test_regression_gate_missing_target(tmp_path, capsys):
+    pointer = tmp_path / "latest.json"
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_text(json.dumps({"delivered_total": 0}))
+    pointer.write_text(
+        json.dumps(
+            {
+                "baseline_id": "b1",
+                "baseline_filename": "missing.json",
+                "created_at": "2026-01-01T00:00:00Z",
+                "schema_version": 1,
+            }
+        )
+    )
+    exit_code = regression_gate.main(
+        [
+            "--snapshot",
+            str(snapshot),
+            "--baseline-pointer",
+            str(pointer),
+        ]
+    )
+    assert exit_code == 0
+    output = capsys.readouterr().out.strip()
+    assert output == "regression_gate status=not_configured reason=latest_pointer_missing_target"

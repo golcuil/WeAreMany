@@ -17,7 +17,8 @@ Names-only. Do not include secrets, DSNs, identifiers, or raw user content.
 - `regression_baseline_latest.json` points to the most recent baseline.
 
 ## Regression gate semantics
-- `status=not_configured reason=missing_baseline` → HOLD (not a pass)
+- `status=not_configured reason=missing_latest_pointer` → HOLD (not a pass)
+- `status=not_configured reason=latest_pointer_missing_target` → HOLD (not a pass)
 - `status=insufficient_data` → HOLD (not a pass)
 - `status=ok` → pass
 - `status=fail` → block

@@ -56,6 +56,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: regression_baseline
+          retention-days: 30
           path: |
             artifacts/regression_baseline_*.json
             artifacts/regression_baseline_latest.json
