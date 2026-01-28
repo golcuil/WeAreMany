@@ -2547,7 +2547,7 @@
 - id: T-083
   title: Ops metrics snapshot + regression gate
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: Emit a privacy-safe metrics snapshot and add regression thresholds in ops_daily.
   scope:
     in:
@@ -2596,7 +2596,7 @@
     - risk_level==2 does not write free_text to DB
   completion_definition:
   - Metrics snapshot and regression gate added
-  - All tests passing and CI green
+  - All tests passing and CI green (58c4c93)
   - Safety checklist passed
   - Security checklist passed
   - No red-line violations

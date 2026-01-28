@@ -31,6 +31,7 @@
 - Ops: scheduled runs now enforce the prod config contract (names-only) before strict ops execution.
 - Ops/CI: added db_migrations_integration job (apply + verify + idempotency) with db_migrations_smoke helper.
 - Ops: added canonical operator runbook and CI docs consistency check.
+- Ops: ops_daily now emits a metrics snapshot line and runs a regression gate with MIN_N guardrail.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.

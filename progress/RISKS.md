@@ -168,6 +168,12 @@
 - Owner: CTO + SecurityEngineer
 - Status: OPEN
 
+## R-031 Ops metrics regression tuning
+- Risk: thresholds may be too strict or too lenient, causing false positives/negatives.
+- Mitigation: MIN_N guardrail; adjust thresholds only after baseline volume is established.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

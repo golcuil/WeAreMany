@@ -149,3 +149,8 @@
 - Decision: Add `docs/operator_runbook.md` as the canonical ops source of truth.
 - Context: Ops guidance was spread across multiple files and at risk of drift.
 - Consequences: Add `tools/docs_consistency_check.py` (stdlib) to enforce required tokens and prevent credential-like strings in docs.
+
+## D-031 (2026-01-27) — Ops metrics snapshot + regression gate
+- Decision: Emit a single-line `ops_metrics_snapshot` JSON as the canonical daily KPI output.
+- Context: We need a stable, machine-readable snapshot to detect regressions early.
+- Consequences: Add `metrics_regression_check` with MIN_N guardrail; cron runs fail only when thresholds are breached above MIN_N.
