@@ -43,6 +43,20 @@ jobs:
       - name: Policy check
         run: python3 tools/policy_check.py
 
+      - name: Prod config contract (scheduled runs)
+        if: ${{ github.event_name == 'schedule' }}
+        env:
+          POSTGRES_DSN_PROD: ${{ secrets.POSTGRES_DSN_PROD }}
+        run: |
+          set +e
+          OUTPUT="$(PYTHONPATH=backend:. python3 -m tools.prod_config_contract --mode=prod_required 2>&1)"
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "prod_config missing_env: set required secrets (names only) in repo settings." >> "$GITHUB_STEP_SUMMARY"
+            exit $EXIT_CODE
+          fi
+
       - name: Run ops_daily
         continue-on-error: true
         env:

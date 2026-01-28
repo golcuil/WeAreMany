@@ -21,6 +21,9 @@ It does not include any secret values.
 ## Verification notes
 - `db_verify` returns `status=not_configured` when POSTGRES_DSN_PROD is missing.
 - `ops_daily` strict mode is only meaningful after traffic exists.
+- Scheduled ops_daily runs fail fast if required prod env names are missing.
+- Verify required names via:
+  - `PYTHONPATH=backend:. python3 -m tools.prod_config_contract --mode=prod_required`
 
 ## Rollback guidance (generic)
 1) Stop new deploys.

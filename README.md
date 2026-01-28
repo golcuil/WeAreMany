@@ -67,6 +67,7 @@ Behavior:
 - Scheduled runs normalize **only** when the output includes:
   - `status=insufficient_data reason=delivered_total_0`
   - All other exit-2 cases remain failures.
+- Cron runs require the prod config contract; missing env names fail fast (names only, no values).
 
 ## Production wiring runbook (ops + DB)
 

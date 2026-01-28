@@ -85,6 +85,7 @@ MVP Core Complete: The core end-to-end flow is complete for mood, message delive
 
 ## In progress
 - [T-022] CI format diff visibility (print formatter diff on failure)
+- [T-080] Prod config contract enforcement for scheduled ops (fail-fast on missing env names).
 
 ## Next
 

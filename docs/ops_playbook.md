@@ -49,4 +49,6 @@ This playbook is intentionally non-sensitive. Do not paste secrets, DSNs, or use
 - Insufficient data token:
   - `status=insufficient_data reason=delivered_total_0` means no traffic yet.
   - Scheduled runs normalize to green only when this token is present.
+- If scheduled ops_daily fails with `prod_config status=fail reason=missing_env`:
+  - Set required secrets (names only) in repo settings and re-run.
 - Safe logs to paste: aggregate-only lines from ops_daily (no identifiers, no secrets).
