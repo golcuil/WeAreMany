@@ -2,6 +2,10 @@
 
 Names-only. Do not include secrets, DSNs, identifiers, or raw user content.
 
+Canonical links:
+- `docs/OPERATOR_GOLDEN_PATH.md`
+- `docs/RELEASE_READINESS.md`
+
 ## Phases
 1) Phase 0 — Internal readiness
    - Run `pre_release_gate`

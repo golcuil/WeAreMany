@@ -3,6 +3,10 @@
 This playbook is privacy-safe and names-only: do not paste secrets, DSNs, identifiers,
 or raw user content into tickets or chat.
 
+Canonical links:
+- `docs/OPERATOR_GOLDEN_PATH.md`
+- `docs/RELEASE_READINESS.md`
+
 ## Targets
 - **RPO** (Recovery Point Objective): conservative initial target = 24h.
 - **RTO** (Recovery Time Objective): conservative initial target = 4h.

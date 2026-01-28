@@ -2,6 +2,10 @@
 
 This policy applies to all tools, workflows, and operational outputs.
 
+Canonical links:
+- `docs/OPERATOR_GOLDEN_PATH.md`
+- `docs/RELEASE_READINESS.md`
+
 ## Never log
 - DSNs, credentials, tokens, or environment values
 - Raw user text or payloads

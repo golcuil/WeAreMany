@@ -1,5 +1,9 @@
 # Canary Drill (HOLD-first rehearsal)
 
+Canonical links:
+- `docs/OPERATOR_GOLDEN_PATH.md`
+- `docs/RELEASE_READINESS.md`
+
 Names-only. Do not include secrets, DSNs, identifiers, or raw user content.
 
 ## Purpose

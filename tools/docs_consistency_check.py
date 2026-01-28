@@ -34,6 +34,7 @@ REGRESSION_BASELINE_PATH = os.path.join("docs", "regression_baseline.md")
 CANARY_DRILL_PATH = os.path.join("docs", "canary_drill.md")
 LOGGING_POLICY_PATH = os.path.join("docs", "logging_policy.md")
 GOLDEN_PATH = os.path.join("docs", "OPERATOR_GOLDEN_PATH.md")
+RELEASE_READINESS_PATH = os.path.join("docs", "RELEASE_READINESS.md")
 
 SUSPICIOUS_DSN = re.compile(r"postgres://[^\s:]+:[^\s@]+@")
 RETENTION_NUMERIC = re.compile(
@@ -120,6 +121,10 @@ def main(argv: list[str] | None = None) -> int:
     if golden_path is None:
         _print("fail", "golden_path_missing")
         return 1
+    release_readiness = _load_text(RELEASE_READINESS_PATH)
+    if release_readiness is None:
+        _print("fail", "release_readiness_missing")
+        return 1
 
     workflow = _load_ci_workflow()
     if workflow is None:
@@ -147,6 +152,7 @@ def main(argv: list[str] | None = None) -> int:
 
     required_golden_links = [
         "docs/operator_runbook.md",
+        "docs/RELEASE_READINESS.md",
         "docs/operator_rehearsal.md",
         "docs/staged_rollout.md",
         "docs/regression_baseline.md",
@@ -157,6 +163,18 @@ def main(argv: list[str] | None = None) -> int:
     for link in required_golden_links:
         if link not in golden_path:
             _print("fail", "missing_golden_path_link")
+            return 1
+
+    required_release_links = [
+        "docs/OPERATOR_GOLDEN_PATH.md",
+        "docs/launch_checklist.md",
+        "docs/staged_rollout.md",
+        "docs/disaster_recovery.md",
+        "docs/logging_policy.md",
+    ]
+    for link in required_release_links:
+        if link not in release_readiness:
+            _print("fail", "missing_release_readiness_link")
             return 1
 
     if "retention-days:" not in workflow:
@@ -192,6 +210,9 @@ def main(argv: list[str] | None = None) -> int:
     if SUSPICIOUS_DSN.search(golden_path):
         _print("fail", "suspicious_dsn")
         return 1
+    if SUSPICIOUS_DSN.search(release_readiness):
+        _print("fail", "suspicious_dsn")
+        return 1
 
     retention_sources = "\n".join(
         [
@@ -200,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
             staged_rollout,
             regression_baseline,
             logging_policy,
+            release_readiness,
         ]
     )
     if RETENTION_NUMERIC.search(retention_sources) or RETENTION_NUMERIC_ALT.search(

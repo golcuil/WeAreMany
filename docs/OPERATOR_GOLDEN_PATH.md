@@ -3,8 +3,14 @@
 This is the primary onboarding index for operators. Use these links and tokens
 only; do not paste secrets, DSNs, or identifiers into tickets or chat.
 
+Two-canonical-docs rule:
+- Onboarding canonical: `docs/OPERATOR_GOLDEN_PATH.md`
+- Release-day canonical: `docs/RELEASE_READINESS.md`
+- All other operator docs are detail docs linked from these canonicals.
+
 ## Start here (one page)
 - `docs/operator_runbook.md`
+- `docs/RELEASE_READINESS.md`
 - `docs/operator_rehearsal.md`
 - `docs/production_bootstrap.md`
 - `docs/regression_baseline.md`
