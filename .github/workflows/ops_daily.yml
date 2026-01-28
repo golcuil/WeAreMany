@@ -120,8 +120,36 @@ jobs:
           exit 0
         id: normalize_ops
 
+      - name: Metrics regression check (scheduled)
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit == '0' && github.event_name == 'schedule' }}
+        run: |
+          SNAPSHOT_LINE="$(grep -m 1 '^ops_metrics_snapshot ' ops_daily.log || true)"
+          if [ -z "$SNAPSHOT_LINE" ]; then
+            LINE="metrics_regression status=fail reason=missing_snapshot"
+            echo "$LINE"
+            echo "regression_exit=1" >> "$GITHUB_OUTPUT"
+            echo "regression_line=$LINE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "${SNAPSHOT_LINE#ops_metrics_snapshot }" > snapshot.json
+          set +e
+          OUTPUT="$(PYTHONPATH=backend:. python3 -m tools.metrics_regression_check --snapshot snapshot.json 2>&1)"
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          echo "regression_exit=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          echo "regression_line=$OUTPUT" >> "$GITHUB_OUTPUT"
+          if [ "$EXIT_CODE" = "0" ] && echo "$OUTPUT" | grep -q "status=insufficient_data"; then
+            echo "Regression check skipped due to low volume." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$EXIT_CODE" = "0" ]; then
+            echo "Regression check passed." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Regression check failed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+        id: regression_check
+
       - name: Create or update ops_daily issue (strict failures)
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit != '0' }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1') }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -133,6 +161,7 @@ jobs:
               `exit_code=${process.env.OPS_EXIT}`,
               process.env.OPS_MODE_LINE ? `mode_line=${process.env.OPS_MODE_LINE}` : "mode_line=missing",
               process.env.OPS_NORMALIZED_LINE ? `normalize_line=${process.env.OPS_NORMALIZED_LINE}` : "normalize_line=missing",
+              process.env.OPS_REGRESSION_LINE ? `regression_line=${process.env.OPS_REGRESSION_LINE}` : "regression_line=missing",
               "",
               "ops_daily_output_tail:",
               "```",
@@ -167,9 +196,10 @@ jobs:
           OPS_TAIL: ${{ steps.run_ops.outputs.ops_tail }}
           OPS_MODE_LINE: ${{ steps.run_ops.outputs.ops_mode_line }}
           OPS_NORMALIZED_LINE: ${{ steps.normalize_ops.outputs.normalized_line }}
+          OPS_REGRESSION_LINE: ${{ steps.regression_check.outputs.regression_line }}
 
       - name: Notify Slack (strict failures, optional)
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit != '0' && env.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1') && env.SLACK_WEBHOOK_URL != '' }}
         env:
           OPS_EXIT: ${{ steps.run_ops.outputs.ops_exit }}
         run: |
@@ -182,5 +212,9 @@ jobs:
           curl -sS -X POST -H "Content-type: application/json" --data "$payload" "$SLACK_WEBHOOK_URL" >/dev/null
 
       - name: Fail workflow on strict unhealthy
-        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && steps.normalize_ops.outputs.normalized_exit != '0' }}
-        run: exit ${{ steps.normalize_ops.outputs.normalized_exit }}
+        if: ${{ always() && steps.run_ops.outputs.strict_run == '1' && (steps.normalize_ops.outputs.normalized_exit != '0' || steps.regression_check.outputs.regression_exit == '1') }}
+        run: |
+          if [ "${{ steps.normalize_ops.outputs.normalized_exit }}" != "0" ]; then
+            exit ${{ steps.normalize_ops.outputs.normalized_exit }}
+          fi
+          exit ${{ steps.regression_check.outputs.regression_exit }}

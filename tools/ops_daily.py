@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import json
 
 from app.repository import get_repository
 from tools.matching_health_watchdog import run_watchdog
@@ -30,7 +31,26 @@ def run_metrics(days: int, theme: str | None) -> OpsResult:
         counters = repo.get_second_touch_counters(window_days)
         for line in format_second_touch_metrics(counters, window_days):
             print(line)
+    print(_metrics_snapshot_line(aggregates, days))
     return OpsResult(exit_code=0)
+
+
+def _metrics_snapshot_line(aggregates, window_days: int) -> str:
+    delivered_total = sum(item.delivered_count for item in aggregates)
+    positive_total = sum(item.positive_ack_count for item in aggregates)
+    snapshot = {
+        "ts_utc": datetime.now(timezone.utc).isoformat(),
+        "window_days": window_days,
+        "delivered_total": delivered_total,
+        "ack_total": positive_total,
+        "ack_positive_total": positive_total,
+        "matching_health_h": (positive_total / delivered_total) if delivered_total else 0.0,
+        "identity_leak_blocked_total": None,
+        "crisis_routed_total": None,
+        "p95_delivery_latency_s": None,
+    }
+    payload = json.dumps(snapshot, separators=(",", ":"), sort_keys=False)
+    return f"ops_metrics_snapshot {payload}"
 
 
 def run_watchdog_task(days: int, min_ratio: float) -> OpsResult:

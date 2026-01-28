@@ -46,6 +46,14 @@ do not paste secrets, DSNs, identifiers, or raw user content into tickets or cha
 - `prod_config status=ok` or `prod_config status=fail reason=missing_env`
 - `ops_daily_watchdog status=healthy | insufficient_data | unhealthy`
 - `ops_ci_normalize status=normalized reason=insufficient_data` (scheduled only)
+- `ops_metrics_snapshot <json>`
+- `metrics_regression status=ok | status=insufficient_data | status=fail`
+
+## Metrics snapshot & regression checks
+- ops_daily emits a single-line JSON snapshot:
+  - `ops_metrics_snapshot <json>`
+- Regression checks apply only when `delivered_total >= MIN_N`.
+- `metrics_regression status=insufficient_data` means low traffic; no alert.
 
 ## Incident playbooks (most common)
 ### Cron fails: prod_config missing_env
