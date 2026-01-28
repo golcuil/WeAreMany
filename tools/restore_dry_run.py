@@ -12,30 +12,16 @@ def _run(cmd: list[str], env: dict[str, str]) -> tuple[int, str]:
     return result.returncode, output
 
 
-def _classify_migration_failure(output: str) -> str:
-    lowered = output.lower()
-    if "migration_checksum_mismatch" in lowered:
-        return "checksum_mismatch"
-    if "sqlstate=" in lowered:
-        sqlstate = lowered.split("sqlstate=", 1)[1].split()[0]
-        mapping = {
-            "42p07": "duplicate_object",
-            "42710": "duplicate_object",
-            "23505": "unique_violation",
-            "23503": "fk_violation",
-            "3f000": "invalid_schema_or_db",
-            "3d000": "invalid_schema_or_db",
-            "42501": "insufficient_privilege",
-            "0a000": "feature_not_supported",
-        }
-        return mapping.get(sqlstate, "sql_error")
-    return "sql_error"
-
-
-def _extract_token(output: str, key: str) -> str:
-    if f"{key}=" not in output:
-        return "unknown"
-    return output.split(f"{key}=", 1)[1].split()[0]
+def _parse_bootstrap_fail(output: str) -> dict[str, str] | None:
+    for line in output.splitlines():
+        if line.startswith("db_bootstrap status=fail"):
+            tokens = {}
+            for part in line.split():
+                if "=" in part:
+                    key, value = part.split("=", 1)
+                    tokens[key] = value
+            return tokens
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -100,9 +86,16 @@ def main(argv: list[str] | None = None) -> int:
         [sys.executable, "-m", "tools.db_bootstrap", "apply_migrations"], env
     )
     if apply_code != 0:
-        subreason = _classify_migration_failure(apply_output)
-        migration = _extract_token(apply_output, "migration")
-        sqlstate = _extract_token(apply_output, "sqlstate")
+        parsed = _parse_bootstrap_fail(apply_output)
+        if not parsed:
+            print(
+                "restore_dry_run status=fail reason=migrations_failed "
+                "subreason=missing_bootstrap_fail_line"
+            )
+            return 1
+        subreason = parsed.get("reason", "migration_apply_failed")
+        migration = parsed.get("migration", "unknown")
+        sqlstate = parsed.get("sqlstate", "na")
         print(
             "restore_dry_run status=fail reason=migrations_failed "
             f"subreason={subreason} migration={migration} sqlstate={sqlstate}"
@@ -127,9 +120,16 @@ def main(argv: list[str] | None = None) -> int:
         [sys.executable, "-m", "tools.db_bootstrap", "apply_migrations"], env
     )
     if idempotent_code != 0:
-        subreason = _classify_migration_failure(idempotent_output)
-        migration = _extract_token(idempotent_output, "migration")
-        sqlstate = _extract_token(idempotent_output, "sqlstate")
+        parsed = _parse_bootstrap_fail(idempotent_output)
+        if not parsed:
+            print(
+                "restore_dry_run status=fail reason=idempotency_failed "
+                "subreason=missing_bootstrap_fail_line"
+            )
+            return 1
+        subreason = parsed.get("reason", "migration_apply_failed")
+        migration = parsed.get("migration", "unknown")
+        sqlstate = parsed.get("sqlstate", "na")
         print(
             "restore_dry_run status=fail reason=idempotency_failed "
             f"subreason={subreason} migration={migration} sqlstate={sqlstate}"

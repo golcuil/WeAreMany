@@ -187,22 +187,24 @@ def _run_bootstrap_dry_run() -> int:
 def _run_apply(env_name: str) -> int:
     dsn = _check_dsn(env_name)
     if not dsn:
-        _print_status("fail", "apply_migrations", "dsn_missing")
+        print("db_bootstrap status=fail reason=dsn_missing")
         return 1
     if not _check_psycopg():
-        _print_status("fail", "apply_migrations", "psycopg_missing")
+        print("db_bootstrap status=fail reason=psycopg_missing")
         return 1
     ok, applied, skipped, reason, migration, sqlstate = _apply_migrations(dsn)
     if not ok:
-        _print_status(
-            "fail",
-            "apply_migrations",
-            reason or "migrations_failed",
-            migration=migration,
-            sqlstate=sqlstate,
+        fail_reason = reason or "migration_apply_failed"
+        migration_value = migration or "unknown"
+        sqlstate_value = sqlstate or "na"
+        print(
+            "db_bootstrap status=fail "
+            f"reason={fail_reason} "
+            f"migration={migration_value} "
+            f"sqlstate={sqlstate_value}"
         )
         return 1
-    _print_status("ok", "apply_migrations", applied=applied, skipped=skipped)
+    print(f"db_bootstrap status=ok applied={applied} skipped={skipped}")
     return 0
 
 
