@@ -222,6 +222,12 @@
 - Owner: DataEngineer + CTO
 - Status: OPEN
 
+## R-040 Regression baseline lifecycle
+- Risk: baseline lifecycle drift or schema changes could undermine regression checks.
+- Mitigation: deterministic baseline_id + runtime schema allowlist enforcement.
+- Owner: DataEngineer + CTO
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

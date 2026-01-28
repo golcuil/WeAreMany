@@ -6,6 +6,7 @@ V1 Complete: Operational readiness, tooling, and documentation are complete for 
 - V1 sign-off bundle and doc alignment complete.
 
 ## Done
+- [T-094] Regression baseline lifecycle: deterministic baseline + latest pointer, runtime schema allowlist, HOLD semantics for not_configured/insufficient_data.
 - [T-093] Staged rollout canary gate: thin wrapper over existing contracts with regression as primary signal.
 - [T-092] V1 completion sweep: docs aligned, canonical bundle added, and status/tasks finalized.
 - [T-091] Launch readiness: launch checklist + go/no-go decision record template with docs consistency gating.

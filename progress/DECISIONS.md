@@ -192,3 +192,8 @@
 - Decision: Implement canary_gate as a thin wrapper over existing contracts (prod_config, db_verify, ops_daily smoke, metrics regression).
 - Decision: Regression check is the primary canary signal; `insufficient_data` is not a green light.
 - Decision: canary_gate emits tokenized outputs only and never passthroughs subprocess output.
+
+## D-040 (2026-01-28) — Regression baseline lifecycle
+- Decision: Deterministic baseline_id + latest pointer file to eliminate baseline ambiguity.
+- Decision: not_configured/insufficient_data are HOLD states and must block canary (no false confidence).
+- Decision: enforce runtime JSON allowlist for baselines; invalid schema fails fast.
