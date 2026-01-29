@@ -220,7 +220,8 @@ def submit_mood(
 
     if result.risk_level == 2:
         now = datetime.now(timezone.utc)
-        repo.record_crisis_action(principal.principal_id, "show_resources", now=now)
+        repo.record_crisis_action(principal.principal_id, "show_crisis_screen", now=now)
+        logger.info("crisis_enforced", {"endpoint": "/mood", "reason": "risk_level_2"})
         repo.record_mood_event(
             MoodEventRecord(
                 principal_id=principal.principal_id,
@@ -239,7 +240,7 @@ def submit_mood(
             reid_risk=result.reid_risk,
             identity_leak=result.identity_leak,
             leak_types=result.leak_types,
-            crisis_action="show_resources",
+            crisis_action="show_crisis_screen",
             similar_count=None,
         )
 
@@ -368,7 +369,7 @@ def submit_message(
                 "throttle_count": identity_leak_count,
             },
         )
-    crisis_action = "show_crisis" if result.risk_level == 2 else None
+    crisis_action = "show_crisis_screen" if result.risk_level == 2 else None
     status_value = "blocked" if result.risk_level == 2 else "queued"
     hold_reason: Optional[str] = None
 
@@ -528,6 +529,7 @@ def submit_message(
         else:
             status_value = "held"
     else:
+        logger.info("crisis_enforced", {"endpoint": "/messages", "reason": "risk_level_2"})
         repo.touch_eligible_principal(principal.principal_id, payload.intensity)
 
     safe_emit(
@@ -625,6 +627,8 @@ def fetch_inbox(
     principal=Depends(current_principal),
     repo=Depends(get_repository),
 ) -> InboxResponse:
+    if repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS):
+        return InboxResponse(items=[])
     items = repo.list_inbox_items_with_offers(principal.principal_id)
     response_items = [
         InboxItemResponse(
@@ -685,7 +689,7 @@ def send_second_touch(
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.CRISIS_WINDOW.value,
-            crisis_action="show_crisis",
+            crisis_action="show_crisis_screen",
         )
     if repo.is_in_crisis_window(offer.counterpart_id, CRISIS_WINDOW_HOURS):
         repo.increment_second_touch_counter(
@@ -713,7 +717,7 @@ def send_second_touch(
         return SecondTouchSendResponse(
             status="held",
             hold_reason=HoldReason.RISK_LEVEL_2.value,
-            crisis_action="show_crisis",
+            crisis_action="show_crisis_screen",
         )
     if result.identity_leak:
         shadow_throttle.increment(principal.principal_id)

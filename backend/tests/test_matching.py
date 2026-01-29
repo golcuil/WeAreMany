@@ -74,7 +74,7 @@ def test_risk_level_two_blocks():
     assert response.status_code == 200
     body = response.json()
     assert body["decision"] == "CRISIS_BLOCK"
-    assert body["crisis_action"] == "show_crisis"
+    assert body["crisis_action"] == "show_crisis_screen"
 
     app.dependency_overrides.clear()
 

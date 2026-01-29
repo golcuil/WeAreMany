@@ -366,6 +366,8 @@ class InMemoryRepository:
         self.second_touch_events: List[SecondTouchEventRecord] = []
 
     def save_mood(self, record: MoodRecord) -> None:
+        if record.risk_level == 2:
+            raise ValueError("risk_level_2_blocked")
         return None
 
     def record_mood_event(self, record: MoodEventRecord) -> None:
@@ -399,6 +401,8 @@ class InMemoryRepository:
         return len(principals)
 
     def save_message(self, record: MessageRecord) -> str:
+        if record.risk_level == 2:
+            raise ValueError("risk_level_2_blocked")
         message_id = _new_uuid()
         self.messages[message_id] = record
         return message_id
@@ -1160,6 +1164,8 @@ class PostgresRepository:
         return psycopg.connect(self._dsn)
 
     def save_mood(self, record: MoodRecord) -> None:
+        if record.risk_level == 2:
+            raise ValueError("risk_level_2_blocked")
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -1224,6 +1230,8 @@ class PostgresRepository:
         return _summarize_mood_events(records, window_days)
 
     def save_message(self, record: MessageRecord) -> str:
+        if record.risk_level == 2:
+            raise ValueError("risk_level_2_blocked")
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """

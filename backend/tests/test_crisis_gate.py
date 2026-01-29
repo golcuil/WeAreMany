@@ -48,7 +48,7 @@ def test_sender_in_crisis_window_gets_system_message():
     repo.candidate_pool = [
         Candidate(candidate_id="recipient", intensity="low", themes=["calm"]),
     ]
-    repo.record_crisis_action("sender", "show_resources", now=datetime.now(timezone.utc))
+    repo.record_crisis_action("sender", "show_crisis_screen", now=datetime.now(timezone.utc))
     _override_dependencies(repo)
 
     response = client.post(
@@ -77,7 +77,7 @@ def test_recipient_in_crisis_window_is_excluded():
     repo = repository_module.InMemoryRepository()
     repo.upsert_eligible_principal("recipient", "low", ["calm"])
     repo.upsert_eligible_principal("other", "low", ["calm"])
-    repo.record_crisis_action("recipient", "show_resources", now=datetime.now(timezone.utc))
+    repo.record_crisis_action("recipient", "show_crisis_screen", now=datetime.now(timezone.utc))
 
     candidates = repo.get_eligible_candidates(
         "sender",
@@ -93,7 +93,7 @@ def test_recipient_in_crisis_window_is_excluded():
 def test_crisis_window_expires():
     repo = repository_module.InMemoryRepository()
     past = datetime.now(timezone.utc) - timedelta(hours=30)
-    repo.record_crisis_action("user", "show_resources", now=past)
+    repo.record_crisis_action("user", "show_crisis_screen", now=past)
 
     assert repo.is_in_crisis_window(
         "user",

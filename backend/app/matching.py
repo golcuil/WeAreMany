@@ -155,7 +155,7 @@ def match_decision(
         return MatchDecision(
             decision="CRISIS_BLOCK",
             reason=HoldReason.RISK_LEVEL_2.value,
-            crisis_action="show_crisis",
+            crisis_action="show_crisis_screen",
         )
 
     if len(candidates) < MATCH_MIN_POOL_K:

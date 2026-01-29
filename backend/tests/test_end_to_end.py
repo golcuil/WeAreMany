@@ -147,7 +147,7 @@ def test_risk_level_two_blocks_and_does_not_persist():
     assert response.status_code == 200
     body = response.json()
     assert body["risk_level"] == 2
-    assert body["crisis_action"] == "show_crisis"
+    assert body["crisis_action"] == "show_crisis_screen"
     assert body["status"] == "blocked"
     assert repo.messages == {}
     assert repo.inbox_items == {}

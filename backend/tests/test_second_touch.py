@@ -118,7 +118,7 @@ def test_second_touch_offer_blocked_on_crisis():
     _seed_moods(repo, now, sender_id, "positive")
     _seed_moods(repo, now, recipient_id, "positive")
     _seed_positive_pair(repo, now, sender_id, recipient_id)
-    repo.record_crisis_action(recipient_id, "show_crisis", now=now)
+    repo.record_crisis_action(recipient_id, "show_crisis_screen", now=now)
     _override_deps(repo)
     client = TestClient(app)
 

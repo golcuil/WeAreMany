@@ -78,7 +78,7 @@ def test_mood_crisis_blocks_and_skips_persistence_and_events():
     body = response.json()
     assert body["status"] == "blocked"
     assert body["risk_level"] == 2
-    assert body["crisis_action"] == "show_resources"
+    assert body["crisis_action"] == "show_crisis_screen"
     assert fake_repo.saved_moods == 0
     assert fake_repo.upserts == 0
     assert fake_repo.mood_events == 1

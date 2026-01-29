@@ -3992,6 +3992,88 @@
     - Overly permissive allowlists masking real leaks
     mitigations:
     - Secret echo guard + logging policy enforcement
+  id: T-106
+  title: "Crisis Screen + risk_level==2 hard block (Navigation 1.1 + Crisis 14.1)"
+  owner: cto
+  state: IN_PROGRESS
+  goal: >
+    Enforce crisis behavior for risk_level==2 with immediate Crisis Screen UX and
+    server-side no-persist guarantees, aligned to Navigation 1.1 and Bible 14.1.
+  scope:
+    in:
+    - Define crisis trigger (risk_level==2 or crisis_action=show_crisis_screen)
+    - Add Crisis Screen UI (non-alarmist copy + resources)
+    - Route to Crisis Screen on crisis trigger (mood/messages/resume)
+    - Block peer messaging and progressive delivery for risk_level==2
+    - Ensure free_text is never persisted/queued/logged when risk_level==2
+    - About/Safety tab includes crisis resources + anonymity guarantees
+    out:
+    - feed
+    - chat/threads
+    - profiles/identity
+    - streaks/leaderboards
+    - social graph
+  dependencies:
+  - T-002
+  - T-003
+  touches:
+    endpoints:
+    - POST /mood
+    - POST /messages
+    - GET /inbox
+    data:
+    - risk_level
+    - crisis_action
+    - free_text
+    - sanitized_text
+  acceptance_criteria:
+    functional:
+    - Crisis trigger routes immediately to Crisis Screen
+    - Crisis Screen copy matches Bible 14.1 and includes resources
+    - About/Safety tab includes crisis resources + anonymity guarantees
+    - No peer messaging or inbox delivery when risk_level==2
+    - Server responses include crisis trigger fields (risk_level/crisis_action)
+    safety:
+    - No feed/chat/profile/streak creep
+    privacy:
+    - risk_level==2 never persists free_text (no DB write/queue/log)
+    - No raw text in logs/analytics
+    security:
+    - AuthN enforced on touched endpoints
+    - AuthZ user-scoped; no cross-user access
+    - Rate limiting enabled (per-user + per-IP)
+    - Request validation rejects unknown fields
+    - Body/text size limit enforced
+    - No enumeration: non-guessable IDs; safe pagination tokens
+  tests:
+    unit:
+    - risk_level==2 path does not persist free_text or enqueue delivery
+    - crisis_action response triggers UI state mapping
+    integration:
+    - E2E: risk_level==2 shows Crisis Screen and blocks messaging
+    - POST /messages blocked when crisis trigger applies
+    - GET /inbox returns safe/empty while crisis active
+    - About/Safety tab renders crisis resources
+    security:
+    - No raw text in logs
+    - AuthZ: cannot access another user's resources
+    - Rate limit triggers under abuse
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - flutter test passes
+  - dart analyze passes
+  - PYTHONPATH=backend python3 -m pytest -q passes
+  - Policy check passes
+  - Security checklist passed
+  threat_model:
+    primary_threats:
+    - Self-harm normalization
+    - Accidental persistence of sensitive text
+    - Crisis UX bypass
+    mitigations:
+    - Immediate Crisis Screen + block messaging
+    - No free_text persistence on risk_level==2
+    - Server-side enforcement with tests
   id: T-097
   title: "Secret-echo guard hardening (deterministic artifacts only)"
   owner: cto
