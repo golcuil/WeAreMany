@@ -25,7 +25,10 @@ class CrisisScreen extends StatelessWidget {
             children: [
               const CrisisSupportContent(),
               const SizedBox(height: 24),
-              TextButton(onPressed: () {}, child: const Text('Find local help')),
+              TextButton(
+                onPressed: () {},
+                child: const Text('Find local help'),
+              ),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {

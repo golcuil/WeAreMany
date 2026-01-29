@@ -41,9 +41,8 @@ class AboutSafetyScreen extends StatelessWidget {
           const CrisisSupportContent(),
           const SizedBox(height: 12),
           OutlinedButton(
-            onPressed: () => Navigator.of(context).pushNamed(
-              CrisisScreen.routeName,
-            ),
+            onPressed: () =>
+                Navigator.of(context).pushNamed(CrisisScreen.routeName),
             child: const Text('View crisis resources'),
           ),
           const SizedBox(height: 16),

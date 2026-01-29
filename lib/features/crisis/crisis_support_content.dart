@@ -8,9 +8,7 @@ class CrisisSupportContent extends StatelessWidget {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'You may be going through a hard moment. You are not alone.',
-        ),
+        Text('You may be going through a hard moment. You are not alone.'),
         SizedBox(height: 16),
         Text(
           'If you are in immediate danger, contact local emergency services.',

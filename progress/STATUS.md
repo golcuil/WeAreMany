@@ -6,6 +6,7 @@ V1 Complete: Operational readiness, tooling, and documentation are complete for 
 - V1 sign-off bundle and doc alignment complete.
 
 ## Done
+- T-106 — Crisis System operational: crisis trigger routes to Crisis Screen, hard-block + no-persist enforced, About/Safety resources aligned to Bible 14.1.
 - [T-105] Operator tools contract smoke workflow: manual no-secrets validation + summary artifact.
 - [T-104] Operator CLI ergonomics: allowlisted --json outputs + help alignment.
 - [T-103] Operator tool output contracts: single-line tokenized stdout + regression tests.

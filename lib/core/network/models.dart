@@ -19,12 +19,14 @@ class MoodRequest {
     required this.intensity,
     this.emotion,
     this.freeText,
+    this.timezoneOffsetMinutes,
   });
 
   final String valence;
   final String intensity;
   final String? emotion;
   final String? freeText;
+  final int? timezoneOffsetMinutes;
 
   Map<String, dynamic> toJson() {
     return {
@@ -32,6 +34,35 @@ class MoodRequest {
       'intensity': intensity,
       if (emotion != null) 'emotion': emotion,
       if (freeText != null && freeText!.isNotEmpty) 'free_text': freeText,
+      if (timezoneOffsetMinutes != null)
+        'timezone_offset_minutes': timezoneOffsetMinutes,
+    };
+  }
+}
+
+class MessageRequest {
+  MessageRequest({
+    required this.valence,
+    required this.intensity,
+    this.emotion,
+    required this.freeText,
+    this.timezoneOffsetMinutes,
+  });
+
+  final String valence;
+  final String intensity;
+  final String? emotion;
+  final String freeText;
+  final int? timezoneOffsetMinutes;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'valence': valence,
+      'intensity': intensity,
+      if (emotion != null) 'emotion': emotion,
+      'free_text': freeText,
+      if (timezoneOffsetMinutes != null)
+        'timezone_offset_minutes': timezoneOffsetMinutes,
     };
   }
 }
@@ -73,18 +104,13 @@ class MoodResponse {
   }
 }
 
-bool isCrisisTriggerValue({
-  int? riskLevel,
-  String? crisisAction,
-}) {
+bool isCrisisTriggerValue({int? riskLevel, String? crisisAction}) {
   return riskLevel == 2 || crisisAction == 'show_crisis_screen';
 }
 
 extension MoodResponseCrisis on MoodResponse {
-  bool get isCrisisTrigger => isCrisisTriggerValue(
-        riskLevel: riskLevel,
-        crisisAction: crisisAction,
-      );
+  bool get isCrisisTrigger =>
+      isCrisisTriggerValue(riskLevel: riskLevel, crisisAction: crisisAction);
 }
 
 class MatchCandidate {

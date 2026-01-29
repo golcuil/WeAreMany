@@ -80,6 +80,9 @@ class MessageRecord:
     sanitized_text: Optional[str]
     reid_risk: float
     identity_leak: bool = False
+    recipient_id: Optional[str] = None
+    deliver_at: Optional[datetime] = None
+    delivery_status: str = "pending"
 
 
 @dataclass
@@ -146,6 +149,16 @@ class SecondTouchEventRecord:
     created_at: datetime
 
 
+@dataclass(frozen=True)
+class NotificationIntentRecord:
+    intent_id: str
+    intent_key: str
+    recipient_hash: str
+    kind: str
+    status: str
+    created_at: datetime
+
+
 class Repository(Protocol):
     def save_mood(self, record: MoodRecord) -> None:
         ...
@@ -170,7 +183,36 @@ class Repository(Protocol):
     def touch_eligible_principal(self, principal_id: str, intensity_bucket: str) -> None:
         ...
 
+    def set_last_known_timezone_offset(
+        self, principal_id: str, offset_minutes: int
+    ) -> None:
+        ...
+
+    def get_last_known_timezone_offset(self, principal_id: str) -> Optional[int]:
+        ...
+
     def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
+        ...
+
+    def create_notification_intent(
+        self, recipient_id: str, message_id: str, kind: str = "inbox_message"
+    ) -> str:
+        ...
+
+    def schedule_message_delivery(
+        self,
+        message_id: str,
+        recipient_id: str,
+        deliver_at: datetime,
+    ) -> None:
+        ...
+
+    def deliver_pending_messages(
+        self,
+        now: datetime,
+        batch_size: int,
+        default_tz_offset_minutes: int = 0,
+    ) -> int:
         ...
 
     def list_inbox_items(self, recipient_id: str) -> List[InboxItemRecord]:
@@ -364,6 +406,8 @@ class InMemoryRepository:
         self.second_touch_offers: Dict[str, SecondTouchOfferRecord] = {}
         self.second_touch_counters: Dict[tuple[str, str], int] = {}
         self.second_touch_events: List[SecondTouchEventRecord] = []
+        self.principal_timezones: Dict[str, int] = {}
+        self.notification_intents: Dict[str, NotificationIntentRecord] = {}
 
     def save_mood(self, record: MoodRecord) -> None:
         if record.risk_level == 2:
@@ -426,6 +470,20 @@ class InMemoryRepository:
             return
         existing["last_active"] = datetime.now(timezone.utc)
 
+    def set_last_known_timezone_offset(
+        self, principal_id: str, offset_minutes: int
+    ) -> None:
+        self.principal_timezones[principal_id] = offset_minutes
+        existing = self.eligible_principals.get(principal_id)
+        if existing is not None:
+            existing["last_known_timezone_offset_minutes"] = offset_minutes
+
+    def get_last_known_timezone_offset(self, principal_id: str) -> Optional[int]:
+        existing = self.eligible_principals.get(principal_id)
+        if existing and "last_known_timezone_offset_minutes" in existing:
+            return int(existing["last_known_timezone_offset_minutes"])
+        return self.principal_timezones.get(principal_id)
+
     def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
         inbox_item_id = _new_uuid()
         message = self.messages.get(message_id)
@@ -456,6 +514,74 @@ class InMemoryRepository:
             positive_delta=0,
         )
         return inbox_item_id
+
+    def create_notification_intent(
+        self, recipient_id: str, message_id: str, kind: str = "inbox_message"
+    ) -> str:
+        intent_key = _hash_notification_intent_key(message_id)
+        existing = self.notification_intents.get(intent_key)
+        if existing:
+            return existing.intent_id
+        intent_id = _new_uuid()
+        record = NotificationIntentRecord(
+            intent_id=intent_id,
+            intent_key=intent_key,
+            recipient_hash=_hash_affinity_actor(recipient_id),
+            kind=kind,
+            status="created",
+            created_at=datetime.now(timezone.utc),
+        )
+        self.notification_intents[intent_key] = record
+        return intent_id
+
+    def schedule_message_delivery(
+        self,
+        message_id: str,
+        recipient_id: str,
+        deliver_at: datetime,
+    ) -> None:
+        message = self.messages.get(message_id)
+        if not message:
+            return
+        message.recipient_id = recipient_id
+        message.deliver_at = deliver_at
+        message.delivery_status = "pending"
+
+    def deliver_pending_messages(
+        self,
+        now: datetime,
+        batch_size: int,
+        default_tz_offset_minutes: int = 0,
+    ) -> int:
+        delivered = 0
+        candidates = [
+            (message_id, record)
+            for message_id, record in self.messages.items()
+            if record.delivery_status == "pending"
+            and record.deliver_at is not None
+            and record.deliver_at <= now
+            and record.recipient_id
+        ]
+        for message_id, record in candidates[:batch_size]:
+            recipient_id = record.recipient_id
+            if recipient_id is None:
+                continue
+            if record.risk_level == 2 or self.is_in_crisis_window(
+                recipient_id, CRISIS_WINDOW_HOURS, now
+            ):
+                record.delivery_status = "blocked"
+                continue
+            offset = self.get_last_known_timezone_offset(recipient_id)
+            if offset is None:
+                offset = default_tz_offset_minutes
+            if _is_silent_hours(now, offset):
+                record.deliver_at = _next_local_morning(now, offset)
+                continue
+            self.create_inbox_item(message_id, recipient_id, record.sanitized_text or "")
+            self.create_notification_intent(recipient_id, message_id)
+            record.delivery_status = "delivered"
+            delivered += 1
+        return delivered
 
     def list_inbox_items(self, recipient_id: str) -> List[InboxItemRecord]:
         items = [item for item in self.inbox_items.values() if item.recipient_id == recipient_id]
@@ -1246,9 +1372,12 @@ class PostgresRepository:
                   reid_risk,
                   identity_leak,
                   status,
-                  origin_device_id
+                  origin_device_id,
+                  recipient_device_id,
+                  deliver_at,
+                  delivery_status
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -1262,6 +1391,9 @@ class PostgresRepository:
                     record.identity_leak,
                     "queued",
                     record.principal_id,
+                    record.recipient_id,
+                    record.deliver_at,
+                    record.delivery_status,
                 ),
             )
             return str(cur.fetchone()[0])
@@ -1303,42 +1435,213 @@ class PostgresRepository:
                 (principal_id, intensity_bucket, []),
             )
 
-    def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
+    def set_last_known_timezone_offset(
+        self, principal_id: str, offset_minutes: int
+    ) -> None:
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT theme_tags, origin_device_id, identity_leak
-                FROM messages
-                WHERE id = %s
+                UPDATE eligible_principals
+                SET last_known_timezone_offset_minutes = %s,
+                    updated_at = now()
+                WHERE principal_id = %s
                 """,
-                (message_id,),
+                (offset_minutes, principal_id),
             )
-            row = cur.fetchone()
-            theme_id = _normalize_theme_id(row[0][0]) if row and row[0] else "unknown"
-            origin_device_id = row[1] if row else None
-            identity_leak = bool(row[2]) if row else False
+
+    def get_last_known_timezone_offset(self, principal_id: str) -> Optional[int]:
+        with self._conn() as conn, conn.cursor() as cur:
+            return self._get_last_known_timezone_offset_db(cur, principal_id)
+
+    def _get_last_known_timezone_offset_db(
+        self, cur, principal_id: str
+    ) -> Optional[int]:
+        cur.execute(
+            """
+            SELECT last_known_timezone_offset_minutes
+            FROM eligible_principals
+            WHERE principal_id = %s
+            """,
+            (principal_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return row[0]
+
+    def _is_in_crisis_window_db(
+        self, cur, principal_id: str, window_hours: int, now: datetime
+    ) -> bool:
+        cutoff = now - timedelta(hours=window_hours)
+        cur.execute(
+            """
+            SELECT last_action_at
+            FROM principal_crisis_state
+            WHERE principal_id = %s
+            """,
+            (principal_id,),
+        )
+        row = cur.fetchone()
+        if row is None or row[0] is None:
+            return False
+        return row[0] >= cutoff
+
+    def create_inbox_item(self, message_id: str, recipient_id: str, text: str) -> str:
+        with self._conn() as conn, conn.cursor() as cur:
+            return self._create_inbox_item_db(cur, message_id, recipient_id)
+
+    def _create_inbox_item_db(self, cur, message_id: str, recipient_id: str) -> str:
+        cur.execute(
+            """
+            SELECT theme_tags, origin_device_id, identity_leak
+            FROM messages
+            WHERE id = %s
+            """,
+            (message_id,),
+        )
+        row = cur.fetchone()
+        theme_id = _normalize_theme_id(row[0][0]) if row and row[0] else "unknown"
+        origin_device_id = row[1] if row else None
+        identity_leak = bool(row[2]) if row else False
+        cur.execute(
+            """
+            INSERT INTO inbox_items
+            (message_id, recipient_device_id, state)
+            VALUES (%s, %s, %s)
+            RETURNING id
+            """,
+            (message_id, recipient_id, "unread"),
+        )
+        inbox_item_id = str(cur.fetchone()[0])
+        self._increment_daily_ack_aggregate(
+            cur,
+            _utc_day_key(),
+            theme_id,
+            delivered_delta=1,
+            positive_delta=0,
+        )
+        if identity_leak and origin_device_id and origin_device_id != SYSTEM_SENDER_ID:
+            self.block_second_touch_pair(
+                origin_device_id, recipient_id, until=None, permanent=True
+            )
+        return inbox_item_id
+
+    def create_notification_intent(
+        self, recipient_id: str, message_id: str, kind: str = "inbox_message"
+    ) -> str:
+        intent_key = _hash_notification_intent_key(message_id)
+        recipient_hash = _hash_affinity_actor(recipient_id)
+        with self._conn() as conn, conn.cursor() as cur:
+            return self._create_notification_intent_db(
+                cur, recipient_hash, intent_key, kind
+            )
+
+    def _create_notification_intent_db(
+        self, cur, recipient_hash: str, intent_key: str, kind: str
+    ) -> str:
+        cur.execute(
+            """
+            INSERT INTO notification_intents
+            (intent_key, recipient_hash, kind, status)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (intent_key)
+            DO UPDATE SET status = notification_intents.status
+            RETURNING id
+            """,
+            (intent_key, recipient_hash, kind, "created"),
+        )
+        return str(cur.fetchone()[0])
+
+    def schedule_message_delivery(
+        self,
+        message_id: str,
+        recipient_id: str,
+        deliver_at: datetime,
+    ) -> None:
+        with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO inbox_items
-                (message_id, recipient_device_id, state)
-                VALUES (%s, %s, %s)
-                RETURNING id
+                UPDATE messages
+                SET recipient_device_id = %s,
+                    deliver_at = %s,
+                    delivery_status = 'pending'
+                WHERE id = %s
                 """,
-                (message_id, recipient_id, "unread"),
+                (recipient_id, deliver_at, message_id),
             )
-            inbox_item_id = str(cur.fetchone()[0])
-            self._increment_daily_ack_aggregate(
-                cur,
-                _utc_day_key(),
-                theme_id,
-                delivered_delta=1,
-                positive_delta=0,
-            )
-            if identity_leak and origin_device_id and origin_device_id != SYSTEM_SENDER_ID:
-                self.block_second_touch_pair(
-                    origin_device_id, recipient_id, until=None, permanent=True
+
+    def deliver_pending_messages(
+        self,
+        now: datetime,
+        batch_size: int,
+        default_tz_offset_minutes: int = 0,
+    ) -> int:
+        delivered = 0
+        for _ in range(batch_size):
+            with self._conn() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, recipient_device_id, risk_level
+                    FROM messages
+                    WHERE delivery_status = 'pending'
+                      AND deliver_at <= %s
+                      AND recipient_device_id IS NOT NULL
+                    ORDER BY deliver_at ASC
+                    FOR UPDATE SKIP LOCKED
+                    LIMIT 1
+                    """,
+                    (now,),
                 )
-            return inbox_item_id
+                row = cur.fetchone()
+                if not row:
+                    break
+                message_id = str(row[0])
+                recipient_id = row[1]
+                risk_level = int(row[2])
+                if not recipient_id:
+                    continue
+                if risk_level == 2 or self._is_in_crisis_window_db(
+                    cur, recipient_id, CRISIS_WINDOW_HOURS, now
+                ):
+                    cur.execute(
+                        """
+                        UPDATE messages
+                        SET delivery_status = 'blocked'
+                        WHERE id = %s
+                        """,
+                        (message_id,),
+                    )
+                    continue
+                offset = self._get_last_known_timezone_offset_db(cur, recipient_id)
+                if offset is None:
+                    offset = default_tz_offset_minutes
+                if _is_silent_hours(now, offset):
+                    new_deliver_at = _next_local_morning(now, offset)
+                    cur.execute(
+                        """
+                        UPDATE messages
+                        SET deliver_at = %s
+                        WHERE id = %s
+                        """,
+                        (new_deliver_at, message_id),
+                    )
+                    continue
+                self._create_inbox_item_db(cur, message_id, recipient_id)
+                recipient_hash = _hash_affinity_actor(recipient_id)
+                intent_key = _hash_notification_intent_key(message_id)
+                self._create_notification_intent_db(
+                    cur, recipient_hash, intent_key, "inbox_message"
+                )
+                cur.execute(
+                    """
+                    UPDATE messages
+                    SET delivery_status = 'delivered'
+                    WHERE id = %s
+                    """,
+                    (message_id,),
+                )
+                delivered += 1
+        return delivered
 
     def list_inbox_items(self, recipient_id: str) -> List[InboxItemRecord]:
         with self._conn() as conn, conn.cursor() as cur:
@@ -2471,6 +2774,12 @@ def _hash_affinity_actor(principal_id: str) -> str:
     return hmac.new(key, message, hashlib.sha256).hexdigest()
 
 
+def _hash_notification_intent_key(message_id: str) -> str:
+    key = SECURITY_EVENT_HMAC_KEY.encode("utf-8")
+    message = message_id.encode("utf-8")
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
+
+
 def _apply_affinity_decay(
     score: float,
     updated_at: datetime,
@@ -2494,6 +2803,28 @@ def _candidate_sort_key(candidate_id: str, seed: str) -> str:
 def _utc_day_key(now: Optional[datetime] = None) -> str:
     timestamp = now or datetime.now(timezone.utc)
     return timestamp.date().isoformat()
+
+
+def _is_silent_hours(now: datetime, offset_minutes: int) -> bool:
+    local = now + timedelta(minutes=offset_minutes)
+    return local.hour >= 22 or local.hour < 9
+
+
+def _next_local_morning(now: datetime, offset_minutes: int) -> datetime:
+    local = now + timedelta(minutes=offset_minutes)
+    target_date = local.date()
+    if local.hour >= 22:
+        target_date = target_date + timedelta(days=1)
+    target_local = datetime(
+        target_date.year,
+        target_date.month,
+        target_date.day,
+        9,
+        0,
+        0,
+        tzinfo=timezone.utc,
+    )
+    return target_local - timedelta(minutes=offset_minutes)
 
 
 def _normalize_theme_id(theme_id: Optional[str]) -> str:

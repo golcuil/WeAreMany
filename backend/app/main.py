@@ -1,5 +1,7 @@
 import time
-from datetime import datetime, timezone
+import random
+import asyncio
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -28,10 +30,29 @@ from .repository import MessageRecord, MoodEventRecord, MoodRecord, get_reposito
 from .security_events import safe_record_security_event
 from .themes import map_mood_to_themes, normalize_theme_tags
 from .security import current_principal
+from .ghost_signal_runner import run_forever, stop_task
 
 logger = configure_logging()
 
 app = FastAPI(title="We Are Many API", version=API_VERSION)
+
+_ghost_signal_stop_event = asyncio.Event()
+_ghost_signal_task: Optional[asyncio.Task] = None
+
+
+@app.on_event("startup")
+async def start_ghost_signal_runner() -> None:
+    global _ghost_signal_task
+    _ghost_signal_stop_event.clear()
+    _ghost_signal_task = asyncio.create_task(
+        run_forever(_ghost_signal_stop_event)
+    )
+
+
+@app.on_event("shutdown")
+async def stop_ghost_signal_runner() -> None:
+    _ghost_signal_stop_event.set()
+    await stop_task(_ghost_signal_task)
 
 
 @app.middleware("http")
@@ -82,6 +103,7 @@ class MoodRequest(BaseModel):
     intensity: str
     emotion: Optional[str] = None
     free_text: Optional[str] = Field(default=None, max_length=1000)
+    timezone_offset_minutes: Optional[int] = Field(default=None, ge=-840, le=840)
 
 
 class MoodResponse(BaseModel):
@@ -110,6 +132,7 @@ class MessageRequest(BaseModel):
     intensity: str
     emotion: Optional[str] = None
     free_text: str = Field(..., max_length=1000)
+    timezone_offset_minutes: Optional[int] = Field(default=None, ge=-840, le=840)
 
 
 class MessageResponse(BaseModel):
@@ -203,6 +226,10 @@ def submit_mood(
     request_id = new_request_id()
     text = payload.free_text or ""
     result = moderate_text(text, principal.principal_id, leak_throttle)
+    if payload.timezone_offset_minutes is not None:
+        repo.set_last_known_timezone_offset(
+            principal.principal_id, payload.timezone_offset_minutes
+        )
     if result.identity_leak:
         count = shadow_throttle.increment(principal.principal_id)
         safe_record_security_event(
@@ -356,6 +383,10 @@ def submit_message(
 ) -> MessageResponse:
     request_id = new_request_id()
     result = moderate_text(payload.free_text, principal.principal_id, leak_throttle)
+    if payload.timezone_offset_minutes is not None:
+        repo.set_last_known_timezone_offset(
+            principal.principal_id, payload.timezone_offset_minutes
+        )
     identity_leak_count = None
     if result.identity_leak:
         identity_leak_count = shadow_throttle.increment(principal.principal_id)
@@ -390,9 +421,13 @@ def submit_message(
             )
         in_crisis_window = repo.is_in_crisis_window(principal.principal_id, CRISIS_WINDOW_HOURS)
         message_id = None
+        deliver_at = None
         candidates = []
         affinity_map = {}
         if hold_reason is None and not in_crisis_window:
+            deliver_at = datetime.now(timezone.utc) + timedelta(
+                minutes=random.randint(5, 15)
+            )
             message_id = repo.save_message(
                 MessageRecord(
                     principal_id=principal.principal_id,
@@ -404,6 +439,7 @@ def submit_message(
                     sanitized_text=result.sanitized_text,
                     reid_risk=result.reid_risk,
                     identity_leak=result.identity_leak,
+                    deliver_at=deliver_at,
                 )
             )
             repo.upsert_eligible_principal(principal.principal_id, payload.intensity, message_themes)
@@ -468,6 +504,9 @@ def submit_message(
                     sanitized_text=system_text,
                     reid_risk=0.0,
                     identity_leak=False,
+                    recipient_id=principal.principal_id,
+                    deliver_at=datetime.now(timezone.utc),
+                    delivery_status="delivered",
                 )
             )
             repo.create_inbox_item(system_message_id, principal.principal_id, system_text)
@@ -511,7 +550,12 @@ def submit_message(
                 },
             )
             if match_result.decision == "DELIVER" and match_result.recipient_id and result.sanitized_text:
-                repo.create_inbox_item(message_id, match_result.recipient_id, result.sanitized_text)
+                if message_id and deliver_at:
+                    repo.schedule_message_delivery(
+                        message_id,
+                        match_result.recipient_id,
+                        deliver_at,
+                    )
                 safe_emit(
                     emitter,
                     EventName.DELIVERY_ATTEMPTED,
@@ -757,6 +801,9 @@ def send_second_touch(
             sanitized_text=result.sanitized_text,
             reid_risk=result.reid_risk,
             identity_leak=False,
+            recipient_id=offer.counterpart_id,
+            deliver_at=datetime.now(timezone.utc),
+            delivery_status="delivered",
         )
     )
     repo.create_inbox_item(message_id, offer.counterpart_id, result.sanitized_text or "")

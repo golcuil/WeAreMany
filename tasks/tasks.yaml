@@ -3995,7 +3995,7 @@
   id: T-106
   title: "Crisis Screen + risk_level==2 hard block (Navigation 1.1 + Crisis 14.1)"
   owner: cto
-  state: IN_PROGRESS
+  state: DONE
   goal: >
     Enforce crisis behavior for risk_level==2 with immediate Crisis Screen UX and
     server-side no-persist guarantees, aligned to Navigation 1.1 and Bible 14.1.
@@ -4074,6 +4074,36 @@
     - Immediate Crisis Screen + block messaging
     - No free_text persistence on risk_level==2
     - Server-side enforcement with tests
+  id: T-107
+  title: "Ghost Signal Notification Engine"
+  owner: fullstack
+  state: IN_PROGRESS
+  goal: "Deliver supportive signals with non-addictive timing and zero PII"
+  scope:
+    in:
+    - "Backend: Implement randomized 5-15 min delivery delay logic for peer messages"
+    - "Backend: Implement 'Silent Hours' gate (22:00 - 09:00 local time)"
+    - "Frontend: Push notification handler with 'Zero-PII' title: 'Yeni bir destek mesajın var'"
+    - "Security: Ensure notification payload contains NO message text or sender metadata"
+    out:
+    - "Real-time 'Typing...' indicators (strictly forbidden)"
+    - "Addictive 'Come back' or 'Streak' notifications"
+  dependencies:
+  - T-106
+  acceptance_criteria:
+    functional:
+    - "Messages are never delivered instantly; always random delay >= 5m"
+    - "Notifications between 22:00 and 09:00 are queued for morning delivery"
+    privacy:
+    - "Push notification logs contain only 'signal_sent' status, no content"
+    safety:
+    - "Users in 'Crisis Window' (risk_level==2) receive NO peer notifications"
+  tests:
+    unit:
+    - "Verify delivery delay randomness within the 5-15m window"
+    - "Verify Silent Hours boundary conditions (21:59 vs 22:01)"
+    integration:
+    - "End-to-end: Post message -> Wait -> Verify notification payload is generic"
   id: T-097
   title: "Secret-echo guard hardening (deterministic artifacts only)"
   owner: cto

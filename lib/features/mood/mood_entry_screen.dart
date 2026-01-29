@@ -35,14 +35,14 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
         intensity: _intensity,
         emotion: _emotion,
         freeText: _textController.text,
+        timezoneOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
       ),
     );
     _textController.clear();
     if (response.isCrisisTrigger && mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        CrisisScreen.routeName,
-        (route) => false,
-      );
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(CrisisScreen.routeName, (route) => false);
     }
   }
 
