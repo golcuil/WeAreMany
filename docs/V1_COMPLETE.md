@@ -30,20 +30,8 @@ or raw user content in any records or tickets.
 - ops_daily (scheduled)
 - secret_echo_guard (CI log guard)
 
-## How to launch (condensed)
-1) Run `pre_release_gate` and confirm `status=ok`.
-2) Confirm `prod_rehearsal` green and review the summary artifact.
-3) Confirm `restore_dry_run` and `db_migrations_integration` are green.
-4) Complete `docs/launch_checklist.md` and record decision in `docs/go_no_go_records/`.
-5) Tag/version and deploy (see `docs/release_checklist.md`).
-6) Post-deploy: run ops_daily smoke and db_verify; monitor aggregate KPIs.
-
-## How to rollback (condensed)
-1) Trigger rollback per `docs/release_checklist.md`.
-2) Run ops_daily smoke and db_verify.
-3) Record rollback outcome in the release record.
-
-## How to run a DR drill (condensed)
-1) Follow `docs/disaster_recovery.md` restore steps.
-2) Run db_verify and db_bootstrap apply (idempotent).
-3) Record drill results (names-only).
+## Launch, rollback, and DR drill
+- Release-day checklist: `docs/RELEASE_READINESS.md`
+- Launch decision record: `docs/launch_checklist.md` + `docs/go_no_go_records/`
+- Deploy/rollback steps: `docs/release_checklist.md`
+- DR drill: `docs/disaster_recovery.md`

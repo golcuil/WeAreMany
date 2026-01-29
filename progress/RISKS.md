@@ -252,6 +252,12 @@
 - Owner: CTO + PM
 - Status: OPEN
 
+## R-045 Detail doc drift after consolidation
+- Risk: detail docs may reintroduce duplicated checklists over time.
+- Mitigation: link to canonicals for release/onboarding steps; periodic doc audits.
+- Owner: CTO + PM
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

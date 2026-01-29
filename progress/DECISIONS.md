@@ -215,3 +215,7 @@
 ## D-044 (2026-01-29) — Doc drift-proofing via standardized backlinks
 - Decision: Standardize backlink lines to the two canonical docs to make checks deterministic.
 - Decision: Split docs_consistency_check into must_exist vs audit_if_exists to keep CI non-brittle.
+
+## D-045 (2026-01-29) — Detail doc consolidation
+- Decision: Remove duplicated release/onboarding checklists from detail docs and link to canonicals instead.
+- Decision: Keep detail docs focused on their domain with standardized backlinks and minimal link updates.

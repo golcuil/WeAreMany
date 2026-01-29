@@ -3699,6 +3699,9 @@
   title: "Doc drift-proofing (standardized backlinks + must_exist vs audit_if_exists)"
   owner: cto
   state: DONE
+  goal: >
+    Prevent orphan operator docs and brittle checks by standardizing backlinks
+    and splitting must-exist vs audit-if-exists in docs_consistency_check.
   notes: >
     Standardized backlink lines across operator docs, added must_exist vs
     audit_if_exists logic to docs_consistency_check, and kept checks lightweight;
@@ -3727,13 +3730,71 @@
     - Orphan/backlink checks are non-brittle
     privacy:
     - Names-only docs (no secrets)
+    - risk_level==2 behavior unchanged (no free-text persistence)
+    - Do not persist free text
+    security:
+    - No secret values in docs or logs
+    - Token/authentication content remains names-only in docs
+    - Authorization scope unchanged; no cross-user access implied
+    - Rate limiting/throttle behavior unchanged
+    - Schema validation unchanged; unknown fields rejected
+    - Body/text size limits unchanged
+    - No enumeration changes; identifiers remain non-guessable
+    - No raw text in logs; redact sensitive content
   tests:
     unit:
     - docs_consistency_check passes with standardized backlinks
+    security:
+    - No secret echo in docs checks
+    - AuthZ: cannot access another user's resources
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
   - Policy check passes
   - Tests pass
   - Docs updated (backlinks + consistency check)
+  - Security checklist passed
+- id: T-102
+  title: "Detail doc consolidation (normalize naming + remove checklist drift)"
+  owner: cto
+  state: DONE
+  notes: >
+    Consolidated operator detail docs to avoid duplicated release/onboarding
+    checklists, standardized backlink placement, and updated links; CI green.
+  scope:
+    in:
+    - Normalize operator-facing detail doc anchors/links
+    - Replace duplicate checklists with canonical links
+    - Keep docs_consistency_check light and non-brittle
+    out:
+    - No Flutter/UI changes
+    - No endpoint/schema changes
+    - No feed
+    - No threads/chat
+    - No profiles/identity
+    - No streaks/leaderboards
+  dependencies:
+  - T-100
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Detail docs link to canonicals instead of duplicating checklists
+    - Backlink block present on operator-facing detail docs
+    privacy:
+    - Names-only docs (no secrets)
+  tests:
+    unit:
+    - docs_consistency_check passes with updated links
+    security:
+    - No secret echo in docs checks
+  completion_definition:
+  - Policy check passes
+  - Docs updated (detail docs consolidated)
+  - Security checklist passed
   - Security checklist passed
   - Security checklist passed
   threat_model:
