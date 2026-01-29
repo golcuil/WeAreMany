@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 
@@ -35,6 +35,15 @@ def _headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _offset_minutes_to_noon(now: datetime) -> int:
+    desired_offset_hours = 12 - now.hour
+    if desired_offset_hours > 12:
+        desired_offset_hours -= 24
+    if desired_offset_hours < -12:
+        desired_offset_hours += 24
+    return int(desired_offset_hours * 60)
+
+
 def _normalize_iso(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -59,6 +68,10 @@ def test_inbox_created_at_is_day_coarsened():
         json={"valence": "neutral", "intensity": "low", "free_text": "hello"},
     )
     assert response.status_code == 200
+
+    now = datetime.now(timezone.utc)
+    repo.set_last_known_timezone_offset("recipient", _offset_minutes_to_noon(now))
+    repo.deliver_pending_messages(now + timedelta(minutes=20), batch_size=1, default_tz_offset_minutes=0)
 
     inbox = client.get("/inbox", headers=_headers("dev_recipient"))
     assert inbox.status_code == 200

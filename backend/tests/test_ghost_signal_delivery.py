@@ -112,6 +112,78 @@ def test_deliver_pending_messages_skip_locked_prevents_double_delivery():
     assert status == "delivered"
 
 
+@pytest.mark.skipif(POSTGRES_DSN is None or psycopg is None, reason="POSTGRES_DSN_TEST not set")
+def test_skip_locked_prevents_second_runner_from_grabbing_row():
+    recipient_id = "r2"
+    sender_id = "s2"
+    now = datetime.now(timezone.utc)
+
+    with psycopg.connect(POSTGRES_DSN) as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM messages WHERE origin_device_id = %s", (sender_id,))
+        cur.execute(
+            """
+            INSERT INTO messages
+            (valence, intensity, emotion, theme_tags, risk_level, sanitized_text, reid_risk, identity_leak,
+             status, origin_device_id, recipient_device_id, deliver_at, delivery_status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                "positive",
+                "low",
+                "calm",
+                [],
+                0,
+                "hello",
+                0.0,
+                False,
+                "queued",
+                sender_id,
+                recipient_id,
+                now - timedelta(minutes=1),
+                "pending",
+            ),
+        )
+
+    conn_a = psycopg.connect(POSTGRES_DSN)
+    conn_b = psycopg.connect(POSTGRES_DSN)
+    try:
+        cur_a = conn_a.cursor()
+        cur_b = conn_b.cursor()
+        cur_a.execute("BEGIN")
+        cur_b.execute("BEGIN")
+
+        cur_a.execute(
+            """
+            SELECT id FROM messages
+            WHERE delivery_status = 'pending' AND deliver_at <= %s
+            ORDER BY deliver_at ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+            """,
+            (now,),
+        )
+        first = cur_a.fetchone()
+        assert first is not None
+
+        cur_b.execute(
+            """
+            SELECT id FROM messages
+            WHERE delivery_status = 'pending' AND deliver_at <= %s
+            ORDER BY deliver_at ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+            """,
+            (now,),
+        )
+        second = cur_b.fetchone()
+        assert second is None
+    finally:
+        conn_a.rollback()
+        conn_b.rollback()
+        conn_a.close()
+        conn_b.close()
+
+
 def test_hash_notification_intent_key_is_stable_and_unique():
     first = _hash_notification_intent_key("m1")
     second = _hash_notification_intent_key("m2")

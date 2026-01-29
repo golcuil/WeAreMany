@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 
@@ -39,6 +39,14 @@ def _override_deps() -> None:
     app.dependency_overrides[rate_limit_module.get_rate_limiter] = lambda: InMemoryRateLimiter()
     app.dependency_overrides[matching_module.get_dedupe_store] = lambda: InMemoryDedupeStore()
 
+def _offset_minutes_to_noon(now: datetime) -> int:
+    desired_offset_hours = 12 - now.hour
+    if desired_offset_hours > 12:
+        desired_offset_hours -= 24
+    if desired_offset_hours < -12:
+        desired_offset_hours += 24
+    return int(desired_offset_hours * 60)
+
 
 def test_deliver_path_writes_inbox_and_ack():
     previous_min_pool = main_module.COLD_START_MIN_POOL
@@ -61,6 +69,10 @@ def test_deliver_path_writes_inbox_and_ack():
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "queued"
+
+    now = datetime.now(timezone.utc)
+    repo.set_last_known_timezone_offset("recipient", _offset_minutes_to_noon(now))
+    repo.deliver_pending_messages(now + timedelta(minutes=20), batch_size=1, default_tz_offset_minutes=0)
 
     inbox = client.get("/inbox", headers=_headers("dev_recipient"))
     assert inbox.status_code == 200
@@ -114,6 +126,10 @@ def test_authz_blocks_cross_user_inbox_and_ack():
         headers=_headers("dev_sender"),
         json={"valence": "neutral", "intensity": "low", "free_text": "hello"},
     )
+
+    now = datetime.now(timezone.utc)
+    repo.set_last_known_timezone_offset("recipient", _offset_minutes_to_noon(now))
+    repo.deliver_pending_messages(now + timedelta(minutes=20), batch_size=1, default_tz_offset_minutes=0)
 
     inbox_a = client.get("/inbox", headers=_headers("dev_recipient"))
     inbox_b = client.get("/inbox", headers=_headers("dev_other"))
