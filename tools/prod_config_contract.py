@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 
+from tools.tool_contract import print_token_line
 REQUIRED_PROD_ENV = ["POSTGRES_DSN_PROD"]
 
 
@@ -17,18 +18,27 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.mode != "prod_required":
-        print("prod_config status=fail reason=invalid_mode")
+        print_token_line(
+            "prod_config",
+            {"status": "fail", "reason": "invalid_mode"},
+            order=["status", "reason"],
+        )
         return 1
 
     missing = _missing_env()
     if missing:
-        print(
-            "prod_config status=fail reason=missing_env missing="
-            + ",".join(missing)
+        print_token_line(
+            "prod_config",
+            {"status": "fail", "reason": "missing_env", "missing": ",".join(missing)},
+            order=["status", "reason", "missing"],
         )
         return 1
 
-    print(f"prod_config status=ok required={len(REQUIRED_PROD_ENV)}")
+    print_token_line(
+        "prod_config",
+        {"status": "ok", "required": len(REQUIRED_PROD_ENV)},
+        order=["status", "required"],
+    )
     return 0
 
 

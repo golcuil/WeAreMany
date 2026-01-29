@@ -4,6 +4,7 @@ import argparse
 import os
 from typing import Iterable
 
+from tools.tool_contract import print_token_line
 try:
     import psycopg as _psycopg
 except Exception:
@@ -43,24 +44,40 @@ def main(argv: list[str] | None = None) -> int:
 
     dsn = os.getenv(args.dsn_env)
     if not dsn:
-        print("db_verify status=not_configured reason=missing_dsn")
+        print_token_line(
+            "db_verify",
+            {"status": "not_configured", "reason": "missing_dsn"},
+            order=["status", "reason"],
+        )
         return 0
     if psycopg is None:
-        print("db_verify status=fail reason=psycopg_missing")
+        print_token_line(
+            "db_verify",
+            {"status": "fail", "reason": "psycopg_missing"},
+            order=["status", "reason"],
+        )
         return 1
 
     try:
         with psycopg.connect(dsn) as conn, conn.cursor() as cur:
             ok = _check_tables(cur, _get_required_tables())
     except Exception:
-        print("db_verify status=fail reason=db_connect_failed")
+        print_token_line(
+            "db_verify",
+            {"status": "fail", "reason": "db_connect_failed"},
+            order=["status", "reason"],
+        )
         return 1
 
     if not ok:
-        print("db_verify status=fail reason=missing_tables")
+        print_token_line(
+            "db_verify",
+            {"status": "fail", "reason": "missing_tables"},
+            order=["status", "reason"],
+        )
         return 1
 
-    print("db_verify status=ok")
+    print_token_line("db_verify", {"status": "ok"}, order=["status"])
     return 0
 
 

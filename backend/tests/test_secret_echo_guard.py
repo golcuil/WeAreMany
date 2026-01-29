@@ -6,7 +6,8 @@ from tools import secret_echo_guard
 FIXTURES_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "secret_echo_guard"
 
 
-def test_secret_echo_guard_detects_unsafe_fixtures(capsys, tmp_path):
+def test_secret_echo_guard_detects_unsafe_fixtures(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     logs_dir = tmp_path / "logs"
     artifacts_dir = tmp_path / "artifacts"
     logs_dir.mkdir()
@@ -32,7 +33,8 @@ def test_secret_echo_guard_detects_unsafe_fixtures(capsys, tmp_path):
     assert "Authorization: Bearer" not in output
 
 
-def test_secret_echo_guard_allows_masked_values(capsys, tmp_path):
+def test_secret_echo_guard_allows_masked_values(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     logs_dir = tmp_path / "logs"
     artifacts_dir = tmp_path / "artifacts"
     logs_dir.mkdir()
@@ -56,7 +58,8 @@ def test_secret_echo_guard_allows_masked_values(capsys, tmp_path):
     assert output.startswith("secret_echo_guard status=ok scanned=2")
 
 
-def test_secret_echo_guard_single_line_output(capsys, tmp_path):
+def test_secret_echo_guard_single_line_output(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     logs_dir = tmp_path / "logs"
     logs_dir.mkdir()
     (logs_dir / "log.log").write_text("status=ok\n")

@@ -258,6 +258,12 @@
 - Owner: CTO + PM
 - Status: OPEN
 
+## R-046 Tool output contract drift
+- Risk: accidental extra prints could break orchestrators or leak sensitive data.
+- Mitigation: shared output helper + CI contract tests; forbid multi-line outputs.
+- Owner: CTO + SecurityEngineer
+- Status: OPEN
+
 ## R-010 System messages misinterpreted as human-written
 - Risk: system-origin empathy could be perceived as peer content.
 - Mitigation: system-origin only, templated copy, no identity cues, no human claims.

@@ -3759,6 +3759,9 @@
   title: "Detail doc consolidation (normalize naming + remove checklist drift)"
   owner: cto
   state: DONE
+  goal: >
+    Reduce operator doc drift by removing duplicated checklists and keeping
+    detail docs linked to canonical release/onboarding sources.
   notes: >
     Consolidated operator detail docs to avoid duplicated release/onboarding
     checklists, standardized backlink placement, and updated links; CI green.
@@ -3786,14 +3789,91 @@
     - Backlink block present on operator-facing detail docs
     privacy:
     - Names-only docs (no secrets)
+    - risk_level==2 behavior unchanged (no free-text persistence)
+    - Do not persist free text
+    security:
+    - No secret values in docs or logs
+    - Token/authentication content remains names-only in docs
+    - Authorization scope unchanged; no cross-user access implied
+    - Rate limiting/throttle behavior unchanged
+    - Schema validation unchanged; unknown fields rejected
+    - Body/text size limits unchanged
+    - No enumeration changes; identifiers remain non-guessable
+    - No raw text in logs; redact sensitive content
   tests:
     unit:
     - docs_consistency_check passes with updated links
     security:
     - No secret echo in docs checks
+    - AuthZ: cannot access another user's resources
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
   completion_definition:
   - Policy check passes
+  - Tests pass
   - Docs updated (detail docs consolidated)
+  - Security checklist passed
+  - Docs updated (detail docs consolidated)
+  - Security checklist passed
+- id: T-103
+  title: "Operator tool output contract audit (single-line tokens)"
+  owner: cto
+  state: DONE
+  goal: >
+    Enforce one-line tokenized stdout across operator tools and add regression
+    tests to prevent output drift without leaking secrets.
+  notes: >
+    Added shared tool_contract helper, updated key tools to use it, and added
+    contract tests; outputs remain single-line and privacy-safe.
+  scope:
+    in:
+    - Shared helper for tokenized stdout
+    - Contract tests for operator tools
+    - Doc updates to logging policy and operator rehearsal
+    out:
+    - No Flutter/UI changes
+    - No endpoint/schema changes
+    - No feed
+    - No threads/chat
+    - No profiles/identity
+    - No streaks/leaderboards
+  dependencies:
+  - T-097
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Operator tools emit single-line tokenized output
+    - Contract tests fail on multi-line output or unexpected keys
+    privacy:
+    - Names-only outputs (no secrets)
+    - risk_level==2 behavior unchanged (no free-text persistence)
+    - Do not persist free text
+    security:
+    - No secret values in outputs or logs
+    - Token/authentication content remains names-only
+    - Authorization scope unchanged; no cross-user access implied
+    - Rate limiting/throttle behavior unchanged
+    - Schema validation unchanged; unknown fields rejected
+    - Body/text size limits unchanged
+    - No enumeration changes; identifiers remain non-guessable
+    - No raw text in logs; redact sensitive content
+  tests:
+    unit:
+    - Tool output contract tests enforce single-line tokens
+    security:
+    - No secret echo in tool outputs
+    - AuthZ: cannot access another user's resources
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text to DB
+  completion_definition:
+  - Policy check passes
+  - Tests pass
+  - Docs updated (logging policy + operator rehearsal)
   - Security checklist passed
   - Security checklist passed
   - Security checklist passed

@@ -5,6 +5,7 @@ import glob
 import os
 import re
 
+from tools.tool_contract import print_token_line
 
 RULES = {
     "dsn_uri": re.compile(r"(postgres|postgresql)://", re.IGNORECASE),
@@ -61,8 +62,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     log_files = _filter_paths(args.log_file, (".log", ".json"))
-    log_paths = _iter_files(log_files, args.log_dir + args.logs_dir, "**/*.log")
-    artifact_paths = _iter_files([], args.artifacts_dir, "**/*.json")
+    log_dirs = args.log_dir if args.log_dir else args.logs_dir
+    artifact_dirs = args.artifacts_dir
+    if any(path != "artifacts" for path in args.artifacts_dir):
+        artifact_dirs = [path for path in args.artifacts_dir if path != "artifacts"]
+    log_paths = _iter_files(log_files, log_dirs, "**/*.log")
+    artifact_paths = _iter_files([], artifact_dirs, "**/*.json")
     files = sorted(set(log_paths + artifact_paths))
     checked = 0
     matches = 0
@@ -79,19 +84,32 @@ def main(argv: list[str] | None = None) -> int:
                     if first_hit is None:
                         first_hit = (os.path.basename(path), idx, hits[0])
     if matches:
-        parts = [
-            "secret_echo_guard status=fail reason=secret_detected",
-            f"matches={matches}",
-            f"scanned={checked}",
-        ]
+        fields = {
+            "status": "fail",
+            "reason": "secret_detected",
+            "matches": matches,
+            "scanned": checked,
+        }
         if first_hit:
             filename, line_no, rule = first_hit
-            parts.append(f"file={filename}")
-            parts.append(f"line={line_no}")
-            parts.append(f"rule={rule}")
-        print(" ".join(parts))
+            fields.update(
+                {
+                    "file": filename,
+                    "line": line_no,
+                    "rule": rule,
+                }
+            )
+        print_token_line(
+            "secret_echo_guard",
+            fields,
+            order=["status", "reason", "matches", "scanned", "file", "line", "rule"],
+        )
         return 1
-    print(f"secret_echo_guard status=ok scanned={checked}")
+    print_token_line(
+        "secret_echo_guard",
+        {"status": "ok", "scanned": checked},
+        order=["status", "scanned"],
+    )
     return 0
 
 

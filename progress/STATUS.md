@@ -6,6 +6,7 @@ V1 Complete: Operational readiness, tooling, and documentation are complete for 
 - V1 sign-off bundle and doc alignment complete.
 
 ## Done
+- [T-103] Operator tool output contracts: single-line tokenized stdout + regression tests.
 - [T-102] Detail docs consolidated: removed duplicate checklists and standardized links to canonicals.
 - [T-101] Doc drift-proofing: standardized backlinks + must_exist vs audit_if_exists in docs_consistency_check.
 - [T-097] Secret echo guard hardening: deterministic artifact/log scan with high-signal denylist + logging policy.

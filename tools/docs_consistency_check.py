@@ -4,6 +4,8 @@ import argparse
 import os
 import re
 
+from tools.tool_contract import print_token_line
+
 RUNBOOK_PATH = os.path.join("docs", "operator_runbook.md")
 LAUNCH_CHECKLIST_PATH = os.path.join("docs", "launch_checklist.md")
 GO_NO_GO_TEMPLATE_PATH = os.path.join("docs", "go_no_go_template.md")
@@ -29,10 +31,11 @@ BACKLINK_RELEASE_LINE = "Back to [RELEASE_READINESS](RELEASE_READINESS.md)"
 
 
 def _print(status: str, reason: str | None = None) -> None:
-    line = f"docs_check status={status}"
-    if reason:
-        line = f"{line} reason={reason}"
-    print(line)
+    print_token_line(
+        "docs_check",
+        {"status": status, "reason": reason},
+        order=["status", "reason"],
+    )
 
 
 def _load_text(path: str) -> str | None:

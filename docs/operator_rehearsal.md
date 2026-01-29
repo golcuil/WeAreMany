@@ -24,3 +24,4 @@ Notes:
 Rehearsal writes:
 - `artifacts/operator_rehearsal_summary.json`
 Allowlisted keys only; no identifiers, no secrets.
+Rehearsal fails on unexpected output tokens or multi-line tool output.

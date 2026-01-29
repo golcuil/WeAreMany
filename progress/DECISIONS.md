@@ -219,3 +219,7 @@
 ## D-045 (2026-01-29) — Detail doc consolidation
 - Decision: Remove duplicated release/onboarding checklists from detail docs and link to canonicals instead.
 - Decision: Keep detail docs focused on their domain with standardized backlinks and minimal link updates.
+
+## D-046 (2026-01-29) — Operator tool output contract
+- Decision: enforce single-line tokenized stdout via shared helper and CI contract tests.
+- Decision: treat unexpected keys or multi-line output as contract violations.

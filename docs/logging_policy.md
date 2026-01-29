@@ -19,6 +19,7 @@ Canonical links:
 - Single-line status tokens
 - Stable reason codes
 - Aggregate counts and ratios only
+- One-line stdout for operator tools (tokenized); multi-line output is a contract violation.
 
 ## Secret-echo guard scope
 - Scans deterministic repo artifacts only:
