@@ -227,3 +227,7 @@
 ## D-047 (2026-01-29) — Operator CLI ergonomics (--json allowlist)
 - Decision: standardize allowlisted --json output across operator tools for safe automation.
 - Decision: keep default one-line token output unchanged and document exit codes in help text.
+
+## D-048 (2026-01-29) — Operator tools contract smoke workflow
+- Decision: add a manual, no-secrets contract smoke workflow to validate --json schemas and one-line outputs.
+- Decision: run secret_echo_guard immediately after artifact creation and at the end of the workflow.

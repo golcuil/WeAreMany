@@ -49,6 +49,7 @@
     - Cannot access another user's resources (AuthZ tests)
     - Rate limit triggers under abuse
     - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text
     - risk_level==2 does not write free_text to DB
     - risk_level==2 does not write free_text to DB
   completion_definition:
@@ -3695,6 +3696,65 @@
   - Tests pass
   - Docs updated (logging policy + runbook links)
   - security checklist passed
+
+- id: T-105
+  title: "Operator tools contract smoke workflow (manual, no secrets)"
+  owner: cto
+  state: DONE
+  goal: >
+    Provide a manual, no-secrets workflow to validate operator tool output
+    contracts and allowlisted --json schemas without PR CI coupling.
+  notes: >
+    Added operator_tools_contract_smoke workflow + runner script with allowlisted
+    JSON summary artifact and double secret_echo_guard checks; CI green.
+  scope:
+    in:
+    - Manual workflow for contract smoke (workflow_dispatch only)
+    - Deterministic no-secrets runner with allowlisted JSON summary
+    - Secret echo guard run after artifact and at end
+    - Minimal docs updates to release readiness/logging policy
+    out:
+    - No Flutter/UI changes
+    - No endpoint/schema changes
+    - No feed/threads/chat/profiles/identity surfaces
+    - No streaks/leaderboards
+  dependencies:
+  - T-104
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Manual workflow runs without secrets and validates --json schemas
+    - Outputs are single-line and allowlisted
+    privacy:
+    - No secrets/DSNs printed or stored in artifacts
+    - risk_level==2 does not persist free text
+    - Do not persist free text
+    security:
+    - Secret echo guard catches unmasked patterns in artifacts
+    - AuthN unchanged; no tokens printed or introduced
+    - AuthZ unchanged; no cross-user access
+    - Rate limiting unchanged; no new throttles added
+    - Schema validation unchanged; unknown fields rejected
+    - Body/text size limits unchanged
+    - No enumeration changes; identifiers remain non-guessable
+    - No raw text in logs; redact sensitive content
+  tests:
+    unit:
+    - operator_tools_contract_smoke runner tests (ok + unexpected output)
+    security:
+    - No secret echo in summary artifact
+    - AuthZ: cannot access another user's resources
+    - Rate limit triggers under abuse
+    - Identity leak patterns are blocked/rewritten
+    - risk_level==2 does not write free_text
+  completion_definition:
+  - Policy check passes
+  - Tests pass
+  - Docs updated (release readiness + logging policy)
+  - Security checklist passed
 - id: T-101
   title: "Doc drift-proofing (standardized backlinks + must_exist vs audit_if_exists)"
   owner: cto

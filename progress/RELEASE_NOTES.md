@@ -48,6 +48,7 @@
 - Ops: added canary drill workflow + HOLD-first checklist with summary artifact.
 - Security/Ops: hardened secret echo guard to scan deterministic artifacts/logs only with high-signal denylist.
 - Ops: added allowlisted --json output mode and standardized CLI flags/help across operator tools.
+- Ops: added operator tools contract smoke workflow (manual, no secrets) with summary artifact.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
