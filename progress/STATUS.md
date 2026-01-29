@@ -6,6 +6,7 @@ V1 Complete: Operational readiness, tooling, and documentation are complete for 
 - V1 sign-off bundle and doc alignment complete.
 
 ## Done
+- T-107 — Ghost Signal Engine live: randomized 5–15m delivery delay, silent hours (22:00–09:00 local), skip-locked runner, and zero-PII notification intents.
 - T-106 — Crisis System operational: crisis trigger routes to Crisis Screen, hard-block + no-persist enforced, About/Safety resources aligned to Bible 14.1.
 - [T-105] Operator tools contract smoke workflow: manual no-secrets validation + summary artifact.
 - [T-104] Operator CLI ergonomics: allowlisted --json outputs + help alignment.

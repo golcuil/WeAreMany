@@ -4077,7 +4077,7 @@
   id: T-107
   title: "Ghost Signal Notification Engine"
   owner: fullstack
-  state: IN_PROGRESS
+  state: DONE
   goal: "Deliver supportive signals with non-addictive timing and zero PII"
   scope:
     in:
