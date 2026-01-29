@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../crisis/crisis_screen.dart';
+import '../crisis/crisis_support_content.dart';
 
 class AboutSafetyScreen extends StatelessWidget {
   const AboutSafetyScreen({super.key});
@@ -37,15 +38,12 @@ class AboutSafetyScreen extends StatelessWidget {
           const SizedBox(height: 16),
           const Text('Safety', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text(
-            'If you are in immediate danger, contact local emergency services.',
-          ),
-          const SizedBox(height: 8),
-          const Text('Consider reaching out to someone you trust.'),
+          const CrisisSupportContent(),
           const SizedBox(height: 12),
           OutlinedButton(
-            onPressed: () =>
-                Navigator.of(context).pushNamed(CrisisScreen.routeName),
+            onPressed: () => Navigator.of(context).pushNamed(
+              CrisisScreen.routeName,
+            ),
             child: const Text('View crisis resources'),
           ),
           const SizedBox(height: 16),

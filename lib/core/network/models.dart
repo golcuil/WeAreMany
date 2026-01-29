@@ -73,6 +73,20 @@ class MoodResponse {
   }
 }
 
+bool isCrisisTriggerValue({
+  int? riskLevel,
+  String? crisisAction,
+}) {
+  return riskLevel == 2 || crisisAction == 'show_crisis_screen';
+}
+
+extension MoodResponseCrisis on MoodResponse {
+  bool get isCrisisTrigger => isCrisisTriggerValue(
+        riskLevel: riskLevel,
+        crisisAction: crisisAction,
+      );
+}
+
 class MatchCandidate {
   MatchCandidate({
     required this.candidateId,

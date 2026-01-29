@@ -38,8 +38,11 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
       ),
     );
     _textController.clear();
-    if (response.crisisAction == 'show_resources' && mounted) {
-      Navigator.of(context).pushNamed(CrisisScreen.routeName);
+    if (response.isCrisisTrigger && mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        CrisisScreen.routeName,
+        (route) => false,
+      );
     }
   }
 
@@ -148,8 +151,7 @@ class _MoodEntryScreenState extends ConsumerState<MoodEntryScreen> {
             Text('Decision: ${state.simulateDecision!.decision}'),
             Text('Reason: ${state.simulateDecision!.reason}'),
           ],
-          if (state.response != null &&
-              state.response!.crisisAction != 'show_resources') ...[
+          if (state.response != null && !state.response!.isCrisisTrigger) ...[
             const SizedBox(height: 12),
             Text(
               state.response!.status == 'ok'

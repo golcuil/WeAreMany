@@ -28,7 +28,7 @@ class FakeApiClient extends ApiClient {
       reidRisk: 0,
       identityLeak: false,
       leakTypes: const [],
-      crisisAction: 'show_resources',
+      crisisAction: 'show_crisis_screen',
     );
   }
 
@@ -159,6 +159,29 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byKey(const Key('crisis_screen')), findsOneWidget);
+  });
+
+  testWidgets('Crisis Screen clears back stack', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [apiClientProvider.overrideWithValue(FakeApiClient())],
+        child: const WeAreManyApp(),
+      ),
+    );
+
+    await tester.tap(find.text('Share a mood'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(MoodEntryScreen), findsOneWidget);
+
+    await tester.tap(find.text('Submit mood'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const Key('crisis_screen')), findsOneWidget);
+
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    expect(navigator.canPop(), isFalse);
   });
 
   testWidgets('Non-crisis response shows sanitized text only', (tester) async {
