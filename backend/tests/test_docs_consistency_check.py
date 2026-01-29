@@ -79,10 +79,17 @@ def test_docs_check_ok(monkeypatch, capsys, tmp_path):
 
 
 def test_docs_check_missing_token(monkeypatch, capsys, tmp_path):
+    backlink_block = "\n".join(
+        [
+            "Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)",
+            "Back to [RELEASE_READINESS](RELEASE_READINESS.md)",
+            "",
+        ]
+    )
     runbook = tmp_path / "operator_runbook.md"
     golden_path = tmp_path / "OPERATOR_GOLDEN_PATH.md"
     release_readiness = tmp_path / "RELEASE_READINESS.md"
-    runbook.write_text("Runbook")
+    runbook.write_text(backlink_block + "Runbook")
     golden_path.write_text("docs/RELEASE_READINESS.md")
     release_readiness.write_text("docs/OPERATOR_GOLDEN_PATH.md")
     monkeypatch.setattr(docs_consistency_check, "RUNBOOK_PATH", str(runbook))

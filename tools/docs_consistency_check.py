@@ -152,6 +152,11 @@ def main(argv: list[str] | None = None) -> int:
     if SUSPICIOUS_DSN.search(release_readiness):
         _print("fail", "suspicious_dsn")
         return 1
+    for doc_path in sorted(audited_docs):
+        doc_text = _load_text(doc_path)
+        if doc_text and SUSPICIOUS_DSN.search(doc_text):
+            _print("fail", "suspicious_dsn")
+            return 1
 
     retention_sources = "\n".join(
         [
