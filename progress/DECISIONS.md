@@ -223,3 +223,7 @@
 ## D-046 (2026-01-29) — Operator tool output contract
 - Decision: enforce single-line tokenized stdout via shared helper and CI contract tests.
 - Decision: treat unexpected keys or multi-line output as contract violations.
+
+## D-047 (2026-01-29) — Operator CLI ergonomics (--json allowlist)
+- Decision: standardize allowlisted --json output across operator tools for safe automation.
+- Decision: keep default one-line token output unchanged and document exit codes in help text.

@@ -3875,6 +3875,55 @@
   - Tests pass
   - Docs updated (logging policy + operator rehearsal)
   - Security checklist passed
+
+- id: T-104
+  title: "Operator CLI ergonomics (allowlisted --json + help alignment)"
+  owner: cto
+  state: DONE
+  goal: >
+    Standardize operator tool CLI flags and add allowlisted --json output
+    while preserving one-line token defaults and exit code semantics.
+  notes: >
+    Added shared CLI contract for allowlisted JSON output, updated tools to
+    support --json, aligned help text, and added JSON contract tests; CI green.
+  scope:
+    in:
+    - Common CLI flags (--json/--quiet) across operator tools
+    - Allowlisted one-line JSON output (runtime enforced)
+    - Help text alignment (output + exit codes + safety)
+    - Tests for JSON schema and secret-echo avoidance
+    out:
+    - No Flutter/UI changes
+    - No endpoint/schema changes
+    - No feed/threads/chat/profiles/identity surfaces
+  dependencies:
+  - T-103
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Operator tools support --json with allowlisted one-line output
+    - Default token output unchanged and single-line
+    - Help text documents output and exit codes
+    privacy:
+    - No secrets/DSNs printed in JSON or token outputs
+    - Aggregate-only output; no identifiers
+    security:
+    - Runtime allowlist enforcement; invalid keys fail fast
+    - Secret-like values are rejected and not echoed
+  tests:
+    unit:
+    - JSON output schema tests for operator tools
+    - Help text contains output/exit code sections
+    security:
+    - No secret echo in JSON output
+  completion_definition:
+  - Policy check passes
+  - Tests pass
+  - Docs updated (logging policy + operator golden path)
+  - Security checklist passed
   - Security checklist passed
   - Security checklist passed
   threat_model:

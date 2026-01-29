@@ -47,6 +47,7 @@
 - Ops: baseline validation + latest-pointer determinism with explicit artifact retention.
 - Ops: added canary drill workflow + HOLD-first checklist with summary artifact.
 - Security/Ops: hardened secret echo guard to scan deterministic artifacts/logs only with high-signal denylist.
+- Ops: added allowlisted --json output mode and standardized CLI flags/help across operator tools.
 
 ### Changed
 - Matching gates: progressive delivery based on H (ack health), affinity bias, deterministic sampling.
