@@ -188,6 +188,8 @@ class InboxItem {
     required this.ackStatus,
     required this.offerId,
     required this.offerState,
+    required this.themeTags,
+    required this.emotion,
   });
 
   final String itemType;
@@ -197,6 +199,8 @@ class InboxItem {
   final String? ackStatus;
   final String? offerId;
   final String? offerState;
+  final List<String> themeTags;
+  final String? emotion;
 
   factory InboxItem.fromJson(Map<String, dynamic> json) {
     return InboxItem(
@@ -208,6 +212,10 @@ class InboxItem {
       ackStatus: json['ack_status'] as String?,
       offerId: json['offer_id'] as String?,
       offerState: json['offer_state'] as String?,
+      themeTags: (json['theme_tags'] as List<dynamic>? ?? [])
+          .map((tag) => tag.toString())
+          .toList(),
+      emotion: json['emotion'] as String?,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/models.dart';
+import '../../core/utils/time_utils.dart';
 import 'inbox_controller.dart';
 
 class InboxScreen extends ConsumerStatefulWidget {
@@ -15,19 +16,41 @@ class InboxScreen extends ConsumerStatefulWidget {
   ConsumerState<InboxScreen> createState() => _InboxScreenState();
 }
 
-class _InboxScreenState extends ConsumerState<InboxScreen> {
+class _InboxScreenState extends ConsumerState<InboxScreen>
+    with WidgetsBindingObserver {
   static const int inboxLockDays = 7;
+  late final InboxController _controller;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(inboxControllerProvider.notifier).load());
+    WidgetsBinding.instance.addObserver(this);
+    _controller = ref.read(inboxControllerProvider.notifier);
+    Future.microtask(
+      () => _controller.startPolling(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.stopPolling();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _controller.startPolling();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _controller.stopPolling();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inboxControllerProvider);
-    final controller = ref.read(inboxControllerProvider.notifier);
     final nowUtc = (widget.nowUtc ?? DateTime.now()).toUtc();
     return Scaffold(
       key: const Key('inbox_screen'),
@@ -35,8 +58,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         title: const Text('Inbox'),
         actions: [
           IconButton(
-            onPressed: () =>
-                ref.read(inboxControllerProvider.notifier).refresh(),
+            onPressed: () => _controller.refresh(),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -64,7 +86,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     createdAt: item.receivedAt,
                     offerState: item.offerState ?? 'available',
                     nowUtc: nowUtc,
-                    onSend: (text) => controller.sendSecondTouch(
+                    onSend: (text) => _controller.sendSecondTouch(
                       offerId: item.offerId ?? '',
                       freeText: text,
                     ),
@@ -84,7 +106,14 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     ? timestamp
                     : '$timestamp \u00b7 $status';
                 return ListTile(
-                  onTap: () => controller.markRead(item.inboxItemId),
+                  onTap: () => _openReadingModal(
+                    context: context,
+                    controller: _controller,
+                    item: item,
+                    nowUtc: nowUtc,
+                    isLocked: isLocked,
+                    isResponded: isResponded,
+                  ),
                   leading: isRead
                       ? const SizedBox(width: 8)
                       : Container(
@@ -96,35 +125,19 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                             color: Colors.blueAccent,
                           ),
                         ),
-                  title: Text(item.text),
-                  subtitle: Text(subtitle),
-                  trailing: Wrap(
-                    spacing: 8,
+                  title: Text(
+                    _formatThemeEmotion(item),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _AckButton(
-                        label: 'Thanks',
-                        enabled: !isResponded && !isLocked,
-                        onPressed: () => controller.acknowledge(
-                          inboxItemId: item.inboxItemId,
-                          reaction: 'thanks',
+                      Text(subtitle),
+                      if (item.text.isNotEmpty)
+                        Text(
+                          item.text,
+                          style: const TextStyle(color: Colors.black54),
                         ),
-                      ),
-                      _AckButton(
-                        label: 'I relate',
-                        enabled: !isResponded && !isLocked,
-                        onPressed: () => controller.acknowledge(
-                          inboxItemId: item.inboxItemId,
-                          reaction: 'relate',
-                        ),
-                      ),
-                      _AckButton(
-                        label: 'Helpful',
-                        enabled: !isResponded && !isLocked,
-                        onPressed: () => controller.acknowledge(
-                          inboxItemId: item.inboxItemId,
-                          reaction: 'helpful',
-                        ),
-                      ),
                     ],
                   ),
                 );
@@ -144,16 +157,20 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     if (parsed == null) {
       return value;
     }
-    final day = DateTime.utc(parsed.year, parsed.month, parsed.day);
-    final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
-    final diffDays = today.difference(day).inDays;
-    if (diffDays == 0) {
-      return 'Today';
+    return TimeUtils.formatSignalWindow(
+      nowUtc: nowUtc,
+      receivedAtUtc: parsed.toUtc(),
+    );
+  }
+
+  String _formatThemeEmotion(InboxItem item) {
+    final themeLabel =
+        item.themeTags.isEmpty ? 'Support' : item.themeTags.join(', ');
+    final emotion = item.emotion?.trim();
+    if (emotion == null || emotion.isEmpty) {
+      return themeLabel;
     }
-    if (diffDays == 1) {
-      return 'Yesterday';
-    }
-    return day.toIso8601String().split('T').first;
+    return '$themeLabel \u00b7 $emotion';
   }
 
   bool _isLocked(String value, DateTime nowUtc) {
@@ -165,6 +182,100 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
     final diffDays = today.difference(day).inDays;
     return diffDays >= inboxLockDays;
+  }
+
+  Future<void> _openReadingModal({
+    required BuildContext context,
+    required InboxController controller,
+    required InboxItem item,
+    required DateTime nowUtc,
+    required bool isLocked,
+    required bool isResponded,
+  }) async {
+    await controller.markRead(item.inboxItemId);
+    if (!context.mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) {
+        final window = _formatTimestamp(item.receivedAt, nowUtc);
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            height: MediaQuery.of(sheetContext).size.height * 0.92,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Supportive note',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _formatThemeEmotion(item),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 4),
+                Text(window, style: const TextStyle(color: Colors.black54)),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      item.text,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (!isResponded && !isLocked)
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _AckButton(
+                        label: 'Thanks',
+                        enabled: true,
+                        onPressed: () => controller.acknowledge(
+                          inboxItemId: item.inboxItemId,
+                          reaction: 'thanks',
+                        ),
+                      ),
+                      _AckButton(
+                        label: 'I relate',
+                        enabled: true,
+                        onPressed: () => controller.acknowledge(
+                          inboxItemId: item.inboxItemId,
+                          reaction: 'relate',
+                        ),
+                      ),
+                      _AckButton(
+                        label: 'Helpful',
+                        enabled: true,
+                        onPressed: () => controller.acknowledge(
+                          inboxItemId: item.inboxItemId,
+                          reaction: 'helpful',
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

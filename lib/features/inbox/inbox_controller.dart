@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
@@ -36,6 +38,21 @@ class InboxController extends StateNotifier<InboxState> {
   InboxController({required this.apiClient}) : super(const InboxState());
 
   final ApiClient apiClient;
+  static const Duration _pollingInterval = Duration(minutes: 2);
+  Timer? _pollingTimer;
+
+  void startPolling() {
+    stopPolling();
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) {
+      unawaited(load());
+    });
+    unawaited(load());
+  }
+
+  void stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -74,6 +91,8 @@ class InboxController extends StateNotifier<InboxState> {
                   ackStatus: reaction,
                   offerId: item.offerId,
                   offerState: item.offerState,
+                  themeTags: item.themeTags,
+                  emotion: item.emotion,
                 )
               : item,
         )
@@ -123,6 +142,8 @@ class InboxController extends StateNotifier<InboxState> {
                       ackStatus: item.ackStatus,
                       offerId: item.offerId,
                       offerState: 'used',
+                      themeTags: item.themeTags,
+                      emotion: item.emotion,
                     )
                   : item,
             )
@@ -131,6 +152,12 @@ class InboxController extends StateNotifier<InboxState> {
       );
     }
     return response;
+  }
+
+  @override
+  void dispose() {
+    stopPolling();
+    super.dispose();
   }
 }
 
