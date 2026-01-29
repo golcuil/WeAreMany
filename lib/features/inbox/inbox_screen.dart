@@ -26,9 +26,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller = ref.read(inboxControllerProvider.notifier);
-    Future.microtask(
-      () => _controller.startPolling(),
-    );
+    Future.microtask(() => _controller.startPolling());
   }
 
   @override
@@ -164,8 +162,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen>
   }
 
   String _formatThemeEmotion(InboxItem item) {
-    final themeLabel =
-        item.themeTags.isEmpty ? 'Support' : item.themeTags.join(', ');
+    final themeLabel = item.themeTags.isEmpty
+        ? 'Support'
+        : item.themeTags.join(', ');
     final emotion = item.emotion?.trim();
     if (emotion == null || emotion.isEmpty) {
       return themeLabel;
