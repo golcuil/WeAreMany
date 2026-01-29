@@ -12,6 +12,7 @@ workflow. This is **not** a guarantee of no incidents.
 1) Run `python3 -m tools.docs_consistency_check` → `docs/OPERATOR_GOLDEN_PATH.md`
 2) Run `python3 tools/policy_check.py` → `docs/operator_runbook.md`
 3) Run `operator_rehearsal_no_secrets` → `docs/operator_rehearsal.md`
+3b) Optional: run `operator_tools_contract_smoke_no_secrets` (manual) → `docs/logging_policy.md`
 4) Run `prod_verify` (verify) → `docs/production_bootstrap.md`
 5) Validate regression baseline (`generate_regression_baseline`, `baseline_validate --latest`) → `docs/regression_baseline.md`
 6) Run `staged_rollout_canary_gate` → `docs/staged_rollout.md`
