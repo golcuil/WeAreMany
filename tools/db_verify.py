@@ -4,7 +4,7 @@ import argparse
 import os
 from typing import Iterable
 
-from tools.tool_contract import print_token_line
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
 try:
     import psycopg as _psycopg
 except Exception:
@@ -38,22 +38,31 @@ def _check_tables(cur, required: Iterable[str]) -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Verify production DB connectivity and required tables.")
+    parser = argparse.ArgumentParser(
+        description="Verify production DB connectivity and required tables.",
+        epilog=help_epilog("db_verify", ["0 ok/not_configured", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument("--dsn-env", type=str, default="POSTGRES_DSN_PROD")
+    add_common_flags(parser)
     args = parser.parse_args(argv)
 
     dsn = os.getenv(args.dsn_env)
     if not dsn:
-        print_token_line(
+        emit_output(
             "db_verify",
             {"status": "not_configured", "reason": "missing_dsn"},
+            allowlist={"status", "reason"},
+            as_json=args.json,
             order=["status", "reason"],
         )
         return 0
     if psycopg is None:
-        print_token_line(
+        emit_output(
             "db_verify",
             {"status": "fail", "reason": "psycopg_missing"},
+            allowlist={"status", "reason"},
+            as_json=args.json,
             order=["status", "reason"],
         )
         return 1
@@ -62,22 +71,32 @@ def main(argv: list[str] | None = None) -> int:
         with psycopg.connect(dsn) as conn, conn.cursor() as cur:
             ok = _check_tables(cur, _get_required_tables())
     except Exception:
-        print_token_line(
+        emit_output(
             "db_verify",
             {"status": "fail", "reason": "db_connect_failed"},
+            allowlist={"status", "reason"},
+            as_json=args.json,
             order=["status", "reason"],
         )
         return 1
 
     if not ok:
-        print_token_line(
+        emit_output(
             "db_verify",
             {"status": "fail", "reason": "missing_tables"},
+            allowlist={"status", "reason"},
+            as_json=args.json,
             order=["status", "reason"],
         )
         return 1
 
-    print_token_line("db_verify", {"status": "ok"}, order=["status"])
+    emit_output(
+        "db_verify",
+        {"status": "ok"},
+        allowlist={"status", "reason"},
+        as_json=args.json,
+        order=["status"],
+    )
     return 0
 
 

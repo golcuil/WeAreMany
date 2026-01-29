@@ -4,7 +4,7 @@ import argparse
 import os
 import re
 
-from tools.tool_contract import print_token_line
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
 
 RUNBOOK_PATH = os.path.join("docs", "operator_runbook.md")
 LAUNCH_CHECKLIST_PATH = os.path.join("docs", "launch_checklist.md")
@@ -30,10 +30,12 @@ BACKLINK_OP_LINE = "Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)"
 BACKLINK_RELEASE_LINE = "Back to [RELEASE_READINESS](RELEASE_READINESS.md)"
 
 
-def _print(status: str, reason: str | None = None) -> None:
-    print_token_line(
+def _print(status: str, reason: str | None, as_json: bool) -> int:
+    return emit_output(
         "docs_check",
         {"status": status, "reason": reason},
+        allowlist={"status", "reason"},
+        as_json=as_json,
         order=["status", "reason"],
     )
 
@@ -67,23 +69,25 @@ def _extract_doc_links(text: str) -> set[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Docs consistency check.")
-    parser.parse_args(argv)
+    parser = argparse.ArgumentParser(
+        description="Docs consistency check.",
+        epilog=help_epilog("docs_check", ["0 ok", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    add_common_flags(parser)
+    args = parser.parse_args(argv)
 
     runbook = _load_text(RUNBOOK_PATH)
     if runbook is None:
-        _print("fail", "runbook_missing")
-        return 1
+        return _print("fail", "runbook_missing", args.json) or 1
 
     golden_path = _load_text(GOLDEN_PATH)
     if golden_path is None:
-        _print("fail", "golden_path_missing")
-        return 1
+        return _print("fail", "golden_path_missing", args.json) or 1
 
     release_readiness = _load_text(RELEASE_READINESS_PATH)
     if release_readiness is None:
-        _print("fail", "release_readiness_missing")
-        return 1
+        return _print("fail", "release_readiness_missing", args.json) or 1
 
     required_golden_links = [
         "docs/RELEASE_READINESS.md",
@@ -96,8 +100,7 @@ def main(argv: list[str] | None = None) -> int:
     ]
     for link in required_golden_links:
         if link not in golden_path:
-            _print("fail", "missing_golden_path_link")
-            return 1
+            return _print("fail", "missing_golden_path_link", args.json) or 1
 
     required_release_links = [
         "docs/OPERATOR_GOLDEN_PATH.md",
@@ -108,8 +111,7 @@ def main(argv: list[str] | None = None) -> int:
     ]
     for link in required_release_links:
         if link not in release_readiness:
-            _print("fail", "missing_release_readiness_link")
-            return 1
+            return _print("fail", "missing_release_readiness_link", args.json) or 1
 
     must_exist = {
         GOLDEN_PATH,
@@ -121,8 +123,7 @@ def main(argv: list[str] | None = None) -> int:
 
     for path in sorted(must_exist):
         if not os.path.exists(path):
-            _print("fail", "required_doc_missing")
-            return 1
+            return _print("fail", "required_doc_missing", args.json) or 1
 
     audit_if_exists = {
         os.path.join("docs", "ops_playbook.md"),
@@ -140,26 +141,20 @@ def main(argv: list[str] | None = None) -> int:
     for doc_path in sorted(audited_docs):
         doc_text = _load_text(doc_path)
         if doc_text is None:
-            _print("fail", "required_doc_missing")
-            return 1
+            return _print("fail", "required_doc_missing", args.json) or 1
         if BACKLINK_OP_LINE not in doc_text or BACKLINK_RELEASE_LINE not in doc_text:
-            _print("fail", "missing_backlink")
-            return 1
+            return _print("fail", "missing_backlink", args.json) or 1
 
     if SUSPICIOUS_DSN.search(runbook):
-        _print("fail", "suspicious_dsn")
-        return 1
+        return _print("fail", "suspicious_dsn", args.json) or 1
     if SUSPICIOUS_DSN.search(golden_path):
-        _print("fail", "suspicious_dsn")
-        return 1
+        return _print("fail", "suspicious_dsn", args.json) or 1
     if SUSPICIOUS_DSN.search(release_readiness):
-        _print("fail", "suspicious_dsn")
-        return 1
+        return _print("fail", "suspicious_dsn", args.json) or 1
     for doc_path in sorted(audited_docs):
         doc_text = _load_text(doc_path)
         if doc_text and SUSPICIOUS_DSN.search(doc_text):
-            _print("fail", "suspicious_dsn")
-            return 1
+            return _print("fail", "suspicious_dsn", args.json) or 1
 
     retention_sources = "\n".join(
         [
@@ -171,10 +166,9 @@ def main(argv: list[str] | None = None) -> int:
     if RETENTION_NUMERIC.search(retention_sources) or RETENTION_NUMERIC_ALT.search(
         retention_sources
     ):
-        _print("fail", "retention_numeric")
-        return 1
+        return _print("fail", "retention_numeric", args.json) or 1
 
-    _print("ok")
+    _print("ok", None, args.json)
     return 0
 
 

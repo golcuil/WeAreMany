@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
 
 ALLOWED_STEPS = {
     "docs_consistency_check": {("ok", None)},
@@ -30,11 +31,14 @@ ALLOWED_STEPS = {
 }
 
 
-def _print(status: str, reason: str | None = None) -> None:
-    line = f"operator_rehearsal status={status}"
-    if reason:
-        line = f"{line} reason={reason}"
-    print(line)
+def _print(status: str, reason: str | None, as_json: bool) -> int:
+    return emit_output(
+        "operator_rehearsal",
+        {"status": status, "reason": reason},
+        allowlist={"status", "reason"},
+        as_json=as_json,
+        order=["status", "reason"],
+    )
 
 
 def _run_command(cmd: list[str]) -> tuple[int, str]:
@@ -92,11 +96,16 @@ def _write_summary(path: str, summary: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Operator no-secrets rehearsal.")
+    parser = argparse.ArgumentParser(
+        description="Operator no-secrets rehearsal.",
+        epilog=help_epilog("operator_rehearsal", ["0 ok", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument(
         "--out",
         default=os.path.join("artifacts", "operator_rehearsal_summary.json"),
     )
+    add_common_flags(parser)
     args = parser.parse_args(argv)
 
     steps = []
@@ -109,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("docs_consistency_check", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     ok, payload = _run_step(
@@ -117,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("policy_check", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     ok, payload = _run_step(
@@ -128,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("db_bootstrap_dry_run", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     ok, payload = _run_step(
@@ -139,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("db_verify", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     ok, payload = _run_step(
@@ -150,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("prod_config_contract", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     ok, payload = _run_step(
@@ -161,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("prod_verify", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     ok, payload = _run_step(
@@ -172,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("baseline_validate", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     ok, payload = _run_step(
@@ -183,7 +192,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     steps.append(("canary_drill", payload))
     if not ok:
-        _print("fail", "unexpected_step_token")
+        _print("fail", "unexpected_step_token", args.json)
         return 1
 
     summary = {
@@ -197,16 +206,16 @@ def main(argv: list[str] | None = None) -> int:
     guard_code, guard_out = _run_command(["python3", "-m", "tools.secret_echo_guard"])
     guard_status, guard_reason = _parse_status(guard_out, "secret_echo_guard")
     if guard_code != 0 or (guard_status, guard_reason) not in ALLOWED_STEPS["secret_echo_guard"]:
-        _print("fail", "secret_echo_guard_failed_after_artifact")
+        _print("fail", "secret_echo_guard_failed_after_artifact", args.json)
         return 1
 
     guard_code, guard_out = _run_command(["python3", "-m", "tools.secret_echo_guard"])
     guard_status, guard_reason = _parse_status(guard_out, "secret_echo_guard")
     if guard_code != 0 or (guard_status, guard_reason) not in ALLOWED_STEPS["secret_echo_guard"]:
-        _print("fail", "secret_echo_guard_failed_final")
+        _print("fail", "secret_echo_guard_failed_final", args.json)
         return 1
 
-    _print("ok")
+    _print("ok", None, args.json)
     return 0
 
 

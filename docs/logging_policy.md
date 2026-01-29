@@ -20,6 +20,7 @@ Canonical links:
 - Stable reason codes
 - Aggregate counts and ratios only
 - One-line stdout for operator tools (tokenized); multi-line output is a contract violation.
+- `--json` one-line allowlisted output for automation (no raw data).
 
 ## Secret-echo guard scope
 - Scans deterministic repo artifacts only:

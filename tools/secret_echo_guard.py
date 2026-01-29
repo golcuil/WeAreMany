@@ -5,7 +5,7 @@ import glob
 import os
 import re
 
-from tools.tool_contract import print_token_line
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
 
 RULES = {
     "dsn_uri": re.compile(r"(postgres|postgresql)://", re.IGNORECASE),
@@ -54,11 +54,16 @@ def _filter_paths(paths: list[str], suffixes: tuple[str, ...]) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Scan logs for secret echoes.")
+    parser = argparse.ArgumentParser(
+        description="Scan logs for secret echoes.",
+        epilog=help_epilog("secret_echo_guard", ["0 ok", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument("--log-file", action="append", default=[])
     parser.add_argument("--log-dir", action="append", default=[])
     parser.add_argument("--artifacts-dir", action="append", default=["artifacts"])
     parser.add_argument("--logs-dir", action="append", default=["logs"])
+    add_common_flags(parser)
     args = parser.parse_args(argv)
 
     log_files = _filter_paths(args.log_file, (".log", ".json"))
@@ -99,15 +104,19 @@ def main(argv: list[str] | None = None) -> int:
                     "rule": rule,
                 }
             )
-        print_token_line(
+        emit_output(
             "secret_echo_guard",
             fields,
+            allowlist={"status", "reason", "matches", "scanned", "file", "line", "rule"},
+            as_json=args.json,
             order=["status", "reason", "matches", "scanned", "file", "line", "rule"],
         )
         return 1
-    print_token_line(
+    emit_output(
         "secret_echo_guard",
         {"status": "ok", "scanned": checked},
+        allowlist={"status", "reason", "matches", "scanned", "file", "line", "rule"},
+        as_json=args.json,
         order=["status", "scanned"],
     )
     return 0

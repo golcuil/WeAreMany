@@ -4,12 +4,7 @@ import argparse
 import os
 import subprocess
 
-
-def _print(status: str, reason: str | None = None) -> None:
-    line = f"prod_verify status={status}"
-    if reason:
-        line = f"{line} reason={reason}"
-    print(line)
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
 
 
 def _run(cmd: list[str]) -> tuple[int, str]:
@@ -20,32 +15,67 @@ def _run(cmd: list[str]) -> tuple[int, str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Production verification helper.")
+    parser = argparse.ArgumentParser(
+        description="Production verification helper.",
+        epilog=help_epilog("prod_verify", ["0 ok/not_configured", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument("--mode", type=str, default="dry_run")
     parser.add_argument("--dsn-env", type=str, default="POSTGRES_DSN_PROD")
+    add_common_flags(parser)
     args = parser.parse_args(argv)
 
     dsn = os.getenv(args.dsn_env)
     if not dsn:
-        _print("not_configured", "missing_required_env")
+        emit_output(
+            "prod_verify",
+            {"status": "not_configured", "reason": "missing_required_env"},
+            allowlist={"status", "reason"},
+            as_json=args.json,
+            order=["status", "reason"],
+        )
         return 0
 
     code, _ = _run(["python3", "-m", "tools.db_bootstrap", "--dry-run"])
     if code != 0:
-        _print("fail", "db_bootstrap_failed")
+        emit_output(
+            "prod_verify",
+            {"status": "fail", "reason": "db_bootstrap_failed"},
+            allowlist={"status", "reason"},
+            as_json=args.json,
+            order=["status", "reason"],
+        )
         return 1
 
     if args.mode == "verify":
         code, _ = _run(["python3", "-m", "tools.db_verify"])
         if code != 0:
-            _print("fail", "db_verify_failed")
+            emit_output(
+                "prod_verify",
+                {"status": "fail", "reason": "db_verify_failed"},
+                allowlist={"status", "reason"},
+                as_json=args.json,
+                order=["status", "reason"],
+            )
             return 1
         code, _ = _run(["python3", "-m", "tools.ops_daily", "smoke"])
         if code != 0:
-            _print("fail", "ops_daily_failed")
+            emit_output(
+                "prod_verify",
+                {"status": "fail", "reason": "ops_daily_failed"},
+                allowlist={"status", "reason"},
+                as_json=args.json,
+                order=["status", "reason"],
+            )
             return 1
 
-    _print("ok")
+    emit_output(
+        "prod_verify",
+        {"status": "ok"},
+        allowlist={"status", "reason"},
+        as_json=args.json,
+        order=["status"],
+    )
     return 0
 
 

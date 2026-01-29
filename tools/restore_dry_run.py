@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
+
 
 def _run(cmd: list[str], env: dict[str, str]) -> tuple[int, str]:
     result = subprocess.run(cmd, env=env, capture_output=True, text=True)
@@ -25,24 +27,43 @@ def _parse_bootstrap_fail(output: str) -> dict[str, str] | None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Restore dry-run against ephemeral Postgres.")
+    parser = argparse.ArgumentParser(
+        description="Restore dry-run against ephemeral Postgres.",
+        epilog=help_epilog("restore_dry_run", ["0 ok", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument("--dsn-env", type=str, required=True)
     parser.add_argument(
         "--fixture",
         type=str,
         default="fixtures/sanitized_restore_fixture.sql",
     )
+    add_common_flags(parser)
     args = parser.parse_args(argv)
 
     dsn = os.getenv(args.dsn_env)
     if not dsn:
-        print(
-            "restore_dry_run status=fail reason=migrations_failed "
-            f"subreason=dsn_missing dsn_env={args.dsn_env}"
+        emit_output(
+            "restore_dry_run",
+            {
+                "status": "fail",
+                "reason": "migrations_failed",
+                "subreason": "dsn_missing",
+                "dsn_env": args.dsn_env,
+            },
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason", "subreason", "dsn_env", "migration", "sqlstate"],
         )
         return 1
     if not os.path.exists(args.fixture):
-        print("restore_dry_run status=fail reason=missing_fixture")
+        emit_output(
+            "restore_dry_run",
+            {"status": "fail", "reason": "missing_fixture"},
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason"],
+        )
         return 1
 
     env = dict(os.environ)
@@ -54,7 +75,13 @@ def main(argv: list[str] | None = None) -> int:
         env,
     )
     if restore_code != 0:
-        print("restore_dry_run status=fail reason=restore_failed")
+        emit_output(
+            "restore_dry_run",
+            {"status": "fail", "reason": "restore_failed"},
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason"],
+        )
         return 1
 
     prereq_code, _prereq_output = _run(
@@ -69,7 +96,13 @@ def main(argv: list[str] | None = None) -> int:
         env,
     )
     if prereq_code != 0:
-        print("restore_dry_run status=fail reason=prereq_failed")
+        emit_output(
+            "restore_dry_run",
+            {"status": "fail", "reason": "prereq_failed"},
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason"],
+        )
         return 1
     prereq_code, _prereq_output = _run(
         [
@@ -83,7 +116,13 @@ def main(argv: list[str] | None = None) -> int:
         env,
     )
     if prereq_code != 0:
-        print("restore_dry_run status=fail reason=prereq_failed")
+        emit_output(
+            "restore_dry_run",
+            {"status": "fail", "reason": "prereq_failed"},
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason"],
+        )
         return 1
 
     apply_code, apply_output = _run(
@@ -92,17 +131,33 @@ def main(argv: list[str] | None = None) -> int:
     if apply_code != 0:
         parsed = _parse_bootstrap_fail(apply_output)
         if not parsed:
-            print(
-                "restore_dry_run status=fail reason=migrations_failed "
-                "subreason=missing_bootstrap_fail_line"
+            emit_output(
+                "restore_dry_run",
+                {
+                    "status": "fail",
+                    "reason": "migrations_failed",
+                    "subreason": "missing_bootstrap_fail_line",
+                },
+                allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+                as_json=args.json,
+                order=["status", "reason", "subreason", "dsn_env", "migration", "sqlstate"],
             )
             return 1
         subreason = parsed.get("reason", "migration_apply_failed")
         migration = parsed.get("migration", "unknown")
         sqlstate = parsed.get("sqlstate", "na")
-        print(
-            "restore_dry_run status=fail reason=migrations_failed "
-            f"subreason={subreason} migration={migration} sqlstate={sqlstate}"
+        emit_output(
+            "restore_dry_run",
+            {
+                "status": "fail",
+                "reason": "migrations_failed",
+                "subreason": subreason,
+                "migration": migration,
+                "sqlstate": sqlstate,
+            },
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason", "subreason", "dsn_env", "migration", "sqlstate"],
         )
         return 1
 
@@ -117,7 +172,13 @@ def main(argv: list[str] | None = None) -> int:
         env,
     )
     if verify_code != 0:
-        print("restore_dry_run status=fail reason=db_verify_failed")
+        emit_output(
+            "restore_dry_run",
+            {"status": "fail", "reason": "db_verify_failed"},
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason"],
+        )
         return 1
 
     idempotent_code, idempotent_output = _run(
@@ -126,21 +187,43 @@ def main(argv: list[str] | None = None) -> int:
     if idempotent_code != 0:
         parsed = _parse_bootstrap_fail(idempotent_output)
         if not parsed:
-            print(
-                "restore_dry_run status=fail reason=idempotency_failed "
-                "subreason=missing_bootstrap_fail_line"
+            emit_output(
+                "restore_dry_run",
+                {
+                    "status": "fail",
+                    "reason": "idempotency_failed",
+                    "subreason": "missing_bootstrap_fail_line",
+                },
+                allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+                as_json=args.json,
+                order=["status", "reason", "subreason", "dsn_env", "migration", "sqlstate"],
             )
             return 1
         subreason = parsed.get("reason", "migration_apply_failed")
         migration = parsed.get("migration", "unknown")
         sqlstate = parsed.get("sqlstate", "na")
-        print(
-            "restore_dry_run status=fail reason=idempotency_failed "
-            f"subreason={subreason} migration={migration} sqlstate={sqlstate}"
+        emit_output(
+            "restore_dry_run",
+            {
+                "status": "fail",
+                "reason": "idempotency_failed",
+                "subreason": subreason,
+                "migration": migration,
+                "sqlstate": sqlstate,
+            },
+            allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+            as_json=args.json,
+            order=["status", "reason", "subreason", "dsn_env", "migration", "sqlstate"],
         )
         return 1
 
-    print("restore_dry_run status=ok")
+    emit_output(
+        "restore_dry_run",
+        {"status": "ok"},
+        allowlist={"status", "reason", "subreason", "dsn_env", "migration", "sqlstate"},
+        as_json=args.json,
+        order=["status"],
+    )
     return 0
 
 

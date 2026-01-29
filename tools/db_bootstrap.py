@@ -7,6 +7,8 @@ import re
 import subprocess
 from datetime import datetime, timezone
 
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
+
 try:
     import psycopg as _psycopg
 except Exception:
@@ -18,25 +20,47 @@ psycopg = _psycopg
 def _print_status(
     status: str,
     mode: str,
+    as_json: bool,
     reason: str | None = None,
     applied: int | None = None,
     skipped: int | None = None,
     migration: str | None = None,
     sqlstate: str | None = None,
 ) -> None:
-    parts = [f"db_bootstrap status={status}", f"mode={mode}"]
-    if reason:
-        parts.append(f"reason={reason}")
-    if applied is not None:
-        parts.append(f"applied={applied}")
-    if skipped is not None:
-        parts.append(f"skipped={skipped}")
-    if migration:
-        parts.append(f"migration={migration}")
-    if sqlstate:
-        parts.append(f"sqlstate={sqlstate}")
-    parts.append(f"generated_at={datetime.now(timezone.utc).isoformat()}")
-    print(" ".join(parts))
+    emit_output(
+        "db_bootstrap",
+        {
+            "status": status,
+            "mode": mode,
+            "reason": reason,
+            "applied": applied,
+            "skipped": skipped,
+            "migration": migration,
+            "sqlstate": sqlstate,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        },
+        allowlist={
+            "status",
+            "mode",
+            "reason",
+            "applied",
+            "skipped",
+            "migration",
+            "sqlstate",
+            "generated_at",
+        },
+        as_json=as_json,
+        order=[
+            "status",
+            "mode",
+            "reason",
+            "applied",
+            "skipped",
+            "migration",
+            "sqlstate",
+            "generated_at",
+        ],
+    )
 
 
 def _check_dsn(env_name: str) -> str | None:
@@ -173,66 +197,143 @@ def _run_verify() -> bool:
     return result.returncode == 0
 
 
-def _run_bootstrap_dry_run() -> int:
+def _run_bootstrap_dry_run(as_json: bool) -> int:
     migration_dir = _migration_dir()
     migration_files = _migration_files()
     reason = _validate_migration_plan(migration_dir, migration_files)
     if reason:
-        print(f"db_bootstrap_dry_run status=fail reason={reason}")
+        emit_output(
+            "db_bootstrap_dry_run",
+            {"status": "fail", "reason": reason},
+            allowlist={"status", "reason", "migrations"},
+            as_json=as_json,
+            order=["status", "reason", "migrations"],
+        )
         return 1
-    print(f"db_bootstrap_dry_run status=ok migrations={len(migration_files)}")
+    emit_output(
+        "db_bootstrap_dry_run",
+        {"status": "ok", "migrations": len(migration_files)},
+        allowlist={"status", "reason", "migrations"},
+        as_json=as_json,
+        order=["status", "migrations"],
+    )
     return 0
 
 
-def _run_apply(env_name: str) -> int:
+def _run_apply(env_name: str, as_json: bool) -> int:
     dsn = _check_dsn(env_name)
     if not dsn:
-        print("db_bootstrap status=fail reason=dsn_missing")
+        emit_output(
+            "db_bootstrap",
+            {"status": "fail", "reason": "dsn_missing"},
+            allowlist={
+                "status",
+                "mode",
+                "reason",
+                "applied",
+                "skipped",
+                "migration",
+                "sqlstate",
+                "generated_at",
+            },
+            as_json=as_json,
+            order=["status", "reason"],
+        )
         return 1
     if not _check_psycopg():
-        print("db_bootstrap status=fail reason=psycopg_missing")
+        emit_output(
+            "db_bootstrap",
+            {"status": "fail", "reason": "psycopg_missing"},
+            allowlist={
+                "status",
+                "mode",
+                "reason",
+                "applied",
+                "skipped",
+                "migration",
+                "sqlstate",
+                "generated_at",
+            },
+            as_json=as_json,
+            order=["status", "reason"],
+        )
         return 1
     ok, applied, skipped, reason, migration, sqlstate = _apply_migrations(dsn)
     if not ok:
         fail_reason = reason or "migration_apply_failed"
         migration_value = migration or "unknown"
         sqlstate_value = sqlstate or "na"
-        print(
-            "db_bootstrap status=fail "
-            f"reason={fail_reason} "
-            f"migration={migration_value} "
-            f"sqlstate={sqlstate_value}"
+        emit_output(
+            "db_bootstrap",
+            {
+                "status": "fail",
+                "reason": fail_reason,
+                "migration": migration_value,
+                "sqlstate": sqlstate_value,
+            },
+            allowlist={
+                "status",
+                "mode",
+                "reason",
+                "applied",
+                "skipped",
+                "migration",
+                "sqlstate",
+                "generated_at",
+            },
+            as_json=as_json,
+            order=["status", "reason", "migration", "sqlstate"],
         )
         return 1
-    print(f"db_bootstrap status=ok applied={applied} skipped={skipped}")
+    emit_output(
+        "db_bootstrap",
+        {"status": "ok", "applied": applied, "skipped": skipped},
+        allowlist={
+            "status",
+            "mode",
+            "reason",
+            "applied",
+            "skipped",
+            "migration",
+            "sqlstate",
+            "generated_at",
+        },
+        as_json=as_json,
+        order=["status", "applied", "skipped"],
+    )
     return 0
 
 
-def _run_verify_mode() -> int:
+def _run_verify_mode(as_json: bool) -> int:
     if not _run_verify():
-        _print_status("fail", "verify", "verify_failed")
+        _print_status("fail", "verify", as_json, "verify_failed")
         return 1
-    _print_status("ok", "verify")
+    _print_status("ok", "verify", as_json)
     return 0
 
 
-def _run_all(env_name: str) -> int:
-    if _run_apply(env_name) != 0:
+def _run_all(env_name: str, as_json: bool) -> int:
+    if _run_apply(env_name, as_json) != 0:
         return 1
-    if _run_verify_mode() != 0:
+    if _run_verify_mode(as_json) != 0:
         return 1
-    _print_status("ok", "all")
+    _print_status("ok", "all", as_json)
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Bootstrap production database.")
+    parser = argparse.ArgumentParser(
+        description="Bootstrap production database.",
+        epilog=help_epilog("db_bootstrap", ["0 ok", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument("--dsn-env", type=str, default="POSTGRES_DSN_PROD")
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate migration plan without DB connectivity.",
     )
+    add_common_flags(parser)
     subparsers = parser.add_subparsers(dest="command", required=False)
 
     subparsers.add_parser("dry_run")
@@ -248,21 +349,21 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.dry_run:
-        return _run_bootstrap_dry_run()
+        return _run_bootstrap_dry_run(args.json)
 
     if not args.command:
-        _print_status("fail", "unknown", "invalid_command")
+        _print_status("fail", "unknown", args.json, "invalid_command")
         return 1
 
     if args.command == "dry_run":
-        return _run_bootstrap_dry_run()
+        return _run_bootstrap_dry_run(args.json)
     if args.command == "apply_migrations":
-        return _run_apply(args.dsn_env)
+        return _run_apply(args.dsn_env, args.json)
     if args.command == "verify":
-        return _run_verify_mode()
+        return _run_verify_mode(args.json)
     if args.command == "all":
-        return _run_all(args.dsn_env)
-    _print_status("fail", "unknown", "invalid_command")
+        return _run_all(args.dsn_env, args.json)
+    _print_status("fail", "unknown", args.json, "invalid_command")
     return 1
 
 

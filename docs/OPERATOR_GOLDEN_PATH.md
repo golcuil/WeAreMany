@@ -2,6 +2,8 @@
 
 This is the primary onboarding index for operators. Use these links and tokens
 only; do not paste secrets, DSNs, or identifiers into tickets or chat.
+For automation and scripting, prefer tool `--json` output; use token lines for
+human scanning.
 
 Two-canonical-docs rule:
 - Onboarding canonical: `docs/OPERATOR_GOLDEN_PATH.md`

@@ -4,16 +4,8 @@ import argparse
 import json
 import os
 
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
 from tools.regression_schema import validate_baseline, validate_baseline_latest
-
-
-def _print(status: str, reason: str | None = None, kind: str | None = None) -> None:
-    line = f"baseline_validate status={status}"
-    if reason:
-        line = f"{line} reason={reason}"
-    if kind:
-        line = f"{line} kind={kind}"
-    print(line)
 
 
 def _load_json(path: str) -> dict | None:
@@ -25,19 +17,36 @@ def _load_json(path: str) -> dict | None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate regression baseline artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Validate regression baseline artifacts.",
+        epilog=help_epilog("baseline_validate", ["0 ok", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument("--baseline", type=str, default=None)
     parser.add_argument("--latest", action="store_true")
+    add_common_flags(parser)
     args = parser.parse_args(argv)
 
     if args.latest:
         latest_path = os.path.join("artifacts", "regression_baseline_latest.json")
         latest = _load_json(latest_path)
         if latest is None:
-            _print("fail", "missing_latest_pointer", "latest")
+            emit_output(
+                "baseline_validate",
+                {"status": "fail", "reason": "missing_latest_pointer", "kind": "latest"},
+                allowlist={"status", "reason", "kind"},
+                as_json=args.json,
+                order=["status", "reason", "kind"],
+            )
             return 1
         if not validate_baseline_latest(latest):
-            _print("fail", "invalid_baseline_schema", "latest")
+            emit_output(
+                "baseline_validate",
+                {"status": "fail", "reason": "invalid_baseline_schema", "kind": "latest"},
+                allowlist={"status", "reason", "kind"},
+                as_json=args.json,
+                order=["status", "reason", "kind"],
+            )
             return 1
         baseline_path = os.path.join(
             os.path.dirname(latest_path),
@@ -45,26 +54,72 @@ def main(argv: list[str] | None = None) -> int:
         )
         baseline = _load_json(baseline_path)
         if baseline is None:
-            _print("fail", "latest_pointer_missing_target", "latest")
+            emit_output(
+                "baseline_validate",
+                {
+                    "status": "fail",
+                    "reason": "latest_pointer_missing_target",
+                    "kind": "latest",
+                },
+                allowlist={"status", "reason", "kind"},
+                as_json=args.json,
+                order=["status", "reason", "kind"],
+            )
             return 1
         if not validate_baseline(baseline):
-            _print("fail", "invalid_baseline_schema", "latest")
+            emit_output(
+                "baseline_validate",
+                {"status": "fail", "reason": "invalid_baseline_schema", "kind": "latest"},
+                allowlist={"status", "reason", "kind"},
+                as_json=args.json,
+                order=["status", "reason", "kind"],
+            )
             return 1
-        _print("ok", kind="latest")
+        emit_output(
+            "baseline_validate",
+            {"status": "ok", "kind": "latest"},
+            allowlist={"status", "reason", "kind"},
+            as_json=args.json,
+            order=["status", "kind"],
+        )
         return 0
 
     if args.baseline:
         baseline = _load_json(args.baseline)
         if baseline is None:
-            _print("fail", "missing_baseline", "baseline")
+            emit_output(
+                "baseline_validate",
+                {"status": "fail", "reason": "missing_baseline", "kind": "baseline"},
+                allowlist={"status", "reason", "kind"},
+                as_json=args.json,
+                order=["status", "reason", "kind"],
+            )
             return 1
         if not validate_baseline(baseline):
-            _print("fail", "invalid_baseline_schema", "baseline")
+            emit_output(
+                "baseline_validate",
+                {"status": "fail", "reason": "invalid_baseline_schema", "kind": "baseline"},
+                allowlist={"status", "reason", "kind"},
+                as_json=args.json,
+                order=["status", "reason", "kind"],
+            )
             return 1
-        _print("ok", kind="baseline")
+        emit_output(
+            "baseline_validate",
+            {"status": "ok", "kind": "baseline"},
+            allowlist={"status", "reason", "kind"},
+            as_json=args.json,
+            order=["status", "kind"],
+        )
         return 0
 
-    _print("fail", "missing_args")
+    emit_output(
+        "baseline_validate",
+        {"status": "fail", "reason": "missing_args"},
+        allowlist={"status", "reason", "kind"},
+        as_json=args.json,
+        order=["status", "reason"],
+    )
     return 1
 
 

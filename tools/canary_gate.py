@@ -9,6 +9,7 @@ import re
 import subprocess
 from typing import Callable
 
+from tools.cli_contract import add_common_flags, emit_output, help_epilog
 
 SECRET_PATTERN = re.compile(
     r"(postgresql?://|BEGIN PRIVATE KEY|Authorization: Bearer|\bsk-[A-Za-z0-9]{8,})"
@@ -22,11 +23,14 @@ class StepResult:
     reason: str | None = None
 
 
-def _print(status: str, reason: str | None = None) -> None:
-    line = f"canary_gate status={status}"
-    if reason:
-        line = f"{line} reason={reason}"
-    print(line)
+def _print(status: str, reason: str | None, as_json: bool) -> int:
+    return emit_output(
+        "canary_gate",
+        {"status": status, "reason": reason},
+        allowlist={"status", "reason"},
+        as_json=as_json,
+        order=["status", "reason"],
+    )
 
 
 def _run_command(cmd: list[str]) -> tuple[int, str, str]:
@@ -68,11 +72,16 @@ def _write_summary(path: str, status: str, reason: str | None, steps: dict) -> N
 
 
 def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
-    parser = argparse.ArgumentParser(description="Canary gate orchestration.")
+    parser = argparse.ArgumentParser(
+        description="Canary gate orchestration.",
+        epilog=help_epilog("canary_gate", ["0 ok", "1 fail"]),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument(
         "--summary-out",
         default=os.path.join("artifacts", "canary_summary.json"),
     )
+    add_common_flags(parser)
     args = parser.parse_args(argv)
 
     steps: dict[str, dict[str, str | None]] = {}
@@ -82,39 +91,39 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
     )
     if _has_secret(stdout) or _has_secret(stderr):
         _write_summary(args.summary_out, "fail", "secret_echo_detected", steps)
-        _print("fail", "secret_echo_detected")
+        _print("fail", "secret_echo_detected", args.json)
         return 1
     result = _parse_status(stdout, "prod_config")
     if code != 0:
         reason = result.reason if result and result.reason else "unexpected_output_format"
         steps["prod_config"] = {"status": "fail", "reason": reason}
         _write_summary(args.summary_out, "fail", reason, steps)
-        _print("fail", reason)
+        _print("fail", reason, args.json)
         return 1
     steps["prod_config"] = {"status": "ok", "reason": None}
 
     code, stdout, stderr = runner(["python3", "-m", "tools.db_verify"])
     if _has_secret(stdout) or _has_secret(stderr):
         _write_summary(args.summary_out, "fail", "secret_echo_detected", steps)
-        _print("fail", "secret_echo_detected")
+        _print("fail", "secret_echo_detected", args.json)
         return 1
     result = _parse_status(stdout, "db_verify")
     if code != 0 or not result or result.status != "ok":
         steps["db_verify"] = {"status": "fail", "reason": "db_verify_failed"}
         _write_summary(args.summary_out, "fail", "db_verify_failed", steps)
-        _print("fail", "db_verify_failed")
+        _print("fail", "db_verify_failed", args.json)
         return 1
     steps["db_verify"] = {"status": "ok", "reason": None}
 
     code, stdout, stderr = runner(["python3", "-m", "tools.ops_daily", "smoke"])
     if _has_secret(stdout) or _has_secret(stderr):
         _write_summary(args.summary_out, "fail", "secret_echo_detected", steps)
-        _print("fail", "secret_echo_detected")
+        _print("fail", "secret_echo_detected", args.json)
         return 1
     if code != 0:
         steps["ops_daily_smoke"] = {"status": "fail", "reason": "ops_daily_smoke_failed"}
         _write_summary(args.summary_out, "fail", "ops_daily_smoke_failed", steps)
-        _print("fail", "ops_daily_smoke_failed")
+        _print("fail", "ops_daily_smoke_failed", args.json)
         return 1
     steps["ops_daily_smoke"] = {"status": "ok", "reason": None}
 
@@ -123,7 +132,7 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
     )
     if _has_secret(stdout) or _has_secret(stderr):
         _write_summary(args.summary_out, "fail", "secret_echo_detected", steps)
-        _print("fail", "secret_echo_detected")
+        _print("fail", "secret_echo_detected", args.json)
         return 1
     snapshot = _extract_snapshot(stdout)
     if code != 0 or not snapshot:
@@ -132,7 +141,7 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
             "reason": "missing_snapshot",
         }
         _write_summary(args.summary_out, "fail", "missing_snapshot", steps)
-        _print("fail", "missing_snapshot")
+        _print("fail", "missing_snapshot", args.json)
         return 1
     snapshot_path = os.path.join(
         os.path.dirname(args.summary_out), "snapshot.json"
@@ -146,7 +155,7 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
     )
     if _has_secret(stdout) or _has_secret(stderr):
         _write_summary(args.summary_out, "fail", "secret_echo_detected", steps)
-        _print("fail", "secret_echo_detected")
+        _print("fail", "secret_echo_detected", args.json)
         return 1
     regression = _parse_status(stdout, "regression_gate")
     if not regression:
@@ -155,7 +164,7 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
             "reason": "unexpected_output_format",
         }
         _write_summary(args.summary_out, "fail", "unexpected_output_format", steps)
-        _print("fail", "unexpected_output_format")
+        _print("fail", "unexpected_output_format", args.json)
         return 1
     if regression.status == "not_configured":
         steps["metrics_regression"] = {
@@ -163,7 +172,7 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
             "reason": "hold_not_configured",
         }
         _write_summary(args.summary_out, "fail", "hold_not_configured", steps)
-        _print("fail", "hold_not_configured")
+        _print("fail", "hold_not_configured", args.json)
         return 1
     if regression.status == "insufficient_data" or code == 2:
         steps["metrics_regression"] = {
@@ -171,7 +180,7 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
             "reason": "hold_insufficient_data",
         }
         _write_summary(args.summary_out, "fail", "hold_insufficient_data", steps)
-        _print("fail", "hold_insufficient_data")
+        _print("fail", "hold_insufficient_data", args.json)
         return 1
     if regression.status != "ok" or code != 0:
         steps["metrics_regression"] = {
@@ -179,12 +188,12 @@ def main(argv: list[str] | None = None, runner: Callable = _run_command) -> int:
             "reason": "metrics_regression_failed",
         }
         _write_summary(args.summary_out, "fail", "metrics_regression_failed", steps)
-        _print("fail", "metrics_regression_failed")
+        _print("fail", "metrics_regression_failed", args.json)
         return 1
 
     steps["metrics_regression"] = {"status": "ok", "reason": None}
     _write_summary(args.summary_out, "ok", None, steps)
-    _print("ok")
+    _print("ok", None, args.json)
     return 0
 
 
