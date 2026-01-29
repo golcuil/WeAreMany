@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # V1 Complete (Operational Sign-Off Bundle)
 
 This document is names-only and privacy-safe. Do not include secrets, DSNs, identifiers,

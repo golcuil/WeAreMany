@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # Logging Policy (Privacy-Safe)
 
 This policy applies to all tools, workflows, and operational outputs.

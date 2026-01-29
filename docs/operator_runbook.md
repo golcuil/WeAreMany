@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # Operator Runbook (Canonical)
 
 This runbook is the routing/landing page for production operations. It is non-sensitive:

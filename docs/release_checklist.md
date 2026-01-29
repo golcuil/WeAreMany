@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # Release Checklist (Versioned)
 
 This checklist is names-only and non-sensitive. Do not paste secrets, DSNs, or identifiers.

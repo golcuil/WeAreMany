@@ -3695,6 +3695,45 @@
   - Tests pass
   - Docs updated (logging policy + runbook links)
   - security checklist passed
+- id: T-101
+  title: "Doc drift-proofing (standardized backlinks + must_exist vs audit_if_exists)"
+  owner: cto
+  state: DONE
+  notes: >
+    Standardized backlink lines across operator docs, added must_exist vs
+    audit_if_exists logic to docs_consistency_check, and kept checks lightweight;
+    CI green.
+  scope:
+    in:
+    - Standardized backlink block in operator docs
+    - must_exist vs audit_if_exists in docs consistency checks
+    - Light link/retention lint without brittle parsing
+    out:
+    - No Flutter/UI changes
+    - No endpoint/schema changes
+    - No feed
+    - No threads/chat
+    - No profiles/identity
+    - No streaks/leaderboards
+  dependencies:
+  - T-100
+  touches:
+    endpoints: []
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - Canonical docs exist and link to required detail docs
+    - Orphan/backlink checks are non-brittle
+    privacy:
+    - Names-only docs (no secrets)
+  tests:
+    unit:
+    - docs_consistency_check passes with standardized backlinks
+  completion_definition:
+  - Policy check passes
+  - Tests pass
+  - Docs updated (backlinks + consistency check)
   - Security checklist passed
   - Security checklist passed
   threat_model:
@@ -3707,6 +3746,9 @@
   title: "Secret-echo guard hardening (deterministic artifacts only)"
   owner: cto
   state: DONE
+  goal: >
+    Harden secret echo detection by scoping scans to deterministic artifacts/logs
+    and enforcing high-signal denylist rules without echoing matches.
   notes: >
     Scoped guard to deterministic artifacts/logs, added high-signal denylist and
     logging policy, and stabilized fixtures/tests; CI green.

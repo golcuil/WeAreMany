@@ -28,6 +28,7 @@
 - Security: backend dependency pins updated to remediate Starlette advisories (fastapi/starlette).
 - Ops: added `db_bootstrap --dry-run` migration plan validation, CI `prod_bootstrap_dry_run` job, and `docs/production_bootstrap.md` checklist.
 - Ops: scheduled ops_daily de-noises early-stage “no traffic” via token-gated normalization (exit 2 + insufficient_data token → green); helper script enforces gating.
+- Ops: standardized doc backlinks and non-brittle orphan detection in docs consistency checks.
 - Ops: scheduled runs now enforce the prod config contract (names-only) before strict ops execution.
 - Ops/CI: added db_migrations_integration job (apply + verify + idempotency) with db_migrations_smoke helper.
 - Ops: added canonical operator runbook and CI docs consistency check.

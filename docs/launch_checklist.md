@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # Launch Checklist (v1)
 
 This checklist is names-only. Do not paste secrets, DSNs, identifiers, or raw user content.

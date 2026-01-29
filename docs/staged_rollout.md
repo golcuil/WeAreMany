@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # Staged Rollout (Canary) Playbook
 
 Names-only. Do not include secrets, DSNs, identifiers, or raw user content.

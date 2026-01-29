@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # Disaster Recovery Playbook (names-only)
 
 This playbook is privacy-safe and names-only: do not paste secrets, DSNs, identifiers,

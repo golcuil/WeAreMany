@@ -211,3 +211,7 @@
 - Decision: secret_echo_guard scans deterministic repo artifacts/logs only (no CI platform log scraping).
 - Decision: denylist is high-signal and allows masked values; env var names in docs are allowed.
 - Decision: logging policy codifies single-line token outputs and prohibits secret/DSN logging.
+
+## D-044 (2026-01-29) — Doc drift-proofing via standardized backlinks
+- Decision: Standardize backlink lines to the two canonical docs to make checks deterministic.
+- Decision: Split docs_consistency_check into must_exist vs audit_if_exists to keep CI non-brittle.

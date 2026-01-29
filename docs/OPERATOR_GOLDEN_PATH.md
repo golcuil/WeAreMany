@@ -9,7 +9,6 @@ Two-canonical-docs rule:
 - All other operator docs are detail docs linked from these canonicals.
 
 ## Start here (one page)
-- `docs/operator_runbook.md`
 - `docs/RELEASE_READINESS.md`
 - `docs/operator_rehearsal.md`
 - `docs/production_bootstrap.md`
@@ -20,6 +19,8 @@ Two-canonical-docs rule:
 - `docs/release_checklist.md`
 - `docs/disaster_recovery.md`
 - `docs/logging_policy.md`
+- `docs/secret_rotation.md`
+- `docs/V1_COMPLETE.md`
 
 ## What “green” means (and does not mean)
 - operator_rehearsal_no_secrets green = tooling is deterministic and no‑secrets drift is detected.

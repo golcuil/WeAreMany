@@ -1,3 +1,6 @@
+Back to [OPERATOR_GOLDEN_PATH](OPERATOR_GOLDEN_PATH.md)
+Back to [RELEASE_READINESS](RELEASE_READINESS.md)
+
 # Operator Rehearsal (No-Secrets)
 
 Purpose: run a deterministic, no-secrets rehearsal to detect tooling drift and
