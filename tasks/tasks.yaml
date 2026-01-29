@@ -4104,6 +4104,24 @@
     - "Verify Silent Hours boundary conditions (21:59 vs 22:01)"
     integration:
     - "End-to-end: Post message -> Wait -> Verify notification payload is generic"
+  id: T-109
+  title: "Ghost Signal UI Integration"
+  owner: frontend
+  state: IN_PROGRESS
+  goal: "Implement a non-intrusive, calming UI for asynchronous signal discovery."
+  scope:
+    in:
+    - "Frontend: Riverpod provider for periodic /inbox polling (2m interval)."
+    - "UI: 'Ghost Glow' animation (soft pulse) for the Inbox icon (no badges)."
+    - "UI: Anonymized Inbox list (Theme-based items + Coarsened Timestamps)."
+    - "UI: Simple reading view for supportive messages."
+    out:
+    - "Red notification badges or 'New' stickers."
+    - "Real-time 'Typing' or 'Online' indicators."
+  acceptance_criteria:
+  - "Signal icon pulses gently when unread messages exist (Soft/Translucent colors)."
+  - "Inbox shows 'Theme/Emotion' and 'Time Windows' (e.g., 'Last night') instead of exact PII-leaking timestamps."
+  - "Reading a message triggers the backend mark-as-read flow (future task or stub)."
   id: T-097
   title: "Secret-echo guard hardening (deterministic artifacts only)"
   owner: cto

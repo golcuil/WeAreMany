@@ -64,25 +64,8 @@ jobs:
       - name: Install backend deps
         run: python3 -m pip install -r backend/requirements.txt pyyaml
 
-      - name: Apply migrations
-        run: |
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0002_eligible_principals.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0003_mood_events.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0004_message_origin.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0005_ack_reaction_expansion.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0006_affinity_table.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0007_messages_theme_tags.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0008_mood_event_theme.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0009_principal_crisis_state.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0010_security_events.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0011_matching_tuning.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0012_finite_content_selections.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0013_daily_ack_aggregates.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0014_second_touch.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0015_second_touch_daily_aggregates.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0016_second_touch_events.sql
-          psql "$POSTGRES_DSN_TEST" -v ON_ERROR_STOP=1 -f db/migrations/0003_mood_events.sql
+      - name: Apply database migrations
+        run: PYTHONPATH=backend python3 -m tools.db_migrations_smoke --dsn-env POSTGRES_DSN_TEST
 
       - name: Verify backend imports
         run: PYTHONPATH=backend python3 -c "import fastapi; import app"
