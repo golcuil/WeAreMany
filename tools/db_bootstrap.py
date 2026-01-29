@@ -94,6 +94,7 @@ def _migration_files() -> list[str]:
         "0014_second_touch.sql",
         "0015_second_touch_daily_aggregates.sql",
         "0016_second_touch_events.sql",
+        "0017_ghost_signal.sql",
     ]
 
 

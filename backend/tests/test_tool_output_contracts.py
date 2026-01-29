@@ -162,7 +162,7 @@ def test_operator_rehearsal_output_contract(monkeypatch, tmp_path):
     outputs = [
         (0, "docs_check status=ok"),
         (0, ""),
-        (0, "db_bootstrap_dry_run status=ok migrations=16"),
+        (0, "db_bootstrap_dry_run status=ok migrations=17"),
         (0, "db_verify status=not_configured reason=missing_dsn"),
         (1, "prod_config status=fail reason=missing_env missing=POSTGRES_DSN_PROD"),
         (0, "prod_verify status=not_configured reason=missing_required_env"),
