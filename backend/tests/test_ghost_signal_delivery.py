@@ -27,7 +27,7 @@ def test_deliver_pending_messages_skip_locked_prevents_double_delivery():
     recipient_id = "r1"
     sender_id = "s1"
     message_id = None
-    now = datetime.now(timezone.utc)
+    now = datetime(2026, 1, 30, 12, 0, tzinfo=timezone.utc)
 
     with psycopg.connect(POSTGRES_DSN) as conn, conn.cursor() as cur:
         cur.execute(
@@ -116,7 +116,7 @@ def test_deliver_pending_messages_skip_locked_prevents_double_delivery():
 def test_skip_locked_prevents_second_runner_from_grabbing_row():
     recipient_id = "r2"
     sender_id = "s2"
-    now = datetime.now(timezone.utc)
+    now = datetime(2026, 1, 30, 12, 0, tzinfo=timezone.utc)
 
     with psycopg.connect(POSTGRES_DSN) as conn, conn.cursor() as cur:
         cur.execute("DELETE FROM messages WHERE origin_device_id = %s", (sender_id,))
