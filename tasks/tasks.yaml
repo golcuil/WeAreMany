@@ -3697,6 +3697,40 @@
   - Docs updated (logging policy + runbook links)
   - security checklist passed
 
+- id: T-111
+  title: "Collective Pulse"
+  owner: frontend
+  state: DONE
+  goal: "Show a privacy-safe, aggregate community pulse with a slow gradient drift."
+  scope:
+    in:
+    - "Frontend: pulse controller polling /pulse/summary"
+    - "UI: weighted gradient drift background on Home"
+    - "Tests: pulse background fallback and weighted colors"
+    out:
+    - "Any per-user data or timestamps"
+    - "Exact counts or message content"
+  dependencies: []
+  touches:
+    endpoints:
+    - "GET /pulse/summary"
+    data: []
+    ai_calls: []
+  acceptance_criteria:
+    functional:
+    - "Pulse polling stops on background and resumes on foreground"
+    - "Gradient transitions take 6-10 seconds"
+    - "Empty distribution falls back to Misty Blue"
+    privacy:
+    - "Aggregate-only distribution; no user IDs or message content"
+  tests:
+    widget:
+    - "Pulse background fallback color"
+    - "Pulse background weighted colors"
+  completion_definition:
+  - Tests pass
+  - dart analyze passes
+
 - id: T-105
   title: "Operator tools contract smoke workflow (manual, no secrets)"
   owner: cto

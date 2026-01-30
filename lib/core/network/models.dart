@@ -320,6 +320,31 @@ class ReflectionSummary {
   }
 }
 
+class PulseSummary {
+  PulseSummary({
+    required this.windowHours,
+    required this.distribution,
+    required this.updatedAtBucket,
+  });
+
+  final int windowHours;
+  final Map<String, int> distribution;
+  final DateTime? updatedAtBucket;
+
+  factory PulseSummary.fromJson(Map<String, dynamic> json) {
+    final rawDistribution =
+        (json['distribution'] as Map<String, dynamic>? ?? {});
+    final updatedAt = json['updated_at_bucket'] as String?;
+    return PulseSummary(
+      windowHours: json['window_hours'] as int? ?? 24,
+      distribution: rawDistribution.map(
+        (key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0),
+      ),
+      updatedAtBucket: updatedAt == null ? null : DateTime.tryParse(updatedAt),
+    );
+  }
+}
+
 class ImpactResponse {
   ImpactResponse({required this.helpedCount});
 

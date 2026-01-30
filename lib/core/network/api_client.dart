@@ -84,6 +84,14 @@ class ApiClient {
     return _parseResponse(response, ImpactResponse.fromJson);
   }
 
+  Future<PulseSummary> fetchPulseSummary({int windowHours = 24}) async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/pulse/summary?window_hours=$windowHours'),
+      headers: _headers(),
+    );
+    return _parseResponse(response, PulseSummary.fromJson);
+  }
+
   Map<String, String> _headers() {
     return {
       'Content-Type': 'application/json',
