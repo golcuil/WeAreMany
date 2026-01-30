@@ -107,5 +107,4 @@ void main() {
     final stored = await JournalStore.loadEntries();
     expect(stored, isEmpty);
   });
-
 }
