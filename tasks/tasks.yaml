@@ -3708,6 +3708,11 @@
     - "UI: weighted gradient drift background on Home"
     - "Tests: pulse background fallback and weighted colors"
     out:
+    - "No feed"
+    - "No threads/chat"
+    - "No profiles/identity"
+    - "No streaks/leaderboards"
+    - "No social graph"
     - "Any per-user data or timestamps"
     - "Exact counts or message content"
   dependencies: []
@@ -3723,13 +3728,29 @@
     - "Empty distribution falls back to Misty Blue"
     privacy:
     - "Aggregate-only distribution; no user IDs or message content"
+    - "risk_level == 2 data is never included in pulse aggregates"
+    - "No free text persisted"
+    security:
+    - "No raw text in logs or analytics"
+    - "AuthN enforced; token required for pulse summary access"
+    - "AuthZ scoped; no cross-user access"
+    - "Rate limit enforced on pulse summary"
+    - "Request validation rejects unknown fields"
+    - "Max body/text size limit enforced"
+    - "No enumeration: non-guessable IDs only"
   tests:
     widget:
     - "Pulse background fallback color"
     - "Pulse background weighted colors"
+    security:
+    - "AuthZ: no cross-user access"
+    - "Rate limit triggers under abuse"
+    - "Identity leak patterns are blocked/rewritten"
+    - "risk_level == 2 does not write free_text to DB"
   completion_definition:
   - Tests pass
   - dart analyze passes
+  - security checklist passed
 
 - id: T-105
   title: "Operator tools contract smoke workflow (manual, no secrets)"
