@@ -1,12 +1,11 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:we_are_many/app/app.dart';
 import 'package:we_are_many/core/network/api_client.dart';
 import 'package:we_are_many/core/network/models.dart';
+import 'package:we_are_many/features/reflection/reflection_screen.dart';
 
 class FakeReflectionApiClient extends ApiClient {
   FakeReflectionApiClient()
@@ -24,7 +23,7 @@ class FakeReflectionApiClient extends ApiClient {
       windowDays: windowDays,
       totalEntries: 3,
       distribution: const {'calm': 1, 'sad': 2},
-      trend: 'down',
+      trend: 'up',
       volatilityDays: 2,
     );
   }
@@ -47,25 +46,52 @@ class FakeReflectionApiClient extends ApiClient {
   }
 }
 
+class EmptyReflectionApiClient extends FakeReflectionApiClient {
+  @override
+  Future<ReflectionSummary> fetchReflectionSummary({int windowDays = 7}) async {
+    return ReflectionSummary(
+      windowDays: windowDays,
+      totalEntries: 0,
+      distribution: const {},
+      trend: 'stable',
+      volatilityDays: 0,
+    );
+  }
+}
+
 void main() {
+  testWidgets('Reflection screen shows empty state', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          apiClientProvider.overrideWithValue(EmptyReflectionApiClient()),
+        ],
+        child: const MaterialApp(home: ReflectionScreen()),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byKey(const Key('reflection_screen')), findsOneWidget);
+    expect(find.text('Start your journey'), findsOneWidget);
+  });
+
   testWidgets('Reflection screen renders summary', (tester) async {
-    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           apiClientProvider.overrideWithValue(FakeReflectionApiClient()),
         ],
-        child: const WeAreManyApp(),
+        child: const MaterialApp(home: ReflectionScreen()),
       ),
     );
 
-    await tester.tap(find.byKey(const Key('tab_reflection')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byKey(const Key('reflection_screen')), findsOneWidget);
-    expect(find.textContaining('Entries:'), findsOneWidget);
-    expect(find.text('calm: 1'), findsOneWidget);
-    expect(find.text('sad: 2'), findsOneWidget);
+    expect(find.text('Feeling lighter overall'), findsOneWidget);
+    expect(find.byKey(const Key('mood_ring')), findsOneWidget);
   });
 }

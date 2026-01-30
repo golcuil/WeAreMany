@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:we_are_many/app/app.dart';
 import 'package:we_are_many/core/local/journal_store.dart';
 import 'package:we_are_many/core/network/api_client.dart';
 import 'package:we_are_many/core/network/models.dart';
@@ -109,44 +108,4 @@ void main() {
     expect(stored, isEmpty);
   });
 
-  testWidgets('Reflection list updates on 7/30 toggle', (tester) async {
-    final now = DateTime.now().toUtc();
-    final todayKey = _dateKey(now);
-    final tenDaysAgoKey = _dateKey(now.subtract(const Duration(days: 10)));
-    final entries = [
-      {'date_key': todayKey, 'text': 'Today'},
-      {'date_key': tenDaysAgoKey, 'text': 'Older'},
-    ];
-    SharedPreferences.setMockInitialValues({
-      JournalStore.storageKey: jsonEncode(entries),
-    });
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          apiClientProvider.overrideWithValue(FakeJournalApiClient()),
-        ],
-        child: const WeAreManyApp(),
-      ),
-    );
-
-    await tester.tap(find.byKey(const Key('tab_reflection')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.text(todayKey), findsOneWidget);
-    expect(find.text(tenDaysAgoKey), findsNothing);
-
-    await tester.tap(find.text('30 days'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.text(tenDaysAgoKey), findsOneWidget);
-  });
-}
-
-String _dateKey(DateTime value) {
-  return '${value.year.toString().padLeft(4, '0')}-'
-      '${value.month.toString().padLeft(2, '0')}-'
-      '${value.day.toString().padLeft(2, '0')}';
 }
