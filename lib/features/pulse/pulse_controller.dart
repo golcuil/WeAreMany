@@ -36,10 +36,8 @@ class PulseState {
 
 class PulseController extends StateNotifier<PulseState>
     with WidgetsBindingObserver {
-  PulseController({
-    required this.apiClient,
-    bool autoStart = true,
-  }) : super(const PulseState()) {
+  PulseController({required this.apiClient, bool autoStart = true})
+    : super(const PulseState()) {
     if (autoStart) {
       _observerAttached = true;
       WidgetsBinding.instance.addObserver(this);
@@ -69,10 +67,7 @@ class PulseController extends StateNotifier<PulseState>
 
   void _startPolling() {
     _timer?.cancel();
-    _timer = Timer.periodic(
-      const Duration(minutes: 10),
-      (_) => load(),
-    );
+    _timer = Timer.periodic(const Duration(minutes: 10), (_) => load());
     unawaited(load());
   }
 

@@ -40,10 +40,9 @@ class CollectivePulseBackground extends StatelessWidget {
       );
     }
 
-    final entries = distribution.entries
-        .where((entry) => entry.value > 0)
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final entries =
+        distribution.entries.where((entry) => entry.value > 0).toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
 
     if (entries.isEmpty) {
       return const LinearGradient(

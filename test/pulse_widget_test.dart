@@ -9,10 +9,7 @@ import 'package:we_are_many/features/pulse/widgets/collective_pulse_background.d
 
 class FakePulseController extends PulseController {
   FakePulseController(PulseState state)
-    : super(
-        apiClient: _NoopApiClient(),
-        autoStart: false,
-      ) {
+    : super(apiClient: _NoopApiClient(), autoStart: false) {
     this.state = state;
   }
 }
@@ -27,70 +24,53 @@ void main() {
     final controller = FakePulseController(const PulseState(distribution: {}));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          pulseControllerProvider.overrideWith((ref) => controller),
-        ],
+        overrides: [pulseControllerProvider.overrideWith((ref) => controller)],
         child: const MaterialApp(home: HomeScreen()),
       ),
     );
 
     await tester.pump();
     final container = tester.widget<AnimatedContainer>(
-      find.descendant(
-        of: find.byType(CollectivePulseBackground),
-        matching: find.byType(AnimatedContainer),
-      ).first,
+      find
+          .descendant(
+            of: find.byType(CollectivePulseBackground),
+            matching: find.byType(AnimatedContainer),
+          )
+          .first,
     );
     final decoration = container.decoration as BoxDecoration;
     final gradient = decoration.gradient as LinearGradient;
     expect(
       gradient.colors,
-      equals(
-        const [
-          Color(0xFFAEC6CF),
-          Color(0xFFAEC6CF),
-        ],
-      ),
+      equals(const [Color(0xFFAEC6CF), Color(0xFFAEC6CF)]),
     );
   });
 
   testWidgets('Pulse background uses weighted colors', (tester) async {
     final controller = FakePulseController(
-      const PulseState(
-        distribution: {
-          'calm': 60,
-          'hopeful': 30,
-          'sad': 10,
-        },
-      ),
+      const PulseState(distribution: {'calm': 60, 'hopeful': 30, 'sad': 10}),
     );
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          pulseControllerProvider.overrideWith((ref) => controller),
-        ],
+        overrides: [pulseControllerProvider.overrideWith((ref) => controller)],
         child: const MaterialApp(home: HomeScreen()),
       ),
     );
 
     await tester.pump();
     final container = tester.widget<AnimatedContainer>(
-      find.descendant(
-        of: find.byType(CollectivePulseBackground),
-        matching: find.byType(AnimatedContainer),
-      ).first,
+      find
+          .descendant(
+            of: find.byType(CollectivePulseBackground),
+            matching: find.byType(AnimatedContainer),
+          )
+          .first,
     );
     final decoration = container.decoration as BoxDecoration;
     final gradient = decoration.gradient as LinearGradient;
     expect(
       gradient.colors,
-      equals(
-        const [
-          Color(0xFFAEC6CF),
-          Color(0xFFF4D35E),
-          Color(0xFFA7B3C2),
-        ],
-      ),
+      equals(const [Color(0xFFAEC6CF), Color(0xFFF4D35E), Color(0xFFA7B3C2)]),
     );
   });
 }
