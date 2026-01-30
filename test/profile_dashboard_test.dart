@@ -11,6 +11,8 @@ import 'package:we_are_many/core/local/mood_history_store.dart';
 import 'package:we_are_many/core/network/api_client.dart';
 import 'package:we_are_many/core/network/models.dart';
 
+import 'test_utils.dart';
+
 class FakeDashboardApiClient extends ApiClient {
   FakeDashboardApiClient()
     : super(
@@ -79,6 +81,7 @@ void main() {
       ProviderScope(
         overrides: [
           apiClientProvider.overrideWithValue(FakeDashboardApiClient()),
+          pulseOverride(),
         ],
         child: const WeAreManyApp(),
       ),

@@ -7,6 +7,8 @@ import 'package:we_are_many/features/home/home_screen.dart';
 import 'package:we_are_many/features/home/home_providers.dart';
 import 'package:we_are_many/features/profile/profile_providers.dart';
 
+import 'test_utils.dart';
+
 void main() {
   testWidgets('Home shows Helpful Series card and opens detail', (
     tester,
@@ -24,6 +26,7 @@ void main() {
       ProviderScope(
         overrides: [
           moodHistoryEntriesProvider.overrideWith((ref) async => entries),
+          pulseOverride(),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
@@ -43,6 +46,7 @@ void main() {
         overrides: [
           moodHistoryEntriesProvider.overrideWith((ref) async => []),
           similarCountProvider.overrideWith((ref) => 28),
+          pulseOverride(),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),

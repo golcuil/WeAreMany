@@ -9,6 +9,8 @@ import 'package:we_are_many/core/network/api_client.dart';
 import 'package:we_are_many/core/network/models.dart';
 import 'package:we_are_many/features/mood/mood_entry_screen.dart';
 
+import 'test_utils.dart';
+
 class FakeApiClient extends ApiClient {
   FakeApiClient()
     : super(
@@ -144,7 +146,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(FakeApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );
@@ -165,7 +170,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(FakeApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );
@@ -188,7 +196,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(NonCrisisApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(NonCrisisApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );

@@ -11,6 +11,8 @@ import 'package:we_are_many/core/utils/time_utils.dart';
 import 'package:we_are_many/app/main_tabs.dart';
 import 'package:we_are_many/features/inbox/inbox_controller.dart';
 
+import 'test_utils.dart';
+
 class FakeInboxApiClient extends ApiClient {
   FakeInboxApiClient(this.items, {this.sendResponse})
     : super(
@@ -95,7 +97,10 @@ void main() {
     ]);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(client)],
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          pulseOverride(),
+        ],
         child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
@@ -125,7 +130,10 @@ void main() {
     ]);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(client)],
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          pulseOverride(),
+        ],
         child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
@@ -162,7 +170,10 @@ void main() {
     ]);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(client)],
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          pulseOverride(),
+        ],
         child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
@@ -198,7 +209,10 @@ void main() {
     ]);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(client)],
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          pulseOverride(),
+        ],
         child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
@@ -241,7 +255,10 @@ void main() {
     ]);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(client)],
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          pulseOverride(),
+        ],
         child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
@@ -270,7 +287,10 @@ void main() {
     ]);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(client)],
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          pulseOverride(),
+        ],
         child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
@@ -301,7 +321,10 @@ void main() {
     ], sendResponse: SecondTouchSendResponse(status: 'queued'));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(client)],
+        overrides: [
+          apiClientProvider.overrideWithValue(client),
+          pulseOverride(),
+        ],
         child: MaterialApp(home: InboxScreen(nowUtc: fixedNow)),
       ),
     );
@@ -352,6 +375,7 @@ void main() {
           inboxControllerProvider.overrideWith(
             (ref) => FakeInboxController(state, client),
           ),
+          pulseOverride(),
         ],
         child: const MaterialApp(home: MainTabs()),
       ),

@@ -12,6 +12,8 @@ import 'package:we_are_many/core/local/profile_store.dart';
 import 'package:we_are_many/core/network/api_client.dart';
 import 'package:we_are_many/core/network/models.dart';
 
+import 'test_utils.dart';
+
 class FakePrivacyApiClient extends ApiClient {
   FakePrivacyApiClient()
     : super(
@@ -70,6 +72,7 @@ void main() {
       ProviderScope(
         overrides: [
           apiClientProvider.overrideWithValue(FakePrivacyApiClient()),
+          pulseOverride(),
         ],
         child: const WeAreManyApp(),
       ),

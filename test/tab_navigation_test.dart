@@ -12,6 +12,8 @@ import 'package:we_are_many/features/profile/about_safety_screen.dart';
 import 'package:we_are_many/features/crisis/crisis_screen.dart';
 import 'package:we_are_many/features/profile/privacy_screen.dart';
 
+import 'test_utils.dart';
+
 class FakeTabsApiClient extends ApiClient {
   FakeTabsApiClient()
     : super(
@@ -54,7 +56,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );
@@ -80,7 +85,10 @@ void main() {
     SharedPreferences.setMockInitialValues({'display_name': 'Ava'});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );
@@ -98,7 +106,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );
@@ -126,7 +137,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );
@@ -148,7 +162,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(FakeTabsApiClient())],
+        overrides: [
+          apiClientProvider.overrideWithValue(FakeTabsApiClient()),
+          pulseOverride(),
+        ],
         child: const WeAreManyApp(),
       ),
     );
